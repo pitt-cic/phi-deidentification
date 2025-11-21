@@ -1,0 +1,23 @@
+# Python cache
+__pycache__/
+
+.venv/
+
+# Environment variables
+.env
+.env.local
+
+# Generated output directories
+output/
+output-text/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+
+# Dataset
+/dataset

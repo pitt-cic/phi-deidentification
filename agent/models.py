@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import field
+from typing import Literal
 from pydantic import BaseModel, Field, model_validator
 from pydantic.dataclasses import dataclass
 
@@ -35,7 +36,10 @@ class PIIEntity(BaseModel):
     type: str = Field(..., description="Normalized PII type label, e.g. 'email'.")
     value: str = Field(..., description="Exact string text that should be redacted from the document.")
     reason: str = Field(..., description="Explanation of why this string is considered PII.")
-    confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence score from 0.0 to 1.0 indicating certainty of PII detection.")
+    confidence: Literal["low", "medium", "high"] = Field(
+        ..., 
+        description="Confidence level: 'low' (needs human review), 'medium' (may benefit from review), 'high' (no review needed)."
+    )
 
 
 class AgentResponse(BaseModel):
@@ -69,7 +73,6 @@ class DetectionParameters:
 
     pii_types: list[str] = field(default_factory=lambda: DEFAULT_PII_TYPES.copy())
     max_entities: int | None = 200
-    include_confidence: bool = True
 
     def __post_init__(self) -> None:
         self.pii_types = self._normalize_types(self.pii_types)

@@ -48,7 +48,7 @@ def redact_text(text: str, pii_entities: list[dict[str, Any]], source_name: str 
         pii_type = entity.get("type", "")
         value = entity.get("value", "")
         reason = entity.get("reason", "")
-        confidence = entity.get("confidence", 0.0)
+        confidence = entity.get("confidence", "unknown")
         tag = format_pii_tag(pii_type)
         
         # Skip if value is empty
@@ -65,7 +65,7 @@ def redact_text(text: str, pii_entities: list[dict[str, Any]], source_name: str 
         
         if occurrences == 0:
             logger.warning(
-                "PII string %r (type=%s, confidence=%.2f, reason=%s) not found in %s, skipping",
+                "PII string %r (type=%s, confidence=%s, reason=%s) not found in %s, skipping",
                 value,
                 pii_type,
                 confidence,
@@ -79,7 +79,7 @@ def redact_text(text: str, pii_entities: list[dict[str, Any]], source_name: str 
         total_replacements += occurrences
         
         logger.debug(
-            "Redacted %s occurrence(s) of %r (type=%s, confidence=%.2f) in %s",
+            "Redacted %s occurrence(s) of %r (type=%s, confidence=%s) in %s",
             occurrences,
             value,
             pii_type,
@@ -97,12 +97,63 @@ def redact_text(text: str, pii_entities: list[dict[str, Any]], source_name: str 
     return redacted_text
 
 
-def process_json_file(json_path: Path, output_dir: Path) -> None:
+def find_pii_positions(text: str, pii_entities: list[dict[str, Any]], source_name: str = "") -> list[dict[str, Any]]:
+    """Find all occurrences of PII entities in text and return their positions.
+    
+    Args:
+        text: The original text to search
+        pii_entities: List of PII entity dicts with 'type', 'value', 'reason', and 'confidence' keys
+        source_name: Optional source name for logging warnings
+        
+    Returns:
+        List of dicts with 'type', 'value', 'start', and 'end' keys for each occurrence
+    """
+    if not pii_entities or not text:
+        return []
+    
+    positions = []
+    
+    for entity in pii_entities:
+        pii_type = entity.get("type", "")
+        value = entity.get("value", "")
+        
+        # Skip if value is empty
+        if not value:
+            logger.warning(
+                "Empty value for %s entity in %s, skipping",
+                pii_type,
+                source_name,
+            )
+            continue
+        
+        # Find all occurrences of this value in the text
+        start_pos = 0
+        while True:
+            pos = text.find(value, start_pos)
+            if pos == -1:
+                break
+            
+            # Add position entry for this occurrence
+            positions.append({
+                "type": pii_type,
+                "value": value,
+                "start": pos,
+                "end": pos + len(value),
+            })
+            
+            # Move search position forward
+            start_pos = pos + 1
+    
+    return positions
+
+
+def process_json_file(json_path: Path, output_dir: Path, output_json_dir: Path | None = None) -> None:
     """Process a single JSON annotation file and create a redacted text file.
     
     Args:
         json_path: Path to the JSON annotation file
         output_dir: Directory where redacted text files will be saved
+        output_json_dir: Optional directory where positions JSON files will be saved
     """
     try:
         # Load JSON file
@@ -141,19 +192,32 @@ def process_json_file(json_path: Path, output_dir: Path) -> None:
         # Redact the text using string-based matching
         redacted_text = redact_text(original_text, pii_entities, source_name=str(json_path))
         
+        # Find PII positions for JSON output
+        pii_positions = find_pii_positions(original_text, pii_entities, source_name=str(json_path))
+        
         # Generate output filename
         # e.g., synthetic_note_001_original_response.json -> synthetic_note_001_original_redacted.txt
         json_stem = json_path.stem  # synthetic_note_001_original_response
         if json_stem.endswith("_response"):
             output_stem = json_stem[:-9] + "_redacted"  # synthetic_note_001_original_redacted
+            positions_stem = json_stem[:-9] + "_positions"  # synthetic_note_001_original_positions
         else:
             output_stem = json_stem + "_redacted"
+            positions_stem = json_stem + "_positions"
         
         output_path = output_dir / f"{output_stem}.txt"
         
         # Save redacted text
         output_path.write_text(redacted_text, encoding="utf-8")
         logger.info("Redacted text saved to %s (%s entities processed)", output_path, len(pii_entities))
+        
+        # Save positions JSON if output_json_dir is provided
+        if output_json_dir is not None:
+            output_json_dir.mkdir(parents=True, exist_ok=True)
+            positions_path = output_json_dir / f"{positions_stem}.json"
+            positions_data = {"pii_entities": pii_positions}
+            positions_path.write_text(json.dumps(positions_data, indent=2), encoding="utf-8")
+            logger.info("PII positions JSON saved to %s (%s occurrences)", positions_path, len(pii_positions))
         
     except (json.JSONDecodeError, OSError, KeyError) as exc:
         logger.error("Error processing %s: %s", json_path, exc)
@@ -164,13 +228,15 @@ def main() -> None:
     project_root = Path(__file__).parent
     output_dir = project_root / "output"
     output_text_dir = project_root / "output-text"
+    output_json_dir = project_root / "output-json"
     
     if not output_dir.exists():
         logger.error("Output directory not found: %s", output_dir)
         return
     
-    # Create output-text directory if it doesn't exist
+    # Create output directories if they don't exist
     output_text_dir.mkdir(parents=True, exist_ok=True)
+    output_json_dir.mkdir(parents=True, exist_ok=True)
     
     # Find all JSON files in output directory
     json_files = sorted(output_dir.glob("*.json"))
@@ -182,9 +248,9 @@ def main() -> None:
     logger.info("Processing %s JSON file(s) from %s", len(json_files), output_dir)
     
     for json_path in json_files:
-        process_json_file(json_path, output_text_dir)
+        process_json_file(json_path, output_text_dir, output_json_dir)
     
-    logger.info("Redaction complete. Redacted files saved to %s", output_text_dir)
+    logger.info("Redaction complete. Redacted files saved to %s, positions JSON saved to %s", output_text_dir, output_json_dir)
 
 
 if __name__ == "__main__":

@@ -10,6 +10,7 @@ __pycache__/
 # Generated output directories
 output/
 output-text/
+output-json/
 
 # IDE
 .vscode/

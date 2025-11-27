@@ -10,12 +10,14 @@ import sys
 from pathlib import Path
 from typing import Any, Sequence
 
+import logfire
 from agent import AgentContext, AgentResponse, DetectionParameters, pii_agent
+from agent.prompt import SYSTEM_PROMPT
 from redact_pii import process_json_file
 
 DEFAULT_PROMPT = (
     "Analyze the document text and identify all requested PII strings. "
-    "Return structured annotations with exact strings to redact, reasons, and confidence scores that comply with the AgentResponse schema."
+    "Return structured annotations with exact strings to redact, reasons, and confidence levels that comply with the AgentResponse schema."
 )
 DEFAULT_MAX_CHARS = 20_000
 
@@ -58,11 +60,6 @@ def parse_args() -> argparse.Namespace:
         "--language",
         default="en",
         help="Language of the document (IETF BCP-47 tag).",
-    )
-    parser.add_argument(
-        "--no-confidence",
-        action="store_true",
-        help="If set, tells the agent to omit confidence/justification text.",
     )
     parser.add_argument(
         "--max-chars",
@@ -113,14 +110,12 @@ def validate_document_length(document_text: str, max_chars: int) -> None:
 def build_detection_params(
     pii_types: Sequence[str] | None,
     max_entities: int | None,
-    include_confidence: bool,
 ) -> DetectionParameters:
     kwargs: dict[str, Any] = {}
     if pii_types:
         kwargs["pii_types"] = [value.lower() for value in pii_types if value.strip()]
     if max_entities is not None:
         kwargs["max_entities"] = max_entities
-    kwargs["include_confidence"] = include_confidence
     return DetectionParameters(**kwargs)
 
 
@@ -167,8 +162,33 @@ async def process_document(
     )
 
     full_prompt = build_prompt_with_document(prompt, document_text)
-    result = await pii_agent.run(full_prompt, deps=context)
-    response: AgentResponse = result.output
+    
+    # Build the exact system instructions the agent sees
+    pii_types_str = ", ".join(detection.pii_types)
+    limit = detection.max_entities or "no-limit"
+    detection_scope = (
+        f"<detection_scope>"
+        f"source={source_name}; "
+        f"pii_types={pii_types_str}; "
+        f"max_entities={limit}"
+        f"</detection_scope>"
+    )
+    system_instructions = f"{SYSTEM_PROMPT}\n\n{detection_scope}"
+    
+    with logfire.span('pii_detection', 
+                      source=source_name,
+                      document_length=len(document_text)) as span:
+        span.set_attribute('system_instructions', system_instructions)
+        span.set_attribute('user_prompt', full_prompt)
+        
+        result = await pii_agent.run(full_prompt, deps=context)
+        response: AgentResponse = result.output
+        
+        span.set_attribute('response', response.model_dump())
+        span.set_attribute('entities_count', len(response.pii_entities))
+        span.set_attribute('needs_review', response.needs_review)
+    
+    return response
     
     logger.info(
         "Processed '%s': %s entities (needs_review=%s)",
@@ -233,14 +253,16 @@ async def process_dataset(
         logger.info("Starting automatic PII redaction...")
         project_root = Path(__file__).parent
         output_text_dir = project_root / "output-text"
+        output_json_dir = project_root / "output-json"
         output_text_dir.mkdir(parents=True, exist_ok=True)
+        output_json_dir.mkdir(parents=True, exist_ok=True)
         
         # Find all JSON files in output directory
         json_files = sorted(output_dir.glob("*.json"))
         for json_path in json_files:
-            process_json_file(json_path, output_text_dir)
+            process_json_file(json_path, output_text_dir, output_json_dir)
         
-        logger.info("Redaction complete. Redacted files saved to %s", output_text_dir)
+        logger.info("Redaction complete. Redacted files saved to %s, positions JSON saved to %s", output_text_dir, output_json_dir)
 
 
 async def run_cli() -> None:
@@ -248,7 +270,6 @@ async def run_cli() -> None:
     detection = build_detection_params(
         pii_types=args.pii_types,
         max_entities=args.max_entities,
-        include_confidence=not args.no_confidence,
     )
 
     if args.dataset is not None:

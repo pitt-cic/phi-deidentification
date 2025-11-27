@@ -29,7 +29,6 @@ DEFAULT_PII_TYPES = [
     "other_unique_identifier",             # 18. Any other characteristic that could uniquely identify the individual
 ]
 
-
 class PIIEntity(BaseModel):
     """Represents a single detected PII string to redact."""
 
@@ -40,7 +39,6 @@ class PIIEntity(BaseModel):
         ..., 
         description="Confidence level: 'low' (needs human review), 'medium' (may benefit from review), 'high' (no review needed)."
     )
-
 
 class AgentResponse(BaseModel):
     """
@@ -66,7 +64,6 @@ class AgentResponse(BaseModel):
             values.review_reason = None
         return values
 
-
 @dataclass
 class DetectionParameters:
     """Fine-grained controls for how the agent extracts PII spans."""
@@ -83,7 +80,6 @@ class DetectionParameters:
     def _normalize_types(values: list[str] | None) -> list[str]:
         cleaned = [value.strip().lower() for value in values or [] if value.strip()]
         return cleaned or DEFAULT_PII_TYPES.copy()
-
 
 @dataclass
 class AgentContext:

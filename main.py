@@ -28,7 +28,6 @@ if not logger.handlers:
         format="%(asctime)s %(levelname)s %(name)s - %(message)s",
     )
 
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Run the Bedrock-backed PII agent against a text document.",
@@ -91,7 +90,6 @@ def parse_args() -> argparse.Namespace:
     )
     return parser.parse_args()
 
-
 def load_document(input_path: Path) -> str:
     if str(input_path) == "-":
         return sys.stdin.read()
@@ -99,13 +97,11 @@ def load_document(input_path: Path) -> str:
         raise FileNotFoundError(f"Input path does not exist or is not a file: {input_path}")
     return input_path.read_text(encoding="utf-8")
 
-
 def validate_document_length(document_text: str, max_chars: int) -> None:
     if not document_text.strip():
         raise ValueError("Document is empty; nothing to analyze.")
     if max_chars > 0 and len(document_text) > max_chars:
         raise ValueError(f"Document length {len(document_text)} exceeds limit of {max_chars} characters.")
-
 
 def build_detection_params(
     pii_types: Sequence[str] | None,
@@ -117,7 +113,6 @@ def build_detection_params(
     if max_entities is not None:
         kwargs["max_entities"] = max_entities
     return DetectionParameters(**kwargs)
-
 
 def build_response_payload(
     response: AgentResponse,
@@ -137,12 +132,10 @@ def build_response_payload(
         "response": response.model_dump(),
     }
 
-
 def build_prompt_with_document(prompt: str, document_text: str) -> str:
     """Build the full prompt with document text delimited."""
     document_delimiter = "=" * 80
     return f"{prompt}\n\n{document_delimiter}\nDocument text to analyze:\n{document_delimiter}\n{document_text}\n{document_delimiter}"
-
 
 async def process_document(
     document_text: str,
@@ -197,7 +190,6 @@ async def process_document(
         response.needs_review,
     )
     return response
-
 
 async def process_dataset(
     dataset_dir: Path,
@@ -264,7 +256,6 @@ async def process_dataset(
         
         logger.info("Redaction complete. Redacted files saved to %s, positions JSON saved to %s", output_text_dir, output_json_dir)
 
-
 async def run_cli() -> None:
     args = parse_args()
     detection = build_detection_params(
@@ -300,14 +291,12 @@ async def run_cli() -> None:
     payload = build_response_payload(response, source_name, args.language, detection, args.raw_response)
     print(json.dumps(payload, indent=2))
 
-
 def main() -> None:
     try:
         asyncio.run(run_cli())
     except (FileNotFoundError, ValueError, OSError) as exc:
         logger.error(str(exc))
         raise SystemExit(1) from exc
-
 
 if __name__ == "__main__":
     main()

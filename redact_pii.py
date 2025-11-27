@@ -14,11 +14,9 @@ if not logger.handlers:
         format="%(asctime)s %(levelname)s %(name)s - %(message)s",
     )
 
-
 def format_pii_tag(pii_type: str) -> str:
     """Convert PII type to tag format (e.g., 'person_name' -> '[PERSON_NAME]')."""
     return f"[{pii_type.upper()}]"
-
 
 def redact_text(text: str, pii_entities: list[dict[str, Any]], source_name: str = "") -> str:
     """Redact PII entities from text by replacing exact string matches with tags.
@@ -96,7 +94,6 @@ def redact_text(text: str, pii_entities: list[dict[str, Any]], source_name: str 
     
     return redacted_text
 
-
 def find_pii_positions(text: str, pii_entities: list[dict[str, Any]], source_name: str = "") -> list[dict[str, Any]]:
     """Find all occurrences of PII entities in text and return their positions.
     
@@ -145,7 +142,6 @@ def find_pii_positions(text: str, pii_entities: list[dict[str, Any]], source_nam
             start_pos = pos + 1
     
     return positions
-
 
 def process_json_file(json_path: Path, output_dir: Path, output_json_dir: Path | None = None) -> None:
     """Process a single JSON annotation file and create a redacted text file.
@@ -222,7 +218,6 @@ def process_json_file(json_path: Path, output_dir: Path, output_json_dir: Path |
     except (json.JSONDecodeError, OSError, KeyError) as exc:
         logger.error("Error processing %s: %s", json_path, exc)
 
-
 def main() -> None:
     """Main entry point: process all JSON files in output/ directory."""
     project_root = Path(__file__).parent
@@ -251,7 +246,6 @@ def main() -> None:
         process_json_file(json_path, output_text_dir, output_json_dir)
     
     logger.info("Redaction complete. Redacted files saved to %s, positions JSON saved to %s", output_text_dir, output_json_dir)
-
 
 if __name__ == "__main__":
     main()

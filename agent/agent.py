@@ -17,12 +17,10 @@ from agent.prompt import SYSTEM_PROMPT
 env_path = Path(__file__).parent.parent / ".env"
 load_dotenv(env_path)
 
-
 # Disable Logfire scrubbing for prompt and system_instructions attributes
-# so we can see the full LLM inputs in logs
 def scrubbing_callback(m: logfire.ScrubMatch):
     if (
-        m.path == ('attributes', 'prompt')
+        m.path == ('attributes', 'user_prompt')
         and m.pattern_match.group(0) == 'Credential'
     ):
         return m.value
@@ -33,11 +31,8 @@ def scrubbing_callback(m: logfire.ScrubMatch):
     ):
         return m.value
 
-
 scrubbing_options = logfire.ScrubbingOptions(callback=scrubbing_callback)
 
-# Initialize Logfire for automatic Pydantic AI instrumentation
-# This must be done before creating the agent to enable auto-instrumentation
 logfire_api_key = os.getenv("LOGFIRE_API_KEY")
 logfire_project = os.getenv("LOGFIRE_PROJECT")
 if logfire_api_key:
@@ -46,7 +41,6 @@ if logfire_api_key:
     else:
         logfire.configure(api_key=logfire_api_key, scrubbing=scrubbing_options)
 else:
-    # If no API key, try using stored credentials from 'logfire auth'
     if logfire_project:
         logfire.configure(project_name=logfire_project, scrubbing=scrubbing_options)
     else:
@@ -55,8 +49,6 @@ else:
 # Get AWS region from environment or use default
 aws_region = os.getenv("AWS_REGION") or os.getenv("AWS_DEFAULT_REGION") or "us-east-1"
 
-# Ensure AWS_DEFAULT_REGION is set for BedrockConverseModel
-# Only set if neither AWS_REGION nor AWS_DEFAULT_REGION is already set
 if not os.getenv("AWS_REGION") and not os.getenv("AWS_DEFAULT_REGION"):
     os.environ["AWS_DEFAULT_REGION"] = aws_region
 
@@ -66,8 +58,7 @@ DEFAULT_MODEL_ID = os.getenv(
     "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
 )
 
-# Initialize BedrockConverseModel - uses AWS credentials from environment or boto3 default chain
-# The model will use the region from AWS_REGION/AWS_DEFAULT_REGION environment variable or boto3 default
+# Initialize BedrockConverseModel
 bedrock_model = BedrockConverseModel(DEFAULT_MODEL_ID)
 
 pii_agent = Agent[AgentContext, AgentResponse](
@@ -75,7 +66,6 @@ pii_agent = Agent[AgentContext, AgentResponse](
     instructions=SYSTEM_PROMPT,
     output_type=ToolOutput(AgentResponse),
 )
-
 
 @pii_agent.instructions
 async def add_detection_scope(ctx: RunContext[AgentContext]) -> str:

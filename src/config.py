@@ -75,8 +75,10 @@ class AWSConfig:
 class GeneratorConfig:
     """Note generator configuration."""
     output_dir: Path = field(default_factory=lambda: Path("output"))
+    s3_output_path: str | None = None
     notes_subdir: str = "notes"
     manifests_subdir: str = "manifests"
+    templates_subdir: str = "templates"
 
     # LLM retry settings
     max_retries: int = 4

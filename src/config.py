@@ -1,12 +1,12 @@
 """Configuration settings for PHI Note Generator."""
 
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 from typing import Dict, List
 
 
-class PHIType(str, Enum):
+class PHIType(StrEnum):
     """HIPAA 18 PHI Identifier Types."""
     NAME = "NAME"
     ADDRESS = "ADDRESS"
@@ -28,7 +28,7 @@ class PHIType(str, Enum):
     OTHER = "OTHER"
 
 
-class NoteType(str, Enum):
+class NoteType(StrEnum):
     """Supported clinical note types."""
     EMERGENCY_DEPT = "emergency_dept"
     DISCHARGE_SUMMARY = "discharge_summary"
@@ -93,10 +93,20 @@ class GeneratorConfig:
     def manifests_dir(self) -> Path:
         return self.output_dir / self.manifests_subdir
 
+    @property
+    def template_notes_dir(self) -> Path:
+        return self.output_dir / self.templates_subdir / self.notes_subdir
+
+    @property
+    def template_manifests_dir(self) -> Path:
+        return self.output_dir / self.templates_subdir / self.manifests_subdir
+
     def ensure_dirs(self):
         """Create output directories if they don't exist."""
         self.notes_dir.mkdir(parents=True, exist_ok=True)
         self.manifests_dir.mkdir(parents=True, exist_ok=True)
+        self.template_notes_dir.mkdir(parents=True, exist_ok=True)
+        self.template_manifests_dir.mkdir(parents=True, exist_ok=True)
 
 
 # Default configurations

@@ -3,27 +3,37 @@
 CLI script for bulk generation of clinical notes using templates or Faker (no LLM).
 
 Usage:
-    # Generate from templates (recommended - uses LLM-generated templates)
+    # Generate from local templates
     python generate_bulk.py --template-dir templates/ --count 1000
+
+    # Generate from S3 templates
+    python generate_bulk.py --template-dir s3://bucket/templates/ --count 1000
+
+    # Save output to S3
+    python generate_bulk.py --template-dir templates/ --count 1000 --s3-output s3://bucket/output/
 
     # Generate from built-in templates (no LLM required)
     python generate_bulk.py --type all --count 500 --seed 42
 """
 
 import argparse
+import boto3
 import json
 import random
 import re
 import sys
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from string import Template
+from urllib.parse import urlparse
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.config import NoteType, PHIType
 from src.phi_generator import PHIGenerator
+import src.utils as utils
 
 
 def fill_template(template_content: str, phi_gen: PHIGenerator) -> tuple:
@@ -144,6 +154,98 @@ def fill_template(template_content: str, phi_gen: PHIGenerator) -> tuple:
     return filled_content, phi_entities
 
 
+def is_s3_path(path: str) -> bool:
+    """Check if path is an S3 path."""
+    return path.startswith('s3://')
+
+
+def parse_s3_path(s3_path: str) -> tuple:
+    """Parse S3 path into bucket and prefix."""
+    parsed = urlparse(s3_path)
+    bucket = parsed.netloc
+    prefix = parsed.path.lstrip('/')
+    # Remove trailing slash
+    if prefix.endswith('/'):
+        prefix = prefix[:-1]
+    return bucket, prefix
+
+
+def list_s3_templates(bucket: str, prefix: str) -> list:
+    """List template files from S3."""
+    s3_client = boto3.client('s3')
+    templates = []
+
+    # List objects with pagination
+    paginator = s3_client.get_paginator('list_objects_v2')
+
+    try:
+        for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+            if 'Contents' not in page:
+                continue
+
+            for obj in page['Contents']:
+                key = obj['Key']
+
+                # Filter: must be .txt
+                if not key.endswith('.txt'):
+                    continue
+
+                templates.append({
+                    'bucket': bucket,
+                    'key': key,
+                    'filename': key.split('/')[-1]
+                })
+
+    except Exception as e:
+        print(f"Error listing S3 objects: {e}")
+        return []
+
+    return templates
+
+
+def download_s3_template(bucket: str, key: str, temp_dir: Path) -> Path:
+    """Download a single template file from S3 to temp directory."""
+    s3_client = boto3.client('s3')
+    filename = key.split('/')[-1]
+    local_path = temp_dir / filename
+
+    try:
+        s3_client.download_file(bucket, key, str(local_path))
+        return local_path
+    except Exception as e:
+        raise RuntimeError(f"Failed to download s3://{bucket}/{key}: {e}")
+
+
+def download_s3_manifest(bucket: str, key: str, temp_dir: Path) -> Path:
+    """Download a manifest file from S3 to temp directory."""
+    s3_client = boto3.client('s3')
+    filename = key.split('/')[-1]
+    local_path = temp_dir / filename
+
+    try:
+        s3_client.download_file(bucket, key, str(local_path))
+        return local_path
+    except Exception as e:
+        # Manifests are optional, so just return None if not found
+        return None
+
+
+def upload_to_s3(local_path: Path, s3_output_path: str):
+    """Upload a file to S3."""
+    parsed = urlparse(s3_output_path)
+    bucket = parsed.netloc
+    # Construct S3 key from output path and filename
+    prefix = parsed.path.lstrip('/')
+    s3_key = f"{prefix}/{local_path.parent.name}/{local_path.name}".lstrip('/')
+
+    s3_client = boto3.client('s3')
+    try:
+        s3_client.upload_file(str(local_path), bucket, s3_key)
+        print(f"  Uploaded to s3://{bucket}/{s3_key}")
+    except Exception as e:
+        print(f"  Warning: Failed to upload to S3: {e}")
+
+
 def load_templates(template_dir: Path) -> list:
     """Load all template files from a directory."""
     templates = []
@@ -177,7 +279,8 @@ def parse_args():
         "--template-dir",
         type=str,
         default=None,
-        help="Directory containing LLM-generated templates (from generate_notes.py --template)"
+        help="Directory containing LLM-generated templates. Supports: "
+             "local paths or S3 paths (s3://bucket/path/)"
     )
     parser.add_argument(
         "-t", "--type",
@@ -197,6 +300,13 @@ def parse_args():
         type=str,
         default="output",
         help="Output directory (default: output)"
+    )
+    parser.add_argument(
+        "--s3-output",
+        type=str,
+        default=None,
+        help="S3 path to save output (e.g., s3://bucket/path/). "
+             "If not provided, saves locally to --output directory."
     )
     parser.add_argument(
         "--seed",
@@ -442,28 +552,6 @@ Provider: {{PROVIDER_NAME}}
 }
 
 
-def get_note_types(type_arg: str) -> list:
-    """Parse the type argument into a list of NoteTypes."""
-    if type_arg.lower() == "all":
-        return list(NoteType)
-
-    type_map = {
-        "emergency_dept": NoteType.EMERGENCY_DEPT,
-        "discharge_summary": NoteType.DISCHARGE_SUMMARY,
-        "progress_note": NoteType.PROGRESS_NOTE,
-        "radiology_report": NoteType.RADIOLOGY_REPORT,
-        "telehealth_consult": NoteType.TELEHEALTH_CONSULT,
-    }
-
-    types = []
-    for t in type_arg.lower().split(","):
-        t = t.strip()
-        if t in type_map:
-            types.append(type_map[t])
-
-    return types
-
-
 def main():
     args = parse_args()
 
@@ -479,31 +567,101 @@ def main():
     phi_gen = PHIGenerator(seed=args.seed)
 
     print(f"Output directory: {output_dir.absolute()}")
+    if args.s3_output:
+        print(f"S3 output: {args.s3_output}")
 
     templates_to_use = []
 
     if args.template_dir:
-        # Load LLM-generated templates
-        template_dir = Path(args.template_dir)
-        if not template_dir.exists():
-            print(f"Error: Template directory not found: {template_dir}")
-            sys.exit(1)
+        # Load LLM-generated templates (local or S3)
+        if is_s3_path(args.template_dir):
+            # S3 mode: list, download, process
+            bucket, prefix = parse_s3_path(args.template_dir)
+            print(f"Listing templates from s3://{bucket}/{prefix}...")
 
-        # Check for templates in notes subdirectory
-        notes_subdir = template_dir / "notes"
-        if notes_subdir.exists():
-            template_dir = notes_subdir
+            s3_templates = list_s3_templates(bucket, prefix)
+            if not s3_templates:
+                print(f"Error: No templates found in s3://{bucket}/{prefix}")
+                sys.exit(1)
 
-        templates = load_templates(template_dir)
-        if not templates:
-            print(f"Error: No templates found in {template_dir}")
-            sys.exit(1)
+            print(f"Found {len(s3_templates)} templates in S3")
 
-        print(f"Loaded {len(templates)} templates from {template_dir}")
-        templates_to_use = templates
+            # Download templates to temp directory
+            with tempfile.TemporaryDirectory() as temp_dir:
+                temp_path = Path(temp_dir)
+                manifests_temp = temp_path / "manifests"
+                manifests_temp.mkdir(exist_ok=True)
+
+                for s3_template in s3_templates:
+                    try:
+                        # Download template file
+                        local_template_path = download_s3_template(
+                            s3_template['bucket'],
+                            s3_template['key'],
+                            temp_path
+                        )
+
+                        # Try to download corresponding manifest
+                        manifest_key = s3_template['key'].replace('/notes/', '/manifests/').replace('.txt', '.json')
+                        manifest_path = None
+                        try:
+                            manifest_path = download_s3_manifest(
+                                s3_template['bucket'],
+                                manifest_key,
+                                manifests_temp
+                            )
+                        except:
+                            pass  # Manifest is optional
+
+                        # Load template data
+                        template_data = {
+                            "id": local_template_path.stem,
+                            "content": local_template_path.read_text(),
+                            "note_type": "unknown"
+                        }
+
+                        # Try to load note type from manifest
+                        if manifest_path and manifest_path.exists():
+                            try:
+                                manifest = json.loads(manifest_path.read_text())
+                                template_data["note_type"] = manifest.get("note_type", "unknown")
+                            except:
+                                pass
+
+                        templates_to_use.append(template_data)
+
+                    except Exception as e:
+                        print(f"  Warning: Failed to load template {s3_template['filename']}: {e}")
+                        continue
+
+            if not templates_to_use:
+                print(f"Error: No templates could be loaded from S3")
+                sys.exit(1)
+
+            print(f"Loaded {len(templates_to_use)} templates from S3")
+
+        else:
+            # Local mode
+            template_dir = Path(args.template_dir)
+            if not template_dir.exists():
+                print(f"Error: Template directory not found: {template_dir}")
+                sys.exit(1)
+
+            # Check for templates in notes subdirectory
+            notes_subdir = template_dir / "notes"
+            if notes_subdir.exists():
+                template_dir = notes_subdir
+
+            templates = load_templates(template_dir)
+            if not templates:
+                print(f"Error: No templates found in {template_dir}")
+                sys.exit(1)
+
+            print(f"Loaded {len(templates)} templates from {template_dir}")
+            templates_to_use = templates
     else:
         # Use built-in templates
-        note_types = get_note_types(args.type)
+        note_types = utils.get_note_types(args.type)
         if not note_types:
             print("Error: No valid note types specified")
             sys.exit(1)
@@ -560,6 +718,11 @@ def main():
             manifest_path = manifests_dir / f"{note_id}.json"
             manifest_path.write_text(json.dumps(manifest, indent=2))
 
+            # Upload to S3 if requested
+            if args.s3_output:
+                upload_to_s3(note_path, args.s3_output)
+                upload_to_s3(manifest_path, args.s3_output)
+
             note_counter += 1
             total_generated += 1
 
@@ -568,8 +731,12 @@ def main():
 
     print("\n" + "=" * 60)
     print(f"Total notes generated: {total_generated}")
-    print(f"Notes saved to: {notes_dir}")
-    print(f"Manifests saved to: {manifests_dir}")
+
+    if args.s3_output:
+        print(f"Output saved to: {args.s3_output}")
+    else:
+        print(f"Notes saved to: {notes_dir}")
+        print(f"Manifests saved to: {manifests_dir}")
 
 
 if __name__ == "__main__":

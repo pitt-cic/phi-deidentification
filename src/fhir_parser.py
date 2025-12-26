@@ -1,10 +1,44 @@
 """FHIR Bundle parser for extracting patient data and clinical context."""
-
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+import jmespath
+import re
+from enum import StrEnum
+
+from .utils import strip_digits, round_and_to_str, human_readable_datetime
+
+class ExtensionURL(StrEnum):
+    US_CORE_RACE = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-race'
+    US_CORE_ETHNICITY = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-ethnicity'
+    MOTHERS_MAIDEN_NAME = 'http://hl7.org/fhir/StructureDefinition/patient-mothersMaidenName'
+    BIRTH_PLACE = 'http://hl7.org/fhir/StructureDefinition/patient-birthPlace'
+    DISABILITY_ADJUSTED_LIFE_YEARS = 'http://synthetichealth.github.io/synthea/disability-adjusted-life-years'
+    QUALITY_ADJUSTED_LIFE_YEARS = 'http://synthetichealth.github.io/synthea/quality-adjusted-life-years'
+
+class MaritalStatus(StrEnum):
+    ANNULLED = 'A'
+    DIVORCED = 'D'
+    INTERLOCUTORY = 'I'
+    LEGALLY_SEPARATED = 'L'
+    MARRIED = 'M'
+    COMMON_LAW = 'C'
+    POLYGAMOUS = 'P'
+    DOMESTIC_PARTNER = 'T'
+    UNMARRIED = 'U'
+    NEVER_MARRIED = 'S'
+    WIDOWED = 'W'
+
+    @classmethod
+    def from_code(cls, letter: str | None) -> str:
+        if not letter:
+            return ''
+        for status in cls:
+            if status.value[0] == letter:
+                return ' '.join(status.name.split('_')).title()
+        return ''
 
 
 @dataclass
@@ -19,6 +53,7 @@ class PatientData:
 
     # Demographics
     first_name: str = ""
+    nicknames: str = ""
     last_name: str = ""
     full_name: str = ""
     prefix: str = ""
@@ -40,9 +75,24 @@ class PatientData:
     race: str = ""
     ethnicity: str = ""
     marital_status: str = ""
-    birth_place: str = ""
+    # birth_place: str = ""
+    birth_city: str = ""
+    birth_state: str = ""
+    birth_country: str = ""
     mothers_maiden_name: str = ""
 
+    # Additional information
+    disability_adjusted_life_years: str = ""
+    quality_adjusted_life_years: str = ""
+
+    # Emergency contact
+    emergency_contact_name: str = ""
+    emergency_contact_phone: str = ""
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+    """
     def to_dict(self) -> dict:
         return {
             "id": self.id,
@@ -68,10 +118,13 @@ class PatientData:
             "race": self.race,
             "ethnicity": self.ethnicity,
             "marital_status": self.marital_status,
-            "birth_place": self.birth_place,
+            # "birth_place": self.birth_place,
+            "birth_city": self.birth_city,
+            "birth_state": self.birth_state,
+            "birth_country": self.birth_country,
             "mothers_maiden_name": self.mothers_maiden_name,
         }
-
+    """
 
 @dataclass
 class EncounterData:
@@ -84,8 +137,10 @@ class EncounterData:
     reason_display: str = ""
     start_datetime: str = ""
     end_datetime: str = ""
-    provider_id: str = ""
-    location_id: str = ""
+    # provider_id: str = ""
+    # location_id: str = ""
+    location_name: str = ""
+    provider_name: str = ""
 
 
 @dataclass
@@ -126,12 +181,6 @@ class OrganizationData:
 
 class FHIRBundleParser:
     """Parse Synthea FHIR bundles to extract patient and clinical data."""
-
-    # US Core extension URLs
-    US_CORE_RACE = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-race'
-    US_CORE_ETHNICITY = 'http://hl7.org/fhir/us/core/StructureDefinition/us-core-ethnicity'
-    MOTHERS_MAIDEN_NAME = 'http://hl7.org/fhir/StructureDefinition/patient-mothersMaidenName'
-    BIRTH_PLACE = 'http://hl7.org/fhir/StructureDefinition/patient-birthPlace'
 
     def __init__(self, bundle_path: Optional[Path] = None):
         self.bundle: Dict[str, Any] = {}
@@ -200,6 +249,32 @@ class FHIRBundleParser:
 
     def extract_patient(self) -> PatientData:
         """Extract patient demographics and identifiers."""
+
+        """
+        Extract below:
+            root
+            - id
+            - name (nested)
+            - telecom (nested)
+            - gender
+            - birthDate
+            - deceasedDateTime
+            - address (nested)
+            - maritalStatus (nested)
+            identifiers
+            - mrn
+            - 
+            extensions
+            - race
+            - ethnicity
+            - mothers maiden name
+            - birth city, state and country
+            - disability adjusted life years
+            - quality adjusted life years
+            
+             
+        """
+
         patients = self.get_resources('Patient')
         if not patients:
             return PatientData()
@@ -211,30 +286,37 @@ class FHIRBundleParser:
         data.id = patient.get('id', '')
 
         # Extract identifiers
-        for identifier in patient.get('identifier', []):
-            id_type = identifier.get('type', {}).get('coding', [{}])[0].get('code', '')
-            id_display = identifier.get('type', {}).get('coding', [{}])[0].get('display', '')
-            value = identifier.get('value', '')
+        data.mrn = jmespath.search("identifier[?type.coding[?code=='MR']] | [0].value", patient) or ''
+        data.ssn = jmespath.search("identifier[?type.coding[?code=='SS']] | [0].value", patient) or ''
+        data.drivers_license = jmespath.search("identifier[?type.coding[?code=='DL']] | [0].value", patient) or ''
+        data.passport = jmespath.search("identifier[?type.coding[?code=='PPN']] | [0].value", patient) or ''
 
-            if 'MR' in id_type or 'Medical Record' in id_display:
-                data.mrn = value
-            elif 'SS' in id_type or 'Social Security' in id_display:
-                data.ssn = value
-            elif 'DL' in id_type or "Driver" in id_display:
-                data.drivers_license = value
-            elif 'PPN' in id_type or 'Passport' in id_display:
-                data.passport = value
-            elif not data.mrn and id_type == '':
-                # First unknown identifier often is MRN
-                data.mrn = value
+        # for identifier in patient.get('identifier', []):
+        #     id_type = identifier.get('type', {}).get('coding', [{}])[0].get('code', '')
+        #     id_display = identifier.get('type', {}).get('coding', [{}])[0].get('display', '')
+        #     value = identifier.get('value', '')
+        #
+        #     if 'MR' in id_type or 'Medical Record' in id_display:
+        #         data.mrn = value
+        #     elif 'SS' in id_type or 'Social Security' in id_display:
+        #         data.ssn = value
+        #     elif 'DL' in id_type or "Driver" in id_display:
+        #         data.drivers_license = value
+        #     elif 'PPN' in id_type or 'Passport' in id_display:
+        #         data.passport = value
+        #     elif not data.mrn and id_type == '':
+        #         # First unknown identifier often is MRN
+        #         data.mrn = value
 
         # Extract name
-        if patient.get('name'):
-            name = patient['name'][0]
-            data.first_name = ' '.join(name.get('given', []))
-            data.last_name = name.get('family', '')
-            data.prefix = ' '.join(name.get('prefix', []))
-            data.full_name = f"{data.first_name} {data.last_name}".strip()
+        official_name = jmespath.search("name[?use=='official'] | [0]", patient) or {}
+        data.first_name = strip_digits(' '.join(official_name.get('given', [])))
+        data.last_name = strip_digits(official_name.get('family', ''))
+        # data.first_name = strip_digits(jmespath.search("name[0].given | join(' ', @)", patient))
+        data.last_name = strip_digits(jmespath.search("name[0].family", patient))
+        # data.prefix = jmespath.search("name[0].prefix[0]", patient) or  ''
+        data.full_name = f"{data.first_name} {data.last_name}".strip()
+        data.nicknames = jmespath.search("(name[?use=='usual'] | [0].given || `[]`) | join(' ', @)", patient) or ""
 
         # Demographics
         data.gender = patient.get('gender', '')
@@ -254,32 +336,41 @@ class FHIRBundleParser:
             except ValueError:
                 data.age = 0
 
-        # Extract address
-        if patient.get('address'):
-            addr = patient['address'][0]
-            data.address_line = ', '.join(addr.get('line', []))
-            data.city = addr.get('city', '')
-            data.state = addr.get('state', '')
-            data.zip_code = addr.get('postalCode', '')
-            data.country = addr.get('country', 'US')
-            data.full_address = f"{data.address_line}, {data.city}, {data.state} {data.zip_code}".strip(', ')
+        # Extract emergency contact information (if any)
+        if patient.get('contact'):
+            emergency_contact = jmespath.search("[?relationship[?coding[?contains(['CP', 'EP', 'N'], code)]]] | [0]", patient["contact"])
+            if emergency_contact:
+                emergency_contact_name = emergency_contact.get('name', {})
+                emergency_contact_first_name = strip_digits(' '.join(emergency_contact_name.get('given', [])))
+                emergency_contact_last_name = strip_digits(emergency_contact_name.get('family', ''))
+                data.emergency_contact_name = f"{emergency_contact_first_name} {emergency_contact_last_name}".strip()
+                data.emergency_contact_phone = jmespath.search("telecom[?system=='phone'] | [0].value", emergency_contact) or ''
 
-        # Extract telecom (phone)
-        for telecom in patient.get('telecom', []):
-            if telecom.get('system') == 'phone':
-                data.phone = telecom.get('value', '')
-                break
+
+        # Extract address
+        address_data = patient.get('address', [{}])[0]
+        data.address_line = address_data.get('line', [""])[0]
+        data.city = address_data.get('city', '')
+        data.state = address_data.get('state', '')
+        data.country = address_data.get('country', '')
+        data.zip_code = address_data.get('postalCode', '')
+        data.full_address = f"{data.address_line}, {data.city}, {data.state} {data.zip_code}".strip()
+
+        data.phone = jmespath.search(f"telecom[?system=='phone'] | [0].value", patient) or ''
 
         # Extract extensions
-        extensions = patient.get('extension', [])
-        data.race = self._extract_extension_value(extensions, self.US_CORE_RACE) or ''
-        data.ethnicity = self._extract_extension_value(extensions, self.US_CORE_ETHNICITY) or ''
-        data.mothers_maiden_name = self._extract_extension_value(extensions, self.MOTHERS_MAIDEN_NAME) or ''
-        data.birth_place = self._extract_extension_value(extensions, self.BIRTH_PLACE) or ''
+        data.race = jmespath.search(f"extension[?url=='{ExtensionURL.US_CORE_RACE}'] | [0].extension[1].valueString", patient) or ''
+        data.ethnicity = jmespath.search(f"extension[?url=='{ExtensionURL.US_CORE_ETHNICITY}'] | [0].extension[1].valueString", patient) or ''
+        data.mothers_maiden_name = strip_digits(jmespath.search(f"extension[?url=='{ExtensionURL.MOTHERS_MAIDEN_NAME}'] | [0].valueString", patient))
+        birth_place = jmespath.search(f"extension[?url=='{ExtensionURL.BIRTH_PLACE}'] | [0].valueAddress", patient) or {}
+        data.birth_city = birth_place.get('city', '')
+        data.birth_state = birth_place.get('state', '')
+        data.birth_country = birth_place.get('country', '')
+        data.disability_adjusted_life_years = round_and_to_str(jmespath.search(f"extension[?url=='{ExtensionURL.DISABILITY_ADJUSTED_LIFE_YEARS}'] | [0].valueDecimal", patient))
+        data.quality_adjusted_life_years = round_and_to_str(jmespath.search(f"extension[?url=='{ExtensionURL.QUALITY_ADJUSTED_LIFE_YEARS}'] | [0].valueDecimal", patient))
 
         # Marital status
-        marital = patient.get('maritalStatus', {}).get('coding', [{}])[0]
-        data.marital_status = marital.get('display', '')
+        data.marital_status = MaritalStatus.from_code(jmespath.search('maritalStatus.coding[0].code', patient))
 
         return data
 
@@ -291,23 +382,40 @@ class FHIRBundleParser:
             data.id = enc.get('id', '')
 
             # Type
+            # data.type_display = jmespath.search('')
             enc_type = enc.get('type', [{}])[0].get('coding', [{}])[0]
-            data.type_code = enc_type.get('code', '')
-            data.type_display = enc_type.get('display', '')
+            # data.type_code = enc_type.get('code', '')
+            # print('DEBUGGG', enc)
+            # print('DEBUGGG2222')
+            # print(jmespath.search("type[].coding[].display", enc))
+            print("ID:", data.id)
+            types = jmespath.search("type[].coding[].display", enc)
+            data.type_display = ', '.join(types) if types else ''
+
+            # data.type_display = jmespath.search("type[].{val: coding[0].display || text}.val | [?@ ] | join(', ', @)", enc)
+            # data.type_display = enc_type.get('display', '')
 
             # Class
             data.encounter_class = enc.get('class', {}).get('code', '')
 
             # Reason
-            if enc.get('reasonCode'):
-                reason = enc['reasonCode'][0].get('coding', [{}])[0]
-                data.reason_code = reason.get('code', '')
-                data.reason_display = reason.get('display', '')
+            reasons = jmespath.search("reasonCode[].coding[].display", enc)
+            data.reason_display = ', '.join(reasons) if reasons else ''
+            # data.reason_display = jmespath.search("reasonCode[].coding[].display | join(', ', @)", enc)
+            # if enc.get('reasonCode'):
+            #     reason = enc['reasonCode'][0].get('coding', [{}])[0]
+            #     data.reason_code = reason.get('code', '')
+            #     data.reason_display = reason.get('display', '')
 
             # Period
             period = enc.get('period', {})
-            data.start_datetime = period.get('start', '')
-            data.end_datetime = period.get('end', '')
+            data.start_datetime = human_readable_datetime(period.get('start', ''))
+            data.end_datetime = human_readable_datetime(period.get('end', ''))
+
+            # Extract location and providers
+            locations = jmespath.search("location[].location.display", enc) or []
+            data.location_name = ', '.join(locations)
+            data.provider_name = jmespath.search("serviceProvider.display", enc) or []
 
             encounters.append(data)
 

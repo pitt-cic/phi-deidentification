@@ -18,6 +18,8 @@ from .config import (
 from .fhir_parser import FHIRBundleParser
 from .phi_generator import PHIGenerator
 from .phi_injector import PHIInjector
+from .s3_client import S3Client
+from .utils import parse_s3_path
 
 
 @dataclass
@@ -67,27 +69,32 @@ class NoteGenerator:
     def __init__(
         self,
         bedrock_client: Optional[BedrockClient] = None,
+        s3_client: Optional[S3Client] = None,
         phi_generator: Optional[PHIGenerator] = None,
         config: Optional[GeneratorConfig] = None
     ):
         self.bedrock = bedrock_client or BedrockClient()
+        self.s3_client = s3_client or S3Client()
         self.phi_gen = phi_generator or PHIGenerator()
         self.phi_injector = PHIInjector(phi_generator=self.phi_gen)
         self.config = config or DEFAULT_GENERATOR_CONFIG
         self.prompts_dir = Path(__file__).parent / "prompts"
 
-    def _load_prompt_template(self, note_type: NoteType, template_mode: bool = False) -> str:
-        """Load a prompt template for the given note type."""
-        suffix = "_template" if template_mode else ""
-        template_path = self.prompts_dir / f"{note_type.value}{suffix}.txt"
+    def _load_prompt(self, note_type: NoteType, template_mode: bool = False) -> str:
+        """Load a prompt for the given note type."""
+        prompt_file_path = self.prompts_dir / f"{note_type.value}.txt"
 
-        # Fall back to regular template if template-specific doesn't exist
-        if not template_path.exists():
-            template_path = self.prompts_dir / f"{note_type.value}.txt"
+        if not prompt_file_path.exists():
+            raise FileNotFoundError(f"Prompt file not found: {prompt_file_path}")
 
-        if not template_path.exists():
-            raise FileNotFoundError(f"Prompt template not found: {template_path}")
-        return template_path.read_text()
+        prompt = prompt_file_path.read_text()
+
+        if template_mode:
+            template_mode_prompt_file_path = self.prompts_dir / "template_mode_prompt.md"
+            template_prompt = template_mode_prompt_file_path.read_text()
+            prompt += "\n\n" + template_prompt
+
+        return prompt
 
     def _build_phi_context_from_fhir(self, context: Dict[str, Any]) -> str:
         """Build PHI context string from FHIR-extracted data."""
@@ -100,6 +107,7 @@ class NoteGenerator:
         lines = [
             f"Patient Name: {patient.get('full_name', '')}",
             f"Date of Birth: {patient.get('birth_date', '')}",
+            f"Birth Place: {patient.get('birth_city', '')}, {patient.get('birth_state', '')}, {patient.get('birth_country', '')}"
             f"Age: {patient.get('age', '')} years old",
             f"Gender: {patient.get('gender', '')}",
             f"SSN: {patient.get('ssn', '')}",
@@ -179,7 +187,7 @@ class NoteGenerator:
         facility = context.get('facility', {})
         device = context.get('device', {})
 
-        # Build list of PHI values to search for
+        # Build a list of PHI values to search for
         phi_values = [
             (patient.get('full_name', ''), PHIType.NAME),
             (patient.get('first_name', ''), PHIType.NAME),
@@ -310,8 +318,28 @@ class NoteGenerator:
         parser = FHIRBundleParser(bundle_path)
         context = parser.get_full_context()
 
+        print("=" * 100)
+        print("ORIGINAL CONTEXT FROM FHIR")
+        print("-" * 100)
+        print(context)
+        with open('original_context.json', 'w') as f:
+            json.dump(context, f, indent=2)
+        with open('original_context.txt', 'w') as f:
+            f.write(self._build_phi_context_from_fhir(context))
+        print("=" * 100)
+
         # Inject additional PHI not in Synthea
         context = self.phi_injector.inject(context)
+
+        print("=" * 100)
+        print("INJECTED CONTEXT")
+        print("-" * 100)
+        print(context)
+        with open('injected_context.json', 'w') as f:
+            json.dump(context, f, indent=2)
+        with open('injected_context.txt', 'w') as f:
+            f.write(self._build_phi_context_from_fhir(context))
+        print("=" * 100)
 
         # Add encounter-specific context
         encounters = context.get('encounters', [])
@@ -378,8 +406,14 @@ class NoteGenerator:
         else:
             phi_context = self._build_phi_context_from_faker(context)
 
+        print("=" * 100)
+        print("CONTEXT TO PASS TO LLM")
+        print("-" * 100)
+        print(phi_context)
+        print("=" * 100)
+
         # Load prompt template
-        prompt_template = self._load_prompt_template(note_type, template_mode)
+        prompt_template = self._load_prompt(note_type, template_mode)
 
         # Add template instructions if in template mode
         if template_mode:
@@ -489,16 +523,21 @@ Use the clinical context (conditions, procedures, medications) as-is, but replac
             context_type='faker'
         )
 
-    def save_note(self, note: GeneratedNote, output_dir: Optional[Path] = None):
+    def save_note(self, note: GeneratedNote):
         """Save a generated note and its manifest to files."""
-        if output_dir is None:
-            output_dir = self.config.output_dir
+        if note.is_template:
+            notes_dir = self.config.template_notes_dir
+            manifests_dir = self.config.template_manifests_dir
+        else:
+            notes_dir = self.config.notes_dir
+            manifests_dir = self.config.manifests_dir
 
-        notes_dir = output_dir / self.config.notes_subdir
-        manifests_dir = output_dir / self.config.manifests_subdir
 
-        notes_dir.mkdir(parents=True, exist_ok=True)
-        manifests_dir.mkdir(parents=True, exist_ok=True)
+        # notes_dir = output_dir / self.config.notes_subdir
+        # manifests_dir = output_dir / self.config.manifests_subdir
+
+        # notes_dir.mkdir(parents=True, exist_ok=True)
+        # manifests_dir.mkdir(parents=True, exist_ok=True)
 
         # Save note content
         note_path = notes_dir / f"{note.note_id}.txt"
@@ -511,11 +550,25 @@ Use the clinical context (conditions, procedures, medications) as-is, but replac
         print(f"Saved note: {note_path}")
         print(f"Saved manifest: {manifest_path}")
 
+        if self.config.s3_output_path:
+            bucket, prefix = parse_s3_path(self.config.s3_output_path)
+            if note.is_template:
+                note_s3_key = f"{prefix}/{self.config.templates_subdir}/{self.config.notes_subdir}/{note_path.name}"
+                manifest_s3_key = f"{prefix}/{self.config.templates_subdir}/{self.config.manifests_subdir}/{manifest_path.name}"
+            else:
+                note_s3_key = f"{prefix}/{self.config.notes_subdir}/{note_path.name}"
+                manifest_s3_key = f"{prefix}/{self.config.manifests_subdir}/{manifest_path.name}"
+
+            self.s3_client.upload(bucket, note_s3_key, note_path)
+            print(f"Uploaded note to s3://{bucket}/{note_s3_key}")
+
+            self.s3_client.upload(bucket, manifest_s3_key, manifest_path)
+            print(f"Uploaded manifest to s3://{bucket}/{manifest_s3_key}")
+
     def generate_and_save(
         self,
         note_type: NoteType,
         count: int = 1,
-        output_dir: Optional[Path] = None,
         bundle_path: Optional[Path] = None,
         template_mode: bool = False
     ) -> List[GeneratedNote]:
@@ -525,7 +578,6 @@ Use the clinical context (conditions, procedures, medications) as-is, but replac
         Args:
             note_type: Type of notes to generate
             count: Number of notes to generate
-            output_dir: Optional output directory
             bundle_path: Optional FHIR bundle to use (uses Faker if not provided)
             template_mode: If True, generate templates
 
@@ -548,7 +600,7 @@ Use the clinical context (conditions, procedures, medications) as-is, but replac
                     template_mode=template_mode
                 )
 
-            self.save_note(note, output_dir)
+            self.save_note(note)
             notes.append(note)
 
         return notes

@@ -96,7 +96,21 @@ class PHIInjector:
         injected = InjectedPHI()
 
         # Generate contact info
-        injected.email = self.phi_gen.generate_email()
+        email_domain = self.phi_gen.generate_email_domain()
+        if (
+                synthea_context.get('patient', {}).get('first_name') and
+                synthea_context.get('patient', {}).get('last_name')
+        ):
+
+            injected.email = f"{synthea_context['patient']['first_name'].lower()}.{synthea_context['patient']['last_name'].lower()}@{email_domain}"
+        elif synthea_context.get('patient', {}).get('first_name'):
+            injected.email = f"{synthea_context['patient']['first_name'].lower()}@{email_domain}"
+        elif synthea_context.get('patient', {}).get('last_name'):
+            injected.email = f"{synthea_context['patient']['last_name'].lower()}@{email_domain}"
+        else:
+            injected.email = self.phi_gen.generate_email()
+
+
         injected.fax = self.phi_gen.generate_fax()
 
         # Generate identifiers
@@ -110,25 +124,25 @@ class PHIInjector:
         injected.patient_portal_url = self.phi_gen.generate_patient_portal_url()
 
         # Generate emergency contact
-        injected.emergency_contact_name = self.phi_gen.generate_name()
-        injected.emergency_contact_phone = self.phi_gen.generate_simple_phone()
-        injected.emergency_contact_relationship = self.phi_gen.fake.random_element([
-            "spouse", "parent", "child", "sibling", "friend", "partner"
-        ])
+        # injected.emergency_contact_name = self.phi_gen.generate_name()["full_name"]
+        # injected.emergency_contact_phone = self.phi_gen.generate_phone()
+        # injected.emergency_contact_relationship = self.phi_gen.fake.random_element([
+        #     "spouse", "parent", "child", "sibling", "friend", "partner"
+        # ])
 
         # Generate provider contact info
-        injected.provider_fax = self.phi_gen.generate_fax()
-        injected.provider_email = self.phi_gen.generate_email()
+        # injected.provider_fax = self.phi_gen.generate_fax()
+        # injected.provider_email = self.phi_gen.generate_email()
 
         # Generate facility info (if not in bundle)
         if not synthea_context.get('organizations'):
             injected.facility_name = self.phi_gen.generate_hospital_name()
-            injected.facility_phone = self.phi_gen.generate_simple_phone()
+            injected.facility_phone = self.phi_gen.generate_phone()
             injected.facility_fax = self.phi_gen.generate_fax()
         else:
             org = synthea_context['organizations'][0]
             injected.facility_name = org.get('name', self.phi_gen.generate_hospital_name())
-            injected.facility_phone = org.get('phone', self.phi_gen.generate_simple_phone())
+            injected.facility_phone = org.get('phone', self.phi_gen.generate_phone())
             injected.facility_fax = self.phi_gen.generate_fax()
 
         # Generate device IDs (supplement if not in bundle)
@@ -166,7 +180,7 @@ class PHIInjector:
                 'name': self.phi_gen.generate_provider_name(),
                 'specialty': 'Internal Medicine',
                 'organization': injected.facility_name,
-                'phone': self.phi_gen.generate_simple_phone(),
+                'phone': self.phi_gen.generate_phone(),
                 'fax': injected.provider_fax,
                 'email': injected.provider_email,
                 'address': ''

@@ -1,0 +1,124 @@
+.type-breakdown {
+  margin-bottom: 32px;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+}
+
+.table-container {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.breakdown-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.breakdown-table th {
+  text-align: left;
+  padding: 14px 16px;
+  background: var(--bg-tertiary);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--transition-fast);
+  white-space: nowrap;
+}
+
+.breakdown-table th:hover {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+
+.sort-icon {
+  margin-left: 6px;
+  opacity: 0.3;
+  font-size: 10px;
+}
+
+.sort-icon.active {
+  opacity: 1;
+  color: var(--accent-primary);
+}
+
+.breakdown-table td {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.breakdown-table tr:hover td {
+  background: var(--bg-tertiary);
+}
+
+.breakdown-table tr.has-errors {
+  background: rgba(248, 113, 113, 0.03);
+}
+
+.type-cell {
+  font-family: var(--font-sans);
+}
+
+.type-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  background: var(--bg-primary);
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.f1-cell .f1-value {
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.f1-value.good {
+  background: var(--color-tp-bg);
+  color: var(--color-tp);
+}
+
+.f1-value.ok {
+  background: var(--color-fp-bg);
+  color: var(--color-fp);
+}
+
+.f1-value.poor {
+  background: var(--color-fn-bg);
+  color: var(--color-fn);
+}
+
+.count-cell {
+  text-align: right;
+}
+
+.count-cell.tp {
+  color: var(--color-tp);
+}
+
+.count-cell.fp {
+  color: var(--color-fp);
+}
+
+.count-cell.fn {
+  color: var(--color-fn);
+}
+
+
+

@@ -17,7 +17,6 @@ from redact_pii import process_json_file
 
 DEFAULT_PROMPT = (
     "Analyze the document text and identify all requested PII strings. "
-    "Return structured annotations with exact strings to redact, reasons, and confidence levels that comply with the AgentResponse schema."
 )
 DEFAULT_MAX_CHARS = 20_000
 
@@ -74,7 +73,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--dataset",
         type=Path,
-        default=None,
+        default=Path("synthetic_dataset/notes"),
         help="Directory containing .txt files to process instead of a single document.",
     )
     parser.add_argument(
@@ -87,6 +86,12 @@ def parse_args() -> argparse.Namespace:
         "--no-redact",
         action="store_true",
         help="Skip automatic PII redaction after processing (dataset mode only).",
+    )
+    parser.add_argument(
+        "--concurrency",
+        type=int,
+        default=3,
+        help="Maximum number of documents to process concurrently (default: 3).",
     )
     return parser.parse_args()
 
@@ -181,8 +186,6 @@ async def process_document(
         span.set_attribute('entities_count', len(response.pii_entities))
         span.set_attribute('needs_review', response.needs_review)
     
-    return response
-    
     logger.info(
         "Processed '%s': %s entities (needs_review=%s)",
         source_name,
@@ -191,27 +194,22 @@ async def process_document(
     )
     return response
 
-async def process_dataset(
-    dataset_dir: Path,
+async def process_single_document(
+    doc_path: Path,
+    semaphore: asyncio.Semaphore,
     *,
     detection: DetectionParameters,
     language: str,
     max_chars: int,
     raw_response: bool,
     output_dir: Path,
-    auto_redact: bool = True,
-) -> None:
-    if not dataset_dir.exists() or not dataset_dir.is_dir():
-        raise FileNotFoundError(f"Dataset directory does not exist: {dataset_dir}")
-
-    output_dir.mkdir(parents=True, exist_ok=True)
-    documents = sorted(path for path in dataset_dir.glob("*.txt") if path.is_file())
-    if not documents:
-        raise ValueError(f"No .txt files found in dataset directory: {dataset_dir}")
-
-    processed = 0
-    failed = 0
-    for doc_path in documents:
+) -> tuple[bool, Path, str | None]:
+    """Process a single document with semaphore-controlled concurrency.
+    
+    Returns:
+        Tuple of (success, doc_path, error_message or None)
+    """
+    async with semaphore:
         try:
             document_text = load_document(doc_path)
             response = await process_document(
@@ -224,12 +222,64 @@ async def process_dataset(
             payload = build_response_payload(response, str(doc_path), language, detection, raw_response)
             output_file = output_dir / f"{doc_path.stem}_response.json"
             output_file.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-            processed += 1
             logger.info("Wrote result for '%s' to '%s'.", doc_path.name, output_file)
+            return (True, doc_path, None)
         except Exception as exc:  # noqa: BLE001
-            failed += 1
             logger.error("Failed to process '%s': %s", doc_path, exc)
-            continue
+            return (False, doc_path, str(exc))
+
+
+async def process_dataset(
+    dataset_dir: Path,
+    *,
+    detection: DetectionParameters,
+    language: str,
+    max_chars: int,
+    raw_response: bool,
+    output_dir: Path,
+    auto_redact: bool = True,
+    concurrency: int = 3,
+) -> None:
+    if not dataset_dir.exists() or not dataset_dir.is_dir():
+        raise FileNotFoundError(f"Dataset directory does not exist: {dataset_dir}")
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    documents = sorted(path for path in dataset_dir.glob("*.txt") if path.is_file())
+    if not documents:
+        raise ValueError(f"No .txt files found in dataset directory: {dataset_dir}")
+
+    logger.info("Processing %d documents with concurrency=%d", len(documents), concurrency)
+    
+    semaphore = asyncio.Semaphore(concurrency)
+    tasks = [
+        process_single_document(
+            doc_path,
+            semaphore,
+            detection=detection,
+            language=language,
+            max_chars=max_chars,
+            raw_response=raw_response,
+            output_dir=output_dir,
+        )
+        for doc_path in documents
+    ]
+    
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    
+    # Aggregate results
+    processed = 0
+    failed = 0
+    for result in results:
+        if isinstance(result, Exception):
+            # Unexpected exception not caught by process_single_document
+            failed += 1
+            logger.error("Unexpected error during processing: %s", result)
+        else:
+            success, doc_path, error = result
+            if success:
+                processed += 1
+            else:
+                failed += 1
 
     total = len(documents)
     logger.info(
@@ -272,6 +322,7 @@ async def run_cli() -> None:
             raw_response=args.raw_response,
             output_dir=args.output_dir,
             auto_redact=not args.no_redact,
+            concurrency=args.concurrency,
         )
         return
 

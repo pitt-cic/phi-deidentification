@@ -11,6 +11,7 @@ __pycache__/
 output/
 output-text/
 output-json/
+eval_results/
 
 # IDE
 .vscode/
@@ -22,3 +23,8 @@ output-json/
 
 # Dataset
 /dataset
+/old_dataset
+/synthetic_dataset
+
+# Dashboard
+node_modules/

@@ -19,17 +19,7 @@ load_dotenv(env_path)
 
 # Disable Logfire scrubbing for prompt and system_instructions attributes
 def scrubbing_callback(m: logfire.ScrubMatch):
-    if (
-        m.path == ('attributes', 'user_prompt')
-        and m.pattern_match.group(0) == 'Credential'
-    ):
-        return m.value
-
-    if (
-        m.path == ('attributes', 'system_instructions')
-        and m.pattern_match.group(0) == 'ssn'
-    ):
-        return m.value
+    return m.value
 
 scrubbing_options = logfire.ScrubbingOptions(callback=scrubbing_callback)
 

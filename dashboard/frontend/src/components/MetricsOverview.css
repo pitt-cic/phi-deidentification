@@ -1,0 +1,131 @@
+.metrics-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.metrics-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.metric-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.metric-card.primary {
+  text-align: center;
+}
+
+.metric-card.highlight {
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(88, 166, 255, 0.1) 100%);
+  border-color: var(--accent-primary);
+}
+
+.metric-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.metric-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+.metric-bar {
+  height: 4px;
+  background: var(--bg-tertiary);
+  border-radius: 2px;
+  margin-top: 12px;
+  overflow: hidden;
+}
+
+.metric-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+.metric-bar-fill.precision {
+  background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
+}
+
+.metric-bar-fill.recall {
+  background: linear-gradient(90deg, #8b5cf6 0%, #a78bfa 100%);
+}
+
+.metric-bar-fill.f1 {
+  background: linear-gradient(90deg, var(--accent-primary) 0%, #93c5fd 100%);
+}
+
+/* Count cards */
+.metrics-row.counts {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.metric-card.count {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+}
+
+.count-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.metric-card.tp .count-icon {
+  background: var(--color-tp-bg);
+  color: var(--color-tp);
+}
+
+.metric-card.fp .count-icon {
+  background: var(--color-fp-bg);
+  color: var(--color-fp);
+}
+
+.metric-card.fn .count-icon {
+  background: var(--color-fn-bg);
+  color: var(--color-fn);
+}
+
+.count-content {
+  flex: 1;
+}
+
+.count-content .metric-value {
+  font-size: 24px;
+  margin-bottom: 2px;
+}
+
+.count-content .metric-label {
+  margin-bottom: 0;
+  font-size: 11px;
+}
+
+
+

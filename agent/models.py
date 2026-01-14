@@ -9,24 +9,24 @@ from pydantic.dataclasses import dataclass
 
 # HIPAA 18 Identifiers for Protected Health Information (PHI)
 DEFAULT_PII_TYPES = [
-    "person_name",                          # 1. Name
-    "postal_address",                       # 2. Address (all geographic subdivisions smaller than state)
-    "date",           # 3. All elements (except years) of dates related to an individual
-    "phone_number",                         # 4. Telephone numbers
-    "fax_number",                           # 5. Fax number
-    "email",                                # 6. Email address
-    "ssn",                                  # 7. Social Security Number
-    "medical_record_number",                # 8. Medical record number
-    "health_plan_beneficiary_number",      # 9. Health plan beneficiary number
-    "account_number",                       # 10. Account number
-    "certificate_or_license_number",        # 11. Certificate or license number
-    "vehicle_identifier",                   # 12. Vehicle identifiers and serial numbers, including license plate numbers
-    "device_identifier",                    # 13. Device identifiers and serial numbers
-    "url",                                  # 14. Web URL
-    "ip_address",                           # 15. Internet Protocol (IP) Address
-    "biometric_identifier",                  # 16. Finger or voice print
-    "photographic_image",                   # 17. Photographic image
-    "other_unique_identifier",             # 18. Any other characteristic that could uniquely identify the individual
+    "person_name",                          
+    "postal_address",        
+    "date", 
+    "phone_number",                         
+    "fax_number",                           
+    "email",                                
+    "ssn",                                  
+    "medical_record_number",                
+    "health_plan_beneficiary_number",      
+    "account_number",                       
+    "certificate_or_license_number",        
+    "vehicle_identifier",                   
+    "device_identifier",                    
+    "url",                                  
+    "ip_address",                           
+    "biometric_identifier",                  
+    "photographic_image",                   
+    "other",             
 ]
 
 class PIIEntity(BaseModel):
@@ -34,7 +34,7 @@ class PIIEntity(BaseModel):
 
     type: str = Field(..., description="Normalized PII type label, e.g. 'email'.")
     value: str = Field(..., description="Exact string text that should be redacted from the document.")
-    reason: str = Field(..., description="Explanation of why this string is considered PII.")
+    reason: str = Field(..., max_length=50, description="Explanation of why this string is considered PII.")
     confidence: Literal["low", "medium", "high"] = Field(
         ..., 
         description="Confidence level: 'low' (needs human review), 'medium' (may benefit from review), 'high' (no review needed)."
@@ -52,17 +52,17 @@ class AgentResponse(BaseModel):
     """
 
     pii_entities: list[PIIEntity] = Field(default_factory=list)
-    summary: str | None = None
+    summary: str | None = Field(default=None, max_length=100)
     needs_review: bool = False
-    review_reason: str | None = None
+    review_reason: str | None = Field(default=None, max_length=50)
 
     @model_validator(mode="after")
-    def _ensure_review_reason(cls, values: "AgentResponse") -> "AgentResponse":
-        if values.needs_review and not values.review_reason:
+    def _ensure_review_reason(self) -> "AgentResponse":
+        if self.needs_review and not self.review_reason:
             raise ValueError("review_reason must be provided when needs_review is true")
-        if not values.needs_review:
-            values.review_reason = None
-        return values
+        if not self.needs_review:
+            self.review_reason = None
+        return self
 
 @dataclass
 class DetectionParameters:

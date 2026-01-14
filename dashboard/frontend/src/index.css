@@ -1,0 +1,115 @@
+:root {
+  /* Colors - Dark theme with medical/clinical feel */
+  --bg-primary: #0f1419;
+  --bg-secondary: #1a1f26;
+  --bg-tertiary: #242b35;
+  --bg-hover: #2d3640;
+  
+  --text-primary: #e7eaed;
+  --text-secondary: #8b949e;
+  --text-muted: #6e7681;
+  
+  --border-color: #30363d;
+  --border-light: #21262d;
+  
+  /* Highlight colors for annotations */
+  --color-tp: #4ade80;
+  --color-tp-bg: rgba(74, 222, 128, 0.2);
+  --color-fp: #facc15;
+  --color-fp-bg: rgba(250, 204, 21, 0.2);
+  --color-fn: #f87171;
+  --color-fn-bg: rgba(248, 113, 113, 0.2);
+  
+  /* Accent colors */
+  --accent-primary: #58a6ff;
+  --accent-success: #3fb950;
+  --accent-warning: #d29922;
+  --accent-danger: #f85149;
+  
+  /* Spacing */
+  --sidebar-width: 280px;
+  --header-height: 60px;
+  
+  /* Typography */
+  --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  height: 100%;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--bg-hover);
+}
+
+/* Selection */
+::selection {
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+}
+
+/* Links */
+a {
+  color: var(--accent-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--text-primary);
+}
+
+/* Utility classes */
+.monospace {
+  font-family: var(--font-mono);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+
+

@@ -87,5 +87,4 @@ def test_config(tmp_path):
 def fhir_parser(minimal_fhir_bundle_path):
     """FHIRBundleParser instance with minimal bundle loaded."""
     parser = FHIRBundleParser(minimal_fhir_bundle_path)
-    parser.load_bundle()
     return parser

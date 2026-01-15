@@ -28,3 +28,4 @@ eval_results/
 
 # Dashboard
 node_modules/
+.vite/

@@ -34,3 +34,68 @@ class TestFHIRBundleLoading:
         assert patient is not None
         assert patient['resourceType'] == 'Patient'
         assert patient['id'] == 'patient-001'
+
+
+@pytest.mark.unit
+class TestPatientExtraction:
+    """Test patient data extraction."""
+
+    def test_extract_patient_basic_fields(self, fhir_parser):
+        """Test extracting basic patient demographics."""
+        patient = fhir_parser.extract_patient().to_dict()
+
+        assert patient is not None
+        assert patient['first_name'] == 'John Michael'
+        assert patient['last_name'] == 'Smith'
+        assert 'full_name' in patient
+        assert patient['gender'] == 'male'
+        assert patient['birth_date'] == '1980-05-15'
+        assert 'age' in patient
+
+    def test_extract_patient_identifiers(self, fhir_parser):
+        """Test extracting patient identifiers."""
+        patient = fhir_parser.extract_patient().to_dict()
+
+        assert 'mrn' in patient
+        assert patient['mrn'] == 'MRN123456'
+        assert 'ssn' in patient
+        assert patient['ssn'] == '123-45-6789'
+        assert 'drivers_license' in patient
+        assert patient['drivers_license'] == 'D1234567'
+
+    def test_extract_patient_contact(self, fhir_parser):
+        """Test extracting patient contact information."""
+        patient = fhir_parser.extract_patient().to_dict()
+
+        assert 'phone' in patient
+        assert patient['phone'] == '555-123-4567'
+
+    def test_extract_patient_address(self, fhir_parser):
+        """Test extracting patient address."""
+        patient = fhir_parser.extract_patient().to_dict()
+
+        assert 'address_line' in patient
+        assert 'city' in patient
+        assert patient['city'] == 'Pittsburgh'
+        assert 'state' in patient
+        assert patient['state'] == 'PA'
+        assert 'zip_code' in patient
+        assert patient['zip_code'] == '15213'
+
+    def test_extract_patient_extensions(self, fhir_parser):
+        """Test extracting patient extensions (race, ethnicity, birthplace)."""
+        patient = fhir_parser.extract_patient().to_dict()
+
+        # Race extension
+        assert 'race' in patient
+
+        # Ethnicity extension
+        assert 'ethnicity' in patient
+
+        # Birthplace extension
+        assert 'birth_city' in patient
+        assert patient['birth_city'] == 'Philadelphia'
+        assert 'birth_state' in patient
+        assert patient['birth_state'] == 'PA'
+        assert 'birth_country' in patient
+        assert patient['birth_country'] == 'US'

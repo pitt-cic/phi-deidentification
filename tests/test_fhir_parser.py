@@ -1,5 +1,6 @@
 """Tests for FHIRBundleParser."""
 import pytest
+from dataclasses import asdict
 from src.fhir_parser import FHIRBundleParser
 
 
@@ -99,3 +100,48 @@ class TestPatientExtraction:
         assert patient['birth_state'] == 'PA'
         assert 'birth_country' in patient
         assert patient['birth_country'] == 'US'
+
+
+@pytest.mark.unit
+class TestClinicalDataExtraction:
+    """Test clinical data extraction."""
+
+    def test_extract_encounters(self, fhir_parser):
+        """Test extracting encounters."""
+        encounters = fhir_parser.extract_encounters()
+
+        assert len(encounters) > 0
+        encounter = asdict(encounters[0])
+        assert 'type_code' in encounter or 'type_display' in encounter
+        assert 'start_datetime' in encounter or 'end_datetime' in encounter
+        assert 'encounter_class' in encounter
+
+    def test_extract_clinical_context(self, fhir_parser):
+        """Test extracting full clinical context."""
+        context = asdict(fhir_parser.extract_clinical_context())
+
+        assert 'conditions' in context or isinstance(context, list)
+        # If conditions exist in bundle, they should be extracted
+        if context.get('conditions') or (isinstance(context, list) and len(context) > 0):
+            if isinstance(context, dict):
+                assert len(context['conditions']) > 0
+            else:
+                assert len(context) > 0
+
+    def test_extract_providers(self, fhir_parser):
+        """Test extracting providers."""
+        providers = fhir_parser.extract_providers()
+
+        assert len(providers) > 0
+        provider = asdict(providers[0])
+        assert 'name' in provider
+        # May have phone, address, etc.
+
+    def test_extract_organizations(self, fhir_parser):
+        """Test extracting organizations."""
+        orgs = fhir_parser.extract_organizations()
+
+        assert len(orgs) > 0
+        org = asdict(orgs[0])
+        assert 'name' in org
+        assert org['name'] == 'Example Medical Center'

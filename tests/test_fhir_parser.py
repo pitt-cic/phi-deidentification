@@ -145,3 +145,34 @@ class TestClinicalDataExtraction:
         org = asdict(orgs[0])
         assert 'name' in org
         assert org['name'] == 'Example Medical Center'
+
+
+@pytest.mark.unit
+class TestFullContext:
+    """Test full context extraction."""
+
+    def test_get_full_context_structure(self, fhir_parser):
+        """Test that get_full_context returns all expected sections."""
+        context = fhir_parser.get_full_context()
+
+        assert isinstance(context, dict)
+        assert 'patient' in context
+        assert 'encounters' in context
+        assert 'providers' in context
+        assert 'organizations' in context
+
+        # Patient should have all expected fields
+        patient = context['patient']
+        assert 'first_name' in patient
+        assert 'last_name' in patient
+        assert 'birth_date' in patient
+        assert 'mrn' in patient
+
+        # Encounters should be a list
+        assert isinstance(context['encounters'], list)
+
+        # Providers should be a list
+        assert isinstance(context['providers'], list)
+
+        # Organizations should be a list
+        assert isinstance(context['organizations'], list)

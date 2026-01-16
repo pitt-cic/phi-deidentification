@@ -74,6 +74,3 @@ export default function MetricsOverview({ metrics }: MetricsOverviewProps) {
     </div>
   )
 }
-
-
-

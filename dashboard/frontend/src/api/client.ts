@@ -5,6 +5,8 @@ import type {
   NoteSummary,
   NoteContent,
   NoteAnnotations,
+  SafeHarborComparison,
+  SafeHarborMetrics,
 } from './types'
 
 const API_BASE = '/api'
@@ -42,5 +44,14 @@ export async function getNoteAnnotations(noteId: string): Promise<NoteAnnotation
   return fetchJson(`/notes/${noteId}/annotations`)
 }
 
+export async function listSafeHarborNotes(): Promise<NoteSummary[]> {
+  return fetchJson('/safe-harbor/notes')
+}
 
+export async function getSafeHarborComparison(noteId: string): Promise<SafeHarborComparison> {
+  return fetchJson(`/safe-harbor/notes/${noteId}/comparison`)
+}
 
+export async function getSafeHarborMetrics(): Promise<SafeHarborMetrics> {
+  return fetchJson('/safe-harbor/metrics')
+}

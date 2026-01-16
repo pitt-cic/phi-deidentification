@@ -12,6 +12,10 @@ output/
 output-text/
 output-json/
 eval_results/
+sample-output/
+sample-output-text/
+sample_safe_harbor_notes/
+sample-output-json/
 
 # IDE
 .vscode/

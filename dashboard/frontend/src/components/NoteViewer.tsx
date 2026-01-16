@@ -20,27 +20,22 @@ export default function NoteViewer({ noteId, text, spans, highlightPosition }: N
   const containerRef = useRef<HTMLDivElement>(null)
   const highlightRef = useRef<HTMLSpanElement>(null)
 
-  // Scroll to highlight position when it changes
   useEffect(() => {
     if (highlightPosition !== undefined && highlightRef.current) {
       highlightRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }
   }, [highlightPosition])
 
-  // Build rendered segments with non-overlapping spans
   const segments = useMemo(() => {
     if (spans.length === 0) {
       return [{ start: 0, end: text.length, text, span: null }]
     }
 
-    // Sort spans by start position
     const sortedSpans = [...spans].sort((a, b) => a.start - b.start)
-    
     const result: Array<{ start: number; end: number; text: string; span: AnnotationSpan | null }> = []
     let currentPos = 0
 
     for (const span of sortedSpans) {
-      // Add text before this span (if any)
       if (span.start > currentPos) {
         result.push({
           start: currentPos,
@@ -50,7 +45,6 @@ export default function NoteViewer({ noteId, text, spans, highlightPosition }: N
         })
       }
 
-      // Add the span itself
       if (span.start >= currentPos) {
         result.push({
           start: span.start,
@@ -62,7 +56,6 @@ export default function NoteViewer({ noteId, text, spans, highlightPosition }: N
       }
     }
 
-    // Add remaining text after all spans
     if (currentPos < text.length) {
       result.push({
         start: currentPos,
@@ -185,6 +178,3 @@ export default function NoteViewer({ noteId, text, spans, highlightPosition }: N
     </div>
   )
 }
-
-
-

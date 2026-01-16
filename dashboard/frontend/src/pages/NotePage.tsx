@@ -51,7 +51,6 @@ export default function NotePage({ selectedEvalId }: NotePageProps) {
     )
   }
 
-  // Calculate stats for this note
   const stats = {
     tp: annotations?.spans.filter(s => s.classification === 'tp').length || 0,
     fp: annotations?.spans.filter(s => s.classification === 'fp').length || 0,
@@ -82,6 +81,3 @@ export default function NotePage({ selectedEvalId }: NotePageProps) {
     </div>
   )
 }
-
-
-

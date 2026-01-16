@@ -59,6 +59,7 @@ class MistakeEntry(BaseModel):
     start: int
     end: int
     chars: str | None = None
+    type: str | None = None  # Entity type (predicted for FP, expected for FN)
     manifest_context: str | None = None
     manifest_type: str | None = None
 

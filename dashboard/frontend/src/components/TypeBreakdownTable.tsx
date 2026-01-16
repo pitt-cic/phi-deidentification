@@ -92,6 +92,3 @@ export default function TypeBreakdownTable({ data }: TypeBreakdownTableProps) {
     </div>
   )
 }
-
-
-

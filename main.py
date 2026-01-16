@@ -100,7 +100,22 @@ def load_document(input_path: Path) -> str:
         return sys.stdin.read()
     if not input_path.exists() or not input_path.is_file():
         raise FileNotFoundError(f"Input path does not exist or is not a file: {input_path}")
-    return input_path.read_text(encoding="utf-8")
+    
+    raw_bytes = input_path.read_bytes()
+    
+    if len(raw_bytes) >= 2:
+        if raw_bytes[:2] == b'\xff\xfe':
+            return raw_bytes.decode('utf-16-le')
+        elif raw_bytes[:2] == b'\xfe\xff':
+            return raw_bytes.decode('utf-16-be')
+    
+    try:
+        return raw_bytes.decode('utf-8')
+    except UnicodeDecodeError:
+        try:
+            return raw_bytes.decode('utf-16-le')
+        except UnicodeDecodeError:
+            return raw_bytes.decode('latin-1', errors='replace')
 
 def validate_document_length(document_text: str, max_chars: int) -> None:
     if not document_text.strip():
@@ -161,7 +176,6 @@ async def process_document(
 
     full_prompt = build_prompt_with_document(prompt, document_text)
     
-    # Build the exact system instructions the agent sees
     pii_types_str = ", ".join(detection.pii_types)
     limit = detection.max_entities or "no-limit"
     detection_scope = (
@@ -249,7 +263,6 @@ async def process_dataset(
         raise ValueError(f"No .txt files found in dataset directory: {dataset_dir}")
 
     logger.info("Processing %d documents with concurrency=%d", len(documents), concurrency)
-    
     semaphore = asyncio.Semaphore(concurrency)
     tasks = [
         process_single_document(
@@ -266,12 +279,10 @@ async def process_dataset(
     
     results = await asyncio.gather(*tasks, return_exceptions=True)
     
-    # Aggregate results
     processed = 0
     failed = 0
     for result in results:
         if isinstance(result, Exception):
-            # Unexpected exception not caught by process_single_document
             failed += 1
             logger.error("Unexpected error during processing: %s", result)
         else:
@@ -290,16 +301,13 @@ async def process_dataset(
         output_dir,
     )
     
-    # Automatically run redaction if enabled
     if auto_redact and processed > 0:
         logger.info("Starting automatic PII redaction...")
-        project_root = Path(__file__).parent
-        output_text_dir = project_root / "output-text"
-        output_json_dir = project_root / "output-json"
+        output_text_dir = output_dir.parent / f"{output_dir.name}-text"
+        output_json_dir = output_dir.parent / f"{output_dir.name}-json"
         output_text_dir.mkdir(parents=True, exist_ok=True)
         output_json_dir.mkdir(parents=True, exist_ok=True)
         
-        # Find all JSON files in output directory
         json_files = sorted(output_dir.glob("*.json"))
         for json_path in json_files:
             process_json_file(json_path, output_text_dir, output_json_dir)

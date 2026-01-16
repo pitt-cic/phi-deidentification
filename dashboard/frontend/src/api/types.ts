@@ -48,6 +48,7 @@ export interface MistakeEntry {
   start: number
   end: number
   chars: string | null
+  type: string | null
   manifest_context: string | null
   manifest_type: string | null
 }
@@ -85,5 +86,12 @@ export interface NoteAnnotations {
   spans: AnnotationSpan[]
 }
 
+export interface SafeHarborComparison {
+  note_id: string
+  redacted_text: string
+  deid_text: string
+}
 
-
+export interface SafeHarborMetrics {
+  total_files: number
+}

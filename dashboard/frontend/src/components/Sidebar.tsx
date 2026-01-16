@@ -22,7 +22,6 @@ export default function Sidebar({ selectedEvalId, onEvalChange }: SidebarProps) 
     enabled: !!selectedEvalId,
   })
 
-  // Auto-select latest evaluation
   if (evaluations && evaluations.length > 0 && !selectedEvalId) {
     onEvalChange(evaluations[0].eval_id)
   }
@@ -130,6 +129,3 @@ export default function Sidebar({ selectedEvalId, onEvalChange }: SidebarProps) 
     </aside>
   )
 }
-
-
-

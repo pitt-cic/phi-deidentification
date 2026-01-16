@@ -41,15 +41,15 @@ EVAL_RESULTS_DIR = PROJECT_ROOT / "eval_results"
 NOTES_DIR = PROJECT_ROOT / "synthetic_dataset" / "notes"
 MANIFESTS_DIR = PROJECT_ROOT / "synthetic_dataset" / "manifests"
 POSITIONS_DIR = PROJECT_ROOT / "output-json"
+SAFE_HARBOR_REDACTED_DIR = PROJECT_ROOT / "sample-output-text"
+SAFE_HARBOR_DEID_DIR = PROJECT_ROOT / "sample_safe_harbor_notes" / "text_manifest"
 
 
 def parse_eval_timestamp(filename: str) -> str:
     """Extract timestamp from evaluation filename."""
-    # eval_20251215_231512.json -> 20251215_231512
     match = re.search(r"eval_(\d{8}_\d{6})\.json", filename)
     if match:
         ts = match.group(1)
-        # Format nicely: 2025-12-15 23:15:12
         return f"{ts[:4]}-{ts[4:6]}-{ts[6:8]} {ts[9:11]}:{ts[11:13]}:{ts[13:15]}"
     return filename
 
@@ -60,7 +60,6 @@ def list_evaluations():
     evaluations = []
     
     for eval_file in sorted(EVAL_RESULTS_DIR.glob("eval_*.json"), reverse=True):
-        # Skip mistake directories
         if eval_file.is_dir():
             continue
         if "mistakes" in eval_file.name:
@@ -70,7 +69,7 @@ def list_evaluations():
             with eval_file.open() as f:
                 data = json.load(f)
             
-            eval_id = eval_file.stem  # e.g., eval_20251215_231512
+            eval_id = eval_file.stem
             evaluations.append(EvaluationSummary(
                 eval_id=eval_id,
                 timestamp=parse_eval_timestamp(eval_file.name),
@@ -110,18 +109,18 @@ def get_evaluation(eval_id: str):
         for type_name, metrics in data.get("by_type", {}).items()
     ]
     
-    per_file = [
-        FileMetrics(
-            file_id=file_id.replace("_positions", ""),
-            precision=metrics.get("precision", 0),
-            recall=metrics.get("recall", 0),
-            f1=metrics.get("f1", 0),
-            true_positives=metrics.get("true_positives", 0),
-            false_positives=metrics.get("false_positives", 0),
-            false_negatives=metrics.get("false_negatives", 0),
-        )
-        for file_id, metrics in data.get("per_file", {}).items()
-    ]
+        per_file = [
+            FileMetrics(
+                file_id=file_id.replace("_positions", ""),
+                precision=metrics.get("precision", 0),
+                recall=metrics.get("recall", 0),
+                f1=metrics.get("f1", 0),
+                true_positives=metrics.get("true_positives", 0),
+                false_positives=metrics.get("false_positives", 0),
+                false_negatives=metrics.get("false_negatives", 0),
+            )
+            for file_id, metrics in data.get("per_file", {}).items()
+        ]
     
     return EvaluationDetail(
         eval_id=eval_id,
@@ -142,7 +141,6 @@ def get_evaluation(eval_id: str):
 @app.get("/api/evaluations/{eval_id}/mistakes", response_model=list[DocumentMistakes])
 def get_evaluation_mistakes(eval_id: str):
     """Get all mistake files for an evaluation."""
-    # eval_20251215_231512 -> eval_mistakes_20251215_231512
     mistakes_dir = EVAL_RESULTS_DIR / eval_id.replace("eval_", "eval_mistakes_")
     
     if not mistakes_dir.exists():
@@ -154,15 +152,21 @@ def get_evaluation_mistakes(eval_id: str):
             with mistake_file.open() as f:
                 data = json.load(f)
             
+            def normalize_mistake_entry(entry: dict) -> dict:
+                normalized = entry.copy()
+                if 'chars' not in normalized and 'value' in normalized:
+                    normalized['chars'] = normalized.pop('value')
+                return normalized
+            
             mistakes.append(DocumentMistakes(
                 doc_id=data.get("doc_id", mistake_file.stem),
                 false_positive_count=data.get("summary", {}).get("false_positive_count", 0),
                 false_negative_count=data.get("summary", {}).get("false_negative_count", 0),
                 false_positives=[
-                    MistakeEntry(**fp) for fp in data.get("false_positives", [])
+                    MistakeEntry(**normalize_mistake_entry(fp)) for fp in data.get("false_positives", [])
                 ],
                 false_negatives=[
-                    MistakeEntry(**fn) for fn in data.get("false_negatives", [])
+                    MistakeEntry(**normalize_mistake_entry(fn)) for fn in data.get("false_negatives", [])
                 ],
             ))
         except (json.JSONDecodeError, KeyError):
@@ -175,8 +179,6 @@ def get_evaluation_mistakes(eval_id: str):
 def list_notes(eval_id: str | None = None):
     """List all available notes."""
     notes = []
-    
-    # Get set of notes with mistakes if eval_id provided
     notes_with_mistakes = set()
     if eval_id:
         mistakes_dir = EVAL_RESULTS_DIR / eval_id.replace("eval_", "eval_mistakes_")
@@ -186,8 +188,6 @@ def list_notes(eval_id: str | None = None):
     
     for note_file in sorted(NOTES_DIR.glob("*.txt")):
         note_id = note_file.stem
-        
-        # Try to get note type from manifest
         note_type = None
         manifest_file = MANIFESTS_DIR / f"{note_id}.json"
         if manifest_file.exists():
@@ -250,13 +250,11 @@ def normalize_type(entity_type: str) -> str:
 @app.get("/api/notes/{note_id}/annotations", response_model=NoteAnnotations)
 def get_note_annotations(note_id: str):
     """Get computed annotations (TP/FP/FN spans) for a note."""
-    # Load note text
     note_file = NOTES_DIR / f"{note_id}.txt"
     if not note_file.exists():
         raise HTTPException(status_code=404, detail=f"Note {note_id} not found")
     text = note_file.read_text(encoding="utf-8")
     
-    # Load predictions
     positions_file = POSITIONS_DIR / f"{note_id}_positions.json"
     predictions = []
     if positions_file.exists():
@@ -264,7 +262,6 @@ def get_note_annotations(note_id: str):
             data = json.load(f)
         predictions = data.get("pii_entities", [])
     
-    # Load ground truth
     manifest_file = MANIFESTS_DIR / f"{note_id}.json"
     ground_truth = []
     if manifest_file.exists():
@@ -272,9 +269,8 @@ def get_note_annotations(note_id: str):
             data = json.load(f)
         ground_truth = data.get("phi_entities", [])
     
-    # Build character sets and maps
-    pred_chars: dict[int, dict] = {}  # char_pos -> entity info
-    gt_chars: dict[int, dict] = {}    # char_pos -> entity info
+    pred_chars: dict[int, dict] = {}
+    gt_chars: dict[int, dict] = {}
     
     for entity in predictions:
         for pos in range(entity["start"], entity["end"]):
@@ -296,10 +292,7 @@ def get_note_annotations(note_id: str):
                     "end": entity["end"],
                 }
     
-    # Classify each character position
     all_positions = set(pred_chars.keys()) | set(gt_chars.keys())
-    
-    # Group consecutive positions with same classification
     spans: list[AnnotationSpan] = []
     
     if not all_positions:
@@ -308,7 +301,6 @@ def get_note_annotations(note_id: str):
     sorted_positions = sorted(all_positions)
     
     def get_classification(pos: int) -> tuple[str, str | None, str | None]:
-        """Get classification and types for a position."""
         in_pred = pos in pred_chars
         in_gt = pos in gt_chars
         
@@ -319,20 +311,16 @@ def get_note_annotations(note_id: str):
         else:
             return "fn", None, gt_chars[pos]["type"]
     
-    # Build spans by grouping consecutive positions with same classification
     current_start = sorted_positions[0]
     current_class, current_pred_type, current_exp_type = get_classification(current_start)
     
     for i, pos in enumerate(sorted_positions[1:], 1):
         cls, pred_type, exp_type = get_classification(pos)
-        
-        # Check if this continues the current span (consecutive and same classification)
         prev_pos = sorted_positions[i - 1]
         is_consecutive = pos == prev_pos + 1
         same_classification = cls == current_class
         
         if not is_consecutive or not same_classification:
-            # End current span
             end_pos = prev_pos + 1
             spans.append(AnnotationSpan(
                 start=current_start,
@@ -342,13 +330,11 @@ def get_note_annotations(note_id: str):
                 predicted_type=current_pred_type,
                 expected_type=current_exp_type,
             ))
-            # Start new span
             current_start = pos
             current_class = cls
             current_pred_type = pred_type
             current_exp_type = exp_type
     
-    # Don't forget the last span
     end_pos = sorted_positions[-1] + 1
     spans.append(AnnotationSpan(
         start=current_start,
@@ -362,6 +348,87 @@ def get_note_annotations(note_id: str):
     return NoteAnnotations(note_id=note_id, spans=spans)
 
 
+@app.get("/api/safe-harbor/notes", response_model=list[NoteSummary])
+def list_safe_harbor_notes():
+    """List all available Safe Harbor Notes."""
+    notes = []
+    
+    if not SAFE_HARBOR_REDACTED_DIR.exists():
+        return notes
+    
+    for redacted_file in sorted(SAFE_HARBOR_REDACTED_DIR.glob("*_redacted.txt")):
+        note_id = redacted_file.stem.replace("_redacted", "")
+        deid_file = SAFE_HARBOR_DEID_DIR / f"{note_id}.DEID"
+        has_ground_truth = deid_file.exists()
+        
+        notes.append(NoteSummary(
+            note_id=note_id,
+            note_type=None,
+            has_mistakes=has_ground_truth,
+        ))
+    
+    return notes
+
+
+@app.get("/api/safe-harbor/notes/{note_id}/comparison")
+def get_safe_harbor_comparison(note_id: str):
+    """Compare redacted text with DEID ground truth."""
+    redacted_file = SAFE_HARBOR_REDACTED_DIR / f"{note_id}_redacted.txt"
+    deid_file = SAFE_HARBOR_DEID_DIR / f"{note_id}.DEID"
+    
+    if not redacted_file.exists():
+        raise HTTPException(status_code=404, detail=f"Redacted file {note_id} not found")
+    
+    if not deid_file.exists():
+        raise HTTPException(status_code=404, detail=f"DEID file {note_id} not found")
+    
+    def load_with_encoding(path: Path) -> str:
+        raw_bytes = path.read_bytes()
+        if len(raw_bytes) >= 2:
+            if raw_bytes[:2] == b'\xff\xfe':
+                return raw_bytes.decode('utf-16-le')
+            elif raw_bytes[:2] == b'\xfe\xff':
+                return raw_bytes.decode('utf-16-be')
+        try:
+            return raw_bytes.decode('utf-8')
+        except UnicodeDecodeError:
+            try:
+                return raw_bytes.decode('utf-16-le')
+            except UnicodeDecodeError:
+                return raw_bytes.decode('latin-1', errors='replace')
+    
+    redacted_text = load_with_encoding(redacted_file)
+    deid_text = load_with_encoding(deid_file)
+    
+    return {
+        "note_id": note_id,
+        "redacted_text": redacted_text,
+        "deid_text": deid_text
+    }
+
+
+@app.get("/api/safe-harbor/metrics")
+def get_safe_harbor_metrics():
+    """Get aggregate metrics for all Safe Harbor Notes."""
+    if not SAFE_HARBOR_REDACTED_DIR.exists():
+        return {
+            "total_files": 0,
+        }
+    
+    total_files = 0
+    
+    for redacted_file in sorted(SAFE_HARBOR_REDACTED_DIR.glob("*_redacted.txt")):
+        note_id = redacted_file.stem.replace("_redacted", "")
+        deid_file = SAFE_HARBOR_DEID_DIR / f"{note_id}.DEID"
+        
+        if deid_file.exists():
+            total_files += 1
+    
+    return {
+        "total_files": total_files,
+    }
+
+
 @app.get("/api/health")
 def health_check():
     """Health check endpoint."""
@@ -371,6 +438,3 @@ def health_check():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8000)
-
-
-

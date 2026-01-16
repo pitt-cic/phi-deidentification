@@ -3,7 +3,7 @@
   margin: 0 auto;
 }
 
-.page-header {
+.note-page .page-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -19,7 +19,6 @@
 
 .breadcrumb-link {
   color: var(--text-muted);
-  transition: color var(--transition-fast);
 }
 
 .breadcrumb-link:hover {
@@ -63,22 +62,10 @@
   color: var(--color-fn);
 }
 
-.loading-state,
-.error-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.note-page .loading-state,
+.note-page .error-state {
   height: 400px;
-  color: var(--text-muted);
-  font-size: 14px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 12px;
 }
-
-.error-state {
-  color: var(--color-fn);
-}
-
-
-

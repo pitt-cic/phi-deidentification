@@ -62,6 +62,48 @@ class TestNoteGeneratorPHIExtraction:
             for i in range(len(phi_entities) - 1):
                 assert phi_entities[i].start <= phi_entities[i + 1].start
 
+    def test_no_substring_false_positives(self, test_config, fhir_parser, mock_bedrock_client):
+        """Test that PHI matching does not match substrings within words."""
+        generator = NoteGenerator(bedrock_client=mock_bedrock_client, config=test_config)
+        synthea_context = fhir_parser.get_full_context()
+
+        # Create text with words that contain PHI values as substrings
+        # State "PA" appears as substring in "PAST", "IMPACT", "REPAIR"
+        # The fixture has state="PA" which should only match standalone "PA"
+        test_text = """
+    PAST MEDICAL HISTORY: The patient has IMPACT from prior injuries.
+    Patient lives in PA and needs cardiac REPAIR surgery.
+    Contact: 555-123-4567
+    """
+
+        phi_entities = generator._find_phi_positions_fhir(test_text, synthea_context)
+
+        # Extract just the matched values for easier assertion
+        matched_values = [entity.value for entity in phi_entities]
+
+        # Should find the phone number (exact match)
+        assert "555-123-4567" in matched_values
+
+        # Should NOT find "PA" within "PAST", "IMPACT", or "REPAIR"
+        # Count how many times "PA" was matched
+        pa_matches = [e for e in phi_entities if e.value == "PA"]
+        # Should match "PA" only once (standalone word), not as substrings
+        # Verify positions to ensure it's not inside other words
+        for entity in pa_matches:
+            # Get the context around the match
+            start = entity.start
+            end = entity.end
+            # Verify it's not inside another word
+            # Check character before and after
+            if start > 0:
+                char_before = test_text[start - 1]
+                # Should not be alphanumeric (would indicate substring)
+                assert not char_before.isalnum(), f"Found 'PA' as substring at position {start}: char_before='{char_before}'"
+            if end < len(test_text):
+                char_after = test_text[end]
+                # Should not be alphanumeric
+                assert not char_after.isalnum(), f"Found 'PA' as substring at position {start}: char_after='{char_after}'"
+
 
 @pytest.mark.unit
 class TestNoteGeneratorGeneration:

@@ -1,7 +1,7 @@
 """Tests for NoteGenerator."""
 import pytest
 from src.note_generator import NoteGenerator
-from src.config import NoteType
+from src.config import NoteType, PHIType
 
 
 @pytest.mark.unit
@@ -112,7 +112,11 @@ class TestNoteGeneratorPHIExtraction:
         generator = NoteGenerator(bedrock_client=mock_bedrock_client, config=test_config)
         synthea_context = fhir_parser.get_full_context()
 
-        # Test various edge cases
+        # Test various edge cases with fixture data:
+        # - Patient name from minimal_fhir_bundle.json: family="Smith", given=["John", "Michael"]
+        #   Parser extracts: full_name="John Michael Smith", first_name="John Michael", last_name="Smith"
+        # - Phone from line 57: "555-123-4567"
+        # - State from lines 73, 109, 236: "PA"
         test_text = """
     Patient: John Michael Smith
     Phone: 555-123-4567
@@ -123,14 +127,29 @@ class TestNoteGeneratorPHIExtraction:
         phi_entities = generator._find_phi_positions_fhir(test_text, synthea_context)
         matched_values = [entity.value for entity in phi_entities]
 
-        # Should match multi-word name
-        assert "John Michael Smith" in matched_values or "John Michael" in matched_values or "Smith" in matched_values
+        # Should match all name components from fixture (full_name, first_name, last_name)
+        assert "John Michael Smith" in matched_values, "Should match full_name"
+        assert "John Michael" in matched_values, "Should match first_name"
+        assert "Smith" in matched_values, "Should match last_name"
 
-        # Should match phone with hyphens
+        # Should match phone with hyphens (fixture line 57)
         assert "555-123-4567" in matched_values
 
-        # Should match state code when standalone
+        # Should match state code when standalone (fixture lines 73, 109, 236)
         assert "PA" in matched_values
+
+        # Verify entity types are correct
+        name_entities = [e for e in phi_entities if e.value in ["John Michael Smith", "John Michael", "Smith"]]
+        for entity in name_entities:
+            assert entity.phi_type == PHIType.NAME, f"Name '{entity.value}' should have type NAME, got {entity.phi_type}"
+
+        phone_entities = [e for e in phi_entities if e.value == "555-123-4567"]
+        assert len(phone_entities) == 1, "Should find exactly one phone number"
+        assert phone_entities[0].phi_type == PHIType.PHONE, f"Phone should have type PHONE, got {phone_entities[0].phi_type}"
+
+        pa_entities = [e for e in phi_entities if e.value == "PA"]
+        assert len(pa_entities) == 1, "Should find exactly one state code"
+        assert pa_entities[0].phi_type == PHIType.ADDRESS, f"State 'PA' should have type ADDRESS, got {pa_entities[0].phi_type}"
 
 
 @pytest.mark.unit

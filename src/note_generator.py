@@ -229,7 +229,7 @@ class NoteGenerator:
             if not value or len(str(value)) < 2:
                 continue
             value_str = str(value)
-            pattern = re.escape(value_str)
+            pattern = r'(?<!\w)' + re.escape(value_str) + r'(?!\w)'
             for match in re.finditer(pattern, text):
                 entities.append(PHIEntity(
                     phi_type=phi_type,

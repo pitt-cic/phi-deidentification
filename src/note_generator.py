@@ -229,7 +229,7 @@ class NoteGenerator:
             if not value or len(str(value)) < 2:
                 continue
             value_str = str(value)
-            pattern = re.escape(value_str)
+            pattern = r'(?<!\w)' + re.escape(value_str) + r'(?!\w)'
             for match in re.finditer(pattern, text):
                 entities.append(PHIEntity(
                     phi_type=phi_type,
@@ -321,11 +321,12 @@ class NoteGenerator:
         print("=" * 100)
         print("ORIGINAL CONTEXT FROM FHIR")
         print("-" * 100)
-        print(context)
+        # print(context)
         with open('original_context.json', 'w') as f:
             json.dump(context, f, indent=2)
-        with open('original_context.txt', 'w') as f:
-            f.write(self._build_phi_context_from_fhir(context))
+            print(f"Saved to original_context.json")
+        # with open('original_context.txt', 'w') as f:
+        #     f.write(self._build_phi_context_from_fhir(context))
         print("=" * 100)
 
         # Inject additional PHI not in Synthea
@@ -334,11 +335,12 @@ class NoteGenerator:
         print("=" * 100)
         print("INJECTED CONTEXT")
         print("-" * 100)
-        print(context)
+        # print(context)
         with open('injected_context.json', 'w') as f:
             json.dump(context, f, indent=2)
-        with open('injected_context.txt', 'w') as f:
-            f.write(self._build_phi_context_from_fhir(context))
+            print(f"Saved to injected_context.json")
+        # with open('injected_context.txt', 'w') as f:
+        #     f.write(self._build_phi_context_from_fhir(context))
         print("=" * 100)
 
         # Add encounter-specific context
@@ -409,7 +411,10 @@ class NoteGenerator:
         print("=" * 100)
         print("CONTEXT TO PASS TO LLM")
         print("-" * 100)
-        print(phi_context)
+        with open('phi_context.txt', 'w') as f:
+            f.write(phi_context)
+            print(f"Saved to phi_context.txt")
+        # print(phi_context)
         print("=" * 100)
 
         # Load prompt template

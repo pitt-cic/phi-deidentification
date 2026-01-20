@@ -107,6 +107,31 @@ class TestNoteGeneratorPHIExtraction:
                 # Should not be alphanumeric
                 assert not char_after.isalnum(), f"Found 'PA' as substring at position {start}: char_after='{char_after}'"
 
+    def test_phi_matching_edge_cases(self, test_config, fhir_parser, mock_bedrock_client):
+        """Test PHI matching handles edge cases correctly."""
+        generator = NoteGenerator(bedrock_client=mock_bedrock_client, config=test_config)
+        synthea_context = fhir_parser.get_full_context()
+
+        # Test various edge cases
+        test_text = """
+    Patient: John Michael Smith
+    Phone: 555-123-4567
+    State: PA
+    Email: john.smith@example.com
+    """
+
+        phi_entities = generator._find_phi_positions_fhir(test_text, synthea_context)
+        matched_values = [entity.value for entity in phi_entities]
+
+        # Should match multi-word name
+        assert "John Michael Smith" in matched_values or "John Michael" in matched_values or "Smith" in matched_values
+
+        # Should match phone with hyphens
+        assert "555-123-4567" in matched_values
+
+        # Should match state code when standalone
+        assert "PA" in matched_values
+
 
 @pytest.mark.unit
 class TestNoteGeneratorGeneration:

@@ -69,7 +69,8 @@ class TestNoteGeneratorPHIExtraction:
 
         # Create text with words that contain PHI values as substrings
         # State "PA" appears as substring in "PAST", "IMPACT", "REPAIR"
-        # The fixture has state="PA" which should only match standalone "PA"
+        # The fixture has state="PA" (minimal_fhir_bundle.json lines 73, 109, 236)
+        # which should only match standalone "PA"
         test_text = """
     PAST MEDICAL HISTORY: The patient has IMPACT from prior injuries.
     Patient lives in PA and needs cardiac REPAIR surgery.
@@ -82,12 +83,14 @@ class TestNoteGeneratorPHIExtraction:
         matched_values = [entity.value for entity in phi_entities]
 
         # Should find the phone number (exact match)
+        # Phone number from minimal_fhir_bundle.json line 57 (patient telecom)
         assert "555-123-4567" in matched_values
 
         # Should NOT find "PA" within "PAST", "IMPACT", or "REPAIR"
         # Count how many times "PA" was matched
         pa_matches = [e for e in phi_entities if e.value == "PA"]
         # Should match "PA" only once (standalone word), not as substrings
+        assert len(pa_matches) == 1, f"Expected exactly 1 'PA' match (standalone), found {len(pa_matches)}"
         # Verify positions to ensure it's not inside other words
         for entity in pa_matches:
             # Get the context around the match

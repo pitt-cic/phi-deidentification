@@ -64,7 +64,6 @@ class PatientData:
 
     # Contact info
     phone: str = ""
-    email: str = ""
     address_line: str = ""
     city: str = ""
     state: str = ""
@@ -358,7 +357,6 @@ class FHIRBundleParser:
         data.full_address = f"{data.address_line}, {data.city}, {data.state} {data.zip_code}".strip()
 
         data.phone = jmespath.search(f"telecom[?system=='phone'] | [0].value", patient) or ''
-        data.email = jmespath.search(f"telecom[?system=='email'] | [0].value", patient) or ''
 
         # Extract extensions
         data.race = jmespath.search(f"extension[?url=='{ExtensionURL.US_CORE_RACE}'] | [0].extension[1].valueString", patient) or ''
@@ -390,7 +388,7 @@ class FHIRBundleParser:
             # print('DEBUGGG', enc)
             # print('DEBUGGG2222')
             # print(jmespath.search("type[].coding[].display", enc))
-            # print("ID:", data.id)
+            print("ID:", data.id)
             types = jmespath.search("type[].coding[].display", enc)
             data.type_display = ', '.join(types) if types else ''
 

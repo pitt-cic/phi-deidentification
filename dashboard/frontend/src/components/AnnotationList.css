@@ -65,24 +65,53 @@
 
 .counts-summary {
   display: flex;
-  gap: 12px;
+  gap: 8px;
 }
 
-.counts-summary .count {
+.counts-summary .count-btn {
   font-size: 12px;
   font-weight: 600;
   padding: 4px 10px;
   border-radius: 12px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition-fast);
 }
 
-.counts-summary .count.fp {
+.counts-summary .count-btn.fp {
   background: var(--color-fp-bg);
   color: var(--color-fp);
 }
 
-.counts-summary .count.fn {
+.counts-summary .count-btn.fn {
   background: var(--color-fn-bg);
   color: var(--color-fn);
+}
+
+.counts-summary .count-btn:hover {
+  transform: scale(1.05);
+}
+
+.counts-summary .count-btn.fp:hover {
+  border-color: var(--color-fp);
+}
+
+.counts-summary .count-btn.fn:hover {
+  border-color: var(--color-fn);
+}
+
+.counts-summary .count-btn.active {
+  transform: scale(1.05);
+}
+
+.counts-summary .count-btn.fp.active {
+  border-color: var(--color-fp);
+  box-shadow: 0 0 8px var(--color-fp-bg);
+}
+
+.counts-summary .count-btn.fn.active {
+  border-color: var(--color-fn);
+  box-shadow: 0 0 8px var(--color-fn-bg);
 }
 
 .annotations-scroll {

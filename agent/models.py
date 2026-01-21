@@ -10,7 +10,7 @@ from pydantic.dataclasses import dataclass
 # HIPAA 18 Identifiers for Protected Health Information (PHI)
 DEFAULT_PII_TYPES = [
     "person_name",                          
-    "postal_address",        
+    "address",        
     "date", 
     "phone_number",                         
     "fax_number",                           

@@ -34,7 +34,7 @@ export default function MetricsOverview({ metrics }: MetricsOverviewProps) {
           </div>
         </div>
         
-        <div className="metric-card primary highlight">
+        <div className="metric-card primary">
           <div className="metric-label">F1 Score</div>
           <div className="metric-value">{formatPercent(metrics.f1)}</div>
           <div className="metric-bar">

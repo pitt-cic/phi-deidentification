@@ -5,12 +5,11 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from datetime import datetime
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from dashboard.backend.models import (
+from models import (
     EvaluationSummary,
     EvaluationDetail,
     MetricsSummary,
@@ -109,7 +108,7 @@ def get_evaluation(eval_id: str):
         for type_name, metrics in data.get("by_type", {}).items()
     ]
     
-        per_file = [
+    per_file = [
             FileMetrics(
                 file_id=file_id.replace("_positions", ""),
                 precision=metrics.get("precision", 0),

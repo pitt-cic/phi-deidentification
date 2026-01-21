@@ -101,5 +101,3 @@ class NoteAnnotations(BaseModel):
     note_id: str
     spans: list[AnnotationSpan]
 
-
-

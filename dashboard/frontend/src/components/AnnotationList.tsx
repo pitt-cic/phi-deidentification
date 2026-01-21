@@ -18,8 +18,11 @@ interface FlatAnnotation {
   manifestContext: string | null
 }
 
+type MistakeTypeFilter = 'all' | 'fp' | 'fn'
+
 export default function AnnotationList({ mistakes }: AnnotationListProps) {
   const [selectedEntityType, setSelectedEntityType] = useState<string>('all')
+  const [selectedMistakeType, setSelectedMistakeType] = useState<MistakeTypeFilter>('all')
 
   const allAnnotations: FlatAnnotation[] = useMemo(() => {
     const annotations: FlatAnnotation[] = []
@@ -64,11 +67,12 @@ export default function AnnotationList({ mistakes }: AnnotationListProps) {
   }, [allAnnotations])
 
   const annotations = useMemo(() => {
-    if (selectedEntityType === 'all') {
-      return allAnnotations
-    }
-    return allAnnotations.filter(ann => ann.entityType === selectedEntityType)
-  }, [allAnnotations, selectedEntityType])
+    return allAnnotations.filter(ann => {
+      const matchesEntityType = selectedEntityType === 'all' || ann.entityType === selectedEntityType
+      const matchesMistakeType = selectedMistakeType === 'all' || ann.type === selectedMistakeType
+      return matchesEntityType && matchesMistakeType
+    })
+  }, [allAnnotations, selectedEntityType, selectedMistakeType])
 
   const sortedAnnotations = [...annotations].sort((a, b) => {
     const docCmp = a.docId.localeCompare(b.docId)
@@ -76,8 +80,18 @@ export default function AnnotationList({ mistakes }: AnnotationListProps) {
     return a.start - b.start
   })
 
-  const fpCount = annotations.filter(a => a.type === 'fp').length
-  const fnCount = annotations.filter(a => a.type === 'fn').length
+  // Count from all annotations (before mistake type filter) for display
+  const entityFilteredAnnotations = useMemo(() => {
+    if (selectedEntityType === 'all') return allAnnotations
+    return allAnnotations.filter(ann => ann.entityType === selectedEntityType)
+  }, [allAnnotations, selectedEntityType])
+  
+  const fpCount = entityFilteredAnnotations.filter(a => a.type === 'fp').length
+  const fnCount = entityFilteredAnnotations.filter(a => a.type === 'fn').length
+
+  const handleMistakeTypeClick = (type: MistakeTypeFilter) => {
+    setSelectedMistakeType(prev => prev === type ? 'all' : type)
+  }
 
   return (
     <div className="annotation-list">
@@ -99,8 +113,20 @@ export default function AnnotationList({ mistakes }: AnnotationListProps) {
             </select>
           </div>
           <div className="counts-summary">
-            <span className="count fp">{fpCount} FP</span>
-            <span className="count fn">{fnCount} FN</span>
+            <button 
+              className={`count-btn fp ${selectedMistakeType === 'fp' ? 'active' : ''}`}
+              onClick={() => handleMistakeTypeClick('fp')}
+              title="Click to filter by False Positives"
+            >
+              {fpCount} FP
+            </button>
+            <button 
+              className={`count-btn fn ${selectedMistakeType === 'fn' ? 'active' : ''}`}
+              onClick={() => handleMistakeTypeClick('fn')}
+              title="Click to filter by False Negatives"
+            >
+              {fnCount} FN
+            </button>
           </div>
         </div>
       </div>

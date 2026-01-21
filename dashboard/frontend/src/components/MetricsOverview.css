@@ -28,11 +28,6 @@
   text-align: center;
 }
 
-.metric-card.highlight {
-  background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(88, 166, 255, 0.1) 100%);
-  border-color: var(--accent-primary);
-}
-
 .metric-label {
   font-size: 12px;
   font-weight: 600;

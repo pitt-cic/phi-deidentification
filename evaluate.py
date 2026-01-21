@@ -40,9 +40,6 @@ TYPE_MAPPING = {
     "other": "OTHER",
 }
 
-# Reverse mapping
-REVERSE_TYPE_MAPPING = {v: k for k, v in TYPE_MAPPING.items()}
-
 
 @dataclass
 class Entity:
@@ -55,58 +52,18 @@ class Entity:
     def overlaps(self, other: "Entity") -> bool:
         """Check if this entity overlaps with another entity."""
         return self.start < other.end and other.start < self.end
-    
-    def exact_match(self, other: "Entity") -> bool:
-        """Check if this entity exactly matches another entity's position."""
-        return self.start == other.start and self.end == other.end
-    
-    def contains(self, other: "Entity") -> bool:
-        """Check if this entity fully contains another entity."""
-        return self.start <= other.start and self.end >= other.end
-    
-    def to_dict(self) -> dict[str, Any]:
-        """Convert entity to dictionary for JSON serialization."""
-        return {
-            "type": self.type,
-            "value": self.value,
-            "start": self.start,
-            "end": self.end,
-        }
-
-
-def entities_to_char_set(entities: list[Entity]) -> set[int]:
-    """Convert a list of entities to a set of character indices.
-    
-    Each entity's range [start, end) is converted to individual character positions.
-    """
-    chars = set()
-    for entity in entities:
-        chars.update(range(entity.start, entity.end))
-    return chars
-
-
-def build_char_to_entity_map(entities: list[Entity]) -> dict[int, Entity]:
-    """Build a mapping from character position to the entity it belongs to."""
-    char_map = {}
-    for entity in entities:
-        for pos in range(entity.start, entity.end):
-            char_map[pos] = entity
-    return char_map
 
 
 @dataclass
-class CharEvalResult:
-    """Stores character-level evaluation results."""
+class EvalResult:
+    """Stores entity/span-based evaluation results."""
     true_positives: int = 0
     false_positives: int = 0
     false_negatives: int = 0
     
-    # Actual character positions for mistake tracking
-    fp_char_positions: set[int] = field(default_factory=set)
-    fn_char_positions: set[int] = field(default_factory=set)
-    
-    # Ground truth entities for providing context on FN chars
-    ground_truth_entities: list[Entity] = field(default_factory=list)
+    # Actual entity spans for mistake tracking
+    fp_entities: list[Entity] = field(default_factory=list)
+    fn_entities: list[Entity] = field(default_factory=list)
     
     @property
     def precision(self) -> float:
@@ -126,55 +83,16 @@ class CharEvalResult:
         p, r = self.precision, self.recall
         return 2 * p * r / (p + r) if (p + r) > 0 else 0.0
     
-    def __add__(self, other: "CharEvalResult") -> "CharEvalResult":
-        """Combine two evaluation results (aggregates counts, not positions)."""
-        return CharEvalResult(
+    def __add__(self, other: "EvalResult") -> "EvalResult":
+        """Combine two evaluation results (aggregates counts, not entity lists)."""
+        return EvalResult(
             true_positives=self.true_positives + other.true_positives,
             false_positives=self.false_positives + other.false_positives,
             false_negatives=self.false_negatives + other.false_negatives,
-            # Don't aggregate positions - they're doc-specific
-            fp_char_positions=set(),
-            fn_char_positions=set(),
-            ground_truth_entities=[],
+            # Don't aggregate entity lists - they're doc-specific
+            fp_entities=[],
+            fn_entities=[],
         )
-
-
-def evaluate_document_char_based(
-    predictions: list[Entity],
-    ground_truth: list[Entity],
-) -> CharEvalResult:
-    """
-    Evaluate predictions against ground truth using pure character-level comparison.
-    
-    This approach converts entity spans to sets of character indices and compares:
-    - TP (true positives): characters flagged by both prediction and ground truth
-    - FP (false positives): characters flagged by prediction but not in ground truth
-    - FN (false negatives): characters in ground truth but not flagged by prediction
-    
-    No entity matching or type comparison - purely character overlap.
-    
-    Args:
-        predictions: List of predicted entities
-        ground_truth: List of ground truth entities
-        
-    Returns:
-        CharEvalResult with character-level metrics and positions
-    """
-    pred_chars = entities_to_char_set(predictions)
-    gt_chars = entities_to_char_set(ground_truth)
-    
-    tp_chars = pred_chars & gt_chars      # Characters in both
-    fp_chars = pred_chars - gt_chars      # Predicted but not in ground truth
-    fn_chars = gt_chars - pred_chars      # In ground truth but not predicted
-    
-    return CharEvalResult(
-        true_positives=len(tp_chars),
-        false_positives=len(fp_chars),
-        false_negatives=len(fn_chars),
-        fp_char_positions=fp_chars,
-        fn_char_positions=fn_chars,
-        ground_truth_entities=ground_truth,
-    )
 
 
 def normalize_type(entity_type: str, is_prediction: bool = True) -> str:
@@ -219,32 +137,95 @@ def load_ground_truth(json_path: Path) -> list[Entity]:
     return entities
 
 
-def evaluate_document(
+def evaluate_document_entity_based(
     predictions: list[Entity],
     ground_truth: list[Entity],
-) -> CharEvalResult:
+) -> EvalResult:
     """
-    Evaluate predictions against ground truth for a single document.
+    Evaluate predictions against ground truth using entity/span-level comparison.
     
-    Uses character-based evaluation: each character position is classified as
-    TP (in both prediction and ground truth), FP (only in prediction), or
-    FN (only in ground truth).
+    Matching criteria: Any overlap between prediction and ground truth spans.
+    
+    - TP (true positives): GT entities that have at least one overlapping prediction
+    - FN (false negatives): GT entities with no overlapping prediction
+    - FP (false positives): Prediction entities that don't overlap any GT entity
     
     Args:
         predictions: List of predicted entities
         ground_truth: List of ground truth entities
         
     Returns:
-        CharEvalResult with character-level metrics
+        EvalResult with entity-level metrics
     """
-    return evaluate_document_char_based(predictions, ground_truth)
+    # Track which predictions matched at least one GT entity
+    matched_predictions: set[int] = set()
+    
+    tp_count = 0
+    fn_entities: list[Entity] = []
+    
+    # For each ground truth entity, check if any prediction overlaps
+    for gt in ground_truth:
+        found_match = False
+        for pred_idx, pred in enumerate(predictions):
+            if gt.overlaps(pred):
+                found_match = True
+                matched_predictions.add(pred_idx)
+                # Don't break - a GT entity might overlap multiple predictions
+        
+        if found_match:
+            tp_count += 1
+        else:
+            fn_entities.append(gt)
+    
+    # FP = predictions that didn't match any GT entity
+    fp_entities = [pred for idx, pred in enumerate(predictions) if idx not in matched_predictions]
+    
+    return EvalResult(
+        true_positives=tp_count,
+        false_positives=len(fp_entities),
+        false_negatives=len(fn_entities),
+        fp_entities=fp_entities,
+        fn_entities=fn_entities,
+    )
 
 
-def evaluate_by_type_char_based(
+def evaluate_document(
     predictions: list[Entity],
     ground_truth: list[Entity],
-) -> dict[str, CharEvalResult]:
-    """Evaluate predictions by entity type using character-based comparison."""
+) -> EvalResult:
+    """
+    Evaluate predictions against ground truth for a single document.
+    
+    Uses entity-based evaluation: each entity span is classified as
+    TP (overlaps with GT), FP (no overlap with any GT), or
+    FN (GT entity with no overlapping prediction).
+    
+    Args:
+        predictions: List of predicted entities
+        ground_truth: List of ground truth entities
+        
+    Returns:
+        EvalResult with entity-level metrics
+    """
+    return evaluate_document_entity_based(predictions, ground_truth)
+
+
+def evaluate_by_type(
+    predictions: list[Entity],
+    ground_truth: list[Entity],
+) -> dict[str, EvalResult]:
+    """
+    Evaluate predictions by entity type using entity-based comparison.
+    
+    Groups entities by type and computes entity-level metrics for each type.
+    
+    Args:
+        predictions: List of predicted entities
+        ground_truth: List of ground truth entities
+        
+    Returns:
+        Dictionary mapping entity type to EvalResult
+    """
     # Group by type
     pred_by_type: dict[str, list[Entity]] = defaultdict(list)
     gt_by_type: dict[str, list[Entity]] = defaultdict(list)
@@ -261,27 +242,9 @@ def evaluate_by_type_char_based(
     for entity_type in sorted(all_types):
         type_preds = pred_by_type.get(entity_type, [])
         type_gt = gt_by_type.get(entity_type, [])
-        results[entity_type] = evaluate_document_char_based(type_preds, type_gt)
+        results[entity_type] = evaluate_document_entity_based(type_preds, type_gt)
     
     return results
-
-
-def evaluate_by_type(
-    predictions: list[Entity],
-    ground_truth: list[Entity],
-) -> dict[str, CharEvalResult]:
-    """Evaluate predictions by entity type using character-based comparison.
-    
-    Groups entities by type and computes character-level metrics for each type.
-    
-    Args:
-        predictions: List of predicted entities
-        ground_truth: List of ground truth entities
-        
-    Returns:
-        Dictionary mapping entity type to CharEvalResult
-    """
-    return evaluate_by_type_char_based(predictions, ground_truth)
 
 
 def find_matching_files(
@@ -314,9 +277,9 @@ def run_evaluation(
     manifests_dir: Path,
     texts_dir: Path | None = None,
     verbose: bool = False,
-) -> tuple[dict[str, Any], dict[str, CharEvalResult], Path | None]:
+) -> tuple[dict[str, Any], dict[str, EvalResult], Path | None]:
     """
-    Run character-based evaluation on all matching file pairs.
+    Run entity-based evaluation on all matching file pairs.
     
     Args:
         predictions_dir: Directory containing prediction JSON files
@@ -327,7 +290,7 @@ def run_evaluation(
     Returns:
         Tuple of:
         - Dictionary with aggregate metrics and per-file results
-        - Dictionary mapping doc_id to CharEvalResult (for mistake tracking)
+        - Dictionary mapping doc_id to EvalResult (for mistake tracking)
         - Path to texts directory (for reading original text in mistake files)
     """
     file_pairs = find_matching_files(predictions_dir, manifests_dir)
@@ -337,27 +300,30 @@ def run_evaluation(
     
     logger.info("Found %d file pairs to evaluate", len(file_pairs))
     
-    aggregate_result = CharEvalResult()
-    aggregate_by_type: dict[str, CharEvalResult] = defaultdict(CharEvalResult)
+    aggregate_result = EvalResult()
+    aggregate_by_type: dict[str, EvalResult] = defaultdict(EvalResult)
     per_file_results = {}
-    per_file_eval_results: dict[str, CharEvalResult] = {}
+    per_file_eval_results: dict[str, EvalResult] = {}
     
     for pred_path, manifest_path in file_pairs:
         predictions = load_predictions(pred_path)
         ground_truth = load_ground_truth(manifest_path)
         
+        # Filter out trivial predictions (whitespace/punctuation) before evaluation
+        predictions = filter_trivial_predictions(predictions)
+        
         # Extract doc_id from prediction path (e.g., DI_000001 from DI_000001_positions)
         stem = pred_path.stem
         doc_id = stem[:-10] if stem.endswith("_positions") else stem
         
-        # Overall evaluation (character-based)
+        # Overall evaluation (entity-based)
         file_result = evaluate_document(predictions, ground_truth)
         aggregate_result = aggregate_result + file_result
         
         # Store full result for mistake tracking
         per_file_eval_results[doc_id] = file_result
         
-        # Per-type evaluation (character-based)
+        # Per-type evaluation (entity-based)
         type_results = evaluate_by_type(predictions, ground_truth)
         for entity_type, result in type_results.items():
             aggregate_by_type[entity_type] = aggregate_by_type[entity_type] + result
@@ -386,7 +352,7 @@ def run_evaluation(
     # Build results dictionary
     results = {
         "settings": {
-            "evaluation_mode": "character_based",
+            "evaluation_mode": "entity_based",
             "predictions_dir": str(predictions_dir),
             "manifests_dir": str(manifests_dir),
             "num_files": len(file_pairs),
@@ -419,7 +385,7 @@ def run_evaluation(
 def print_results(results: dict[str, Any]) -> None:
     """Print evaluation results in a formatted way."""
     print("\n" + "=" * 70)
-    print("PII DETECTION EVALUATION RESULTS (Character-Based)")
+    print("PII DETECTION EVALUATION RESULTS (Entity-Based)")
     print("=" * 70)
     
     settings = results["settings"]
@@ -432,9 +398,9 @@ def print_results(results: dict[str, Any]) -> None:
     print(f"  Precision: {agg['precision']:.4f}")
     print(f"  Recall:    {agg['recall']:.4f}")
     print(f"  F1 Score:  {agg['f1']:.4f}")
-    print(f"  True Positives:  {agg['true_positives']}")
-    print(f"  False Positives: {agg['false_positives']}")
-    print(f"  False Negatives: {agg['false_negatives']}")
+    print(f"  True Positives:  {agg['true_positives']} entities")
+    print(f"  False Positives: {agg['false_positives']} entities")
+    print(f"  False Negatives: {agg['false_negatives']} entities")
     
     print(f"\n{'METRICS BY ENTITY TYPE':^70}")
     print("-" * 70)
@@ -457,7 +423,7 @@ def print_results(results: dict[str, Any]) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Evaluate PII detection output against ground truth manifests using character-based metrics.",
+        description="Evaluate PII detection output against ground truth manifests using entity-based metrics.",
     )
     parser.add_argument(
         "--predictions-dir",
@@ -485,112 +451,88 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-# Trivial FP values to ignore (whitespace, punctuation-only)
-TRIVIAL_FP_VALUES = {" ", ", ", ",", "  ", ", ,", " ,"}
+# Trivial entity values to ignore (whitespace, punctuation-only)
+TRIVIAL_VALUES = {" ", ", ", ",", "  ", ", ,", " ,"}
 
 
-def is_trivial_fp(chars: str) -> bool:
-    """Check if a false positive is trivial (just whitespace/punctuation)."""
-    if not chars:
+def is_trivial_entity(value: str) -> bool:
+    """Check if an entity is trivial (just whitespace/punctuation)."""
+    if not value:
         return False
-    return chars in TRIVIAL_FP_VALUES or chars.strip() == "" or chars.strip(",").strip() == ""
+    return value in TRIVIAL_VALUES or value.strip() == "" or value.strip(",").strip() == ""
 
 
-def group_consecutive_positions(positions: set[int]) -> list[tuple[int, int]]:
-    """Group consecutive character positions into ranges.
-    
-    Returns list of (start, end) tuples where end is exclusive.
-    Example: {1, 2, 3, 7, 8} -> [(1, 4), (7, 9)]
-    """
-    if not positions:
-        return []
-    
-    sorted_pos = sorted(positions)
-    groups = []
-    start = sorted_pos[0]
-    end = start + 1
-    
-    for pos in sorted_pos[1:]:
-        if pos == end:  # Consecutive
-            end = pos + 1
-        else:  # Gap found, start new group
-            groups.append((start, end))
-            start = pos
-            end = pos + 1
-    
-    groups.append((start, end))  # Don't forget the last group
-    return groups
+def filter_trivial_predictions(predictions: list[Entity]) -> list[Entity]:
+    """Filter out trivial predictions (whitespace/punctuation only) before evaluation."""
+    return [p for p in predictions if not is_trivial_entity(p.value)]
 
 
 def save_per_document_mistakes(
-    per_file_eval_results: dict[str, CharEvalResult],
+    per_file_eval_results: dict[str, EvalResult],
     mistakes_dir: Path,
     texts_dir: Path | None = None,
 ) -> None:
-    """Save per-document JSON files with character-level FP and FN details.
+    """Save per-document JSON files with entity-level FP and FN details.
     
-    Consecutive characters are grouped together. Each entry shows:
+    Each entry shows:
     - start/end: character range (end is exclusive)
-    - chars: the actual characters in that range
+    - chars: the actual text value of the entity
+    - type: the entity type
     - manifest_context: (for FN only) the full entity value from the manifest
     """
     mistakes_dir.mkdir(parents=True, exist_ok=True)
     
     for doc_id, eval_result in per_file_eval_results.items():
-        # Skip if no potential mistakes
-        if not eval_result.fp_char_positions and not eval_result.fn_char_positions:
+        # Skip if no mistakes
+        if not eval_result.fp_entities and not eval_result.fn_entities:
             continue
         
-        # Try to load the original text to get actual characters
+        # Try to load the original text to get actual characters (backup if value is missing)
         text_content = None
         if texts_dir:
             text_path = texts_dir / f"{doc_id}.txt"
             if text_path.exists():
                 text_content = text_path.read_text(encoding="utf-8")
         
-        # Build char-to-entity map for FN context
-        char_to_entity = build_char_to_entity_map(eval_result.ground_truth_entities)
-        
-        # Build FN entries - group consecutive positions
+        # Build FN entries
         fn_entries = []
-        for start, end in group_consecutive_positions(eval_result.fn_char_positions):
-            entry: dict[str, Any] = {"start": start, "end": end}
-            if text_content:
-                entry["chars"] = text_content[start:end]
-            # Get manifest context from the first character's entity
-            entity = char_to_entity.get(start)
-            if entity:
-                entry["manifest_context"] = entity.value
-                entry["manifest_type"] = entity.type
+        for entity in eval_result.fn_entities:
+            chars = entity.value
+            if not chars and text_content:
+                chars = text_content[entity.start:entity.end]
+            entry: dict[str, Any] = {
+                "start": entity.start,
+                "end": entity.end,
+                "chars": chars,
+                "manifest_context": entity.value,
+                "manifest_type": entity.type,
+            }
             fn_entries.append(entry)
         
-        # Build FP entries - group consecutive positions, filtering out trivial ones
+        # Build FP entries (trivial predictions already filtered before evaluation)
         fp_entries = []
-        filtered_fp_char_count = 0
-        for start, end in group_consecutive_positions(eval_result.fp_char_positions):
-            chars = text_content[start:end] if text_content else None
-            # Skip trivial FPs (whitespace, punctuation only)
-            if chars and is_trivial_fp(chars):
-                filtered_fp_char_count += (end - start)
-                continue
-            entry = {"start": start, "end": end}
-            if chars:
-                entry["chars"] = chars
+        for entity in eval_result.fp_entities:
+            chars = entity.value
+            if not chars and text_content:
+                chars = text_content[entity.start:entity.end]
+            entry = {
+                "start": entity.start,
+                "end": entity.end,
+                "chars": chars,
+                "type": entity.type,
+            }
             fp_entries.append(entry)
         
-        actual_fp_count = len(eval_result.fp_char_positions) - filtered_fp_char_count
-        
-        # Skip if no real mistakes after filtering
+        # Skip if no mistakes
         if not fn_entries and not fp_entries:
             continue
         
         doc_mistakes = {
             "doc_id": doc_id,
-            "evaluation_mode": "character_based",
+            "evaluation_mode": "entity_based",
             "summary": {
-                "false_positive_count": actual_fp_count,
-                "false_negative_count": len(eval_result.fn_char_positions),
-                "filtered_trivial_fp_chars": filtered_fp_char_count,
+                "false_positive_count": len(fp_entries),
+                "false_negative_count": len(fn_entries),
             },
             "false_negatives": fn_entries,
             "false_positives": fp_entries,
@@ -631,4 +573,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

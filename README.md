@@ -1,6 +1,6 @@
 # PII De-identification Project
 
-Detect and redact PII from medical notes using AWS Bedrock (Claude). Identifies HIPAA 18 identifiers with character-level evaluation metrics.
+Detect and redact PII from medical notes using AWS Bedrock (Claude). Identifies HIPAA 18 identifiers with entity-level evaluation metrics.
 
 ## Quick Start
 

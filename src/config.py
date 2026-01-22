@@ -100,6 +100,28 @@ class GeneratorConfig:
     # Encounter selection (-1 = most recent, 0 = oldest, positive = specific index)
     encounter_index: int = -1
 
+    def __post_init__(self):
+        """Validate configuration values."""
+        # Validate encounter_index
+        if self.encounter_index < -1:
+            raise ValueError(f"encounter_index must be -1 or >= 0, got {self.encounter_index}")
+
+        # Validate clinical limits
+        clinical_limits = [
+            ('max_conditions', self.max_conditions),
+            ('max_medications', self.max_medications),
+            ('max_procedures', self.max_procedures),
+            ('max_allergies', self.max_allergies),
+            ('max_immunizations', self.max_immunizations),
+            ('max_observations', self.max_observations),
+            ('max_imaging_studies', self.max_imaging_studies),
+            ('max_devices', self.max_devices),
+        ]
+
+        for field_name, value in clinical_limits:
+            if value is not None and value < 0:
+                raise ValueError(f"{field_name} must be None or non-negative, got {value}")
+
     @property
     def notes_dir(self) -> Path:
         return self.output_dir / self.notes_subdir

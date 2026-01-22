@@ -35,3 +35,33 @@ def test_generator_config_clinical_limits_configurable():
     assert config.max_conditions == 5
     assert config.max_medications == 10
     assert config.encounter_index == 0
+
+
+def test_generator_config_rejects_invalid_encounter_index():
+    """Test GeneratorConfig rejects invalid encounter_index values."""
+    # Valid values should work
+    GeneratorConfig(encounter_index=-1)  # Most recent
+    GeneratorConfig(encounter_index=0)   # Oldest
+    GeneratorConfig(encounter_index=5)   # Specific index
+
+    # Invalid values should raise ValueError
+    with pytest.raises(ValueError, match="encounter_index must be -1 or >= 0"):
+        GeneratorConfig(encounter_index=-2)
+
+    with pytest.raises(ValueError, match="encounter_index must be -1 or >= 0"):
+        GeneratorConfig(encounter_index=-100)
+
+
+def test_generator_config_rejects_negative_clinical_limits():
+    """Test GeneratorConfig rejects negative max_* values."""
+    # Valid values should work
+    GeneratorConfig(max_conditions=None)  # Unlimited
+    GeneratorConfig(max_conditions=0)     # Zero is valid (skip category)
+    GeneratorConfig(max_conditions=10)    # Positive
+
+    # Negative values should raise ValueError
+    with pytest.raises(ValueError, match="max_conditions must be None or non-negative"):
+        GeneratorConfig(max_conditions=-1)
+
+    with pytest.raises(ValueError, match="max_medications must be None or non-negative"):
+        GeneratorConfig(max_medications=-5)

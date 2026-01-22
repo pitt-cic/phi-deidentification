@@ -283,12 +283,31 @@ class ClinicalContext:
     imaging_studies: List[Dict[str, str]] = field(default_factory=list)
     devices: List[Dict[str, str]] = field(default_factory=list)
 
-    def to_context_string(self, max_per_category: Optional[int] = None) -> str:
+    def to_context_string(
+        self,
+        max_per_category: Optional[int] = None,  # Keep for backward compatibility
+        max_conditions: Optional[int] = None,
+        max_medications: Optional[int] = None,
+        max_procedures: Optional[int] = None,
+        max_allergies: Optional[int] = None,
+        max_immunizations: Optional[int] = None,
+        max_observations: Optional[int] = None,
+        max_imaging_studies: Optional[int] = None,
+        max_devices: Optional[int] = None
+    ) -> str:
         """
         Convert clinical context to string for LLM.
 
         Args:
-            max_per_category: Optional limit per category (None = no limit)
+            max_per_category: Optional limit per category (None = no limit). Deprecated in favor of per-category limits.
+            max_conditions: Optional limit for conditions (None = no limit)
+            max_medications: Optional limit for medications (None = no limit)
+            max_procedures: Optional limit for procedures (None = no limit)
+            max_allergies: Optional limit for allergies (None = no limit)
+            max_immunizations: Optional limit for immunizations (None = no limit)
+            max_observations: Optional limit for observations (None = no limit)
+            max_imaging_studies: Optional limit for imaging studies (None = no limit)
+            max_devices: Optional limit for devices (None = no limit)
 
         Returns flat list with section headers for each non-empty category.
         Format:
@@ -302,12 +321,13 @@ class ClinicalContext:
         sections = []
 
         # Helper to format a list category
-        def format_category(items: list, header: str) -> Optional[str]:
+        def format_category(items: list, header: str, max_items: Optional[int]) -> Optional[str]:
             if not items:
                 return None
 
-            # Apply limit if specified
-            limited_items = items[:max_per_category] if max_per_category else items
+            # Use specific limit, fall back to max_per_category, or unlimited
+            limit = max_items if max_items is not None else max_per_category
+            limited_items = items[:limit] if limit else items
 
             lines = [f"## {header}"]
             for item in limited_items:
@@ -320,44 +340,44 @@ class ClinicalContext:
 
             return "\n".join(lines)
 
-        # Add each category
+        # Add each category with its specific limit
         if self.conditions:
-            section = format_category(self.conditions, "Conditions")
+            section = format_category(self.conditions, "Conditions", max_conditions)
             if section:
                 sections.append(section)
 
         if self.medications:
-            section = format_category(self.medications, "Medications")
+            section = format_category(self.medications, "Medications", max_medications)
             if section:
                 sections.append(section)
 
         if self.procedures:
-            section = format_category(self.procedures, "Procedures")
+            section = format_category(self.procedures, "Procedures", max_procedures)
             if section:
                 sections.append(section)
 
         if self.allergies:
-            section = format_category(self.allergies, "Allergies")
+            section = format_category(self.allergies, "Allergies", max_allergies)
             if section:
                 sections.append(section)
 
         if self.immunizations:
-            section = format_category(self.immunizations, "Immunizations")
+            section = format_category(self.immunizations, "Immunizations", max_immunizations)
             if section:
                 sections.append(section)
 
         if self.observations:
-            section = format_category(self.observations, "Observations")
+            section = format_category(self.observations, "Observations", max_observations)
             if section:
                 sections.append(section)
 
         if self.imaging_studies:
-            section = format_category(self.imaging_studies, "Imaging Studies")
+            section = format_category(self.imaging_studies, "Imaging Studies", max_imaging_studies)
             if section:
                 sections.append(section)
 
         if self.devices:
-            section = format_category(self.devices, "Devices")
+            section = format_category(self.devices, "Devices", max_devices)
             if section:
                 sections.append(section)
 

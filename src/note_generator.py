@@ -140,15 +140,17 @@ class NoteGenerator:
             else:
                 clinical_obj = clinical
 
-            # Calculate max_per_category from clinical limits
-            # Use minimum of all non-None limits as general max_per_category
-            max_per_category = None
-            if clinical_limits:
-                limits_list = [v for v in clinical_limits.values() if v is not None]
-                if limits_list:
-                    max_per_category = min(limits_list)
-
-            clinical_context = clinical_obj.to_context_string(max_per_category=max_per_category)
+            # Pass individual limits to to_context_string
+            clinical_context = clinical_obj.to_context_string(
+                max_conditions=clinical_limits.get('max_conditions') if clinical_limits else None,
+                max_medications=clinical_limits.get('max_medications') if clinical_limits else None,
+                max_procedures=clinical_limits.get('max_procedures') if clinical_limits else None,
+                max_allergies=clinical_limits.get('max_allergies') if clinical_limits else None,
+                max_immunizations=clinical_limits.get('max_immunizations') if clinical_limits else None,
+                max_observations=clinical_limits.get('max_observations') if clinical_limits else None,
+                max_imaging_studies=clinical_limits.get('max_imaging_studies') if clinical_limits else None,
+                max_devices=clinical_limits.get('max_devices') if clinical_limits else None
+            )
             if clinical_context:
                 sections.append(clinical_context)
 
@@ -379,28 +381,8 @@ class NoteGenerator:
         parser = FHIRBundleParser(bundle_path)
         context = parser.get_full_context()
 
-        print("=" * 100)
-        print("ORIGINAL CONTEXT FROM FHIR")
-        print("-" * 100)
-        print(context)
-        with open('original_context.json', 'w') as f:
-            json.dump(context, f, indent=2)
-        with open('original_context.txt', 'w') as f:
-            f.write(self._build_phi_context_from_fhir(context, clinical_limits=clinical_limits))
-        print("=" * 100)
-
         # Inject additional PHI not in Synthea
         context = self.phi_injector.inject(context)
-
-        print("=" * 100)
-        print("INJECTED CONTEXT")
-        print("-" * 100)
-        print(context)
-        with open('injected_context.json', 'w') as f:
-            json.dump(context, f, indent=2)
-        with open('injected_context.txt', 'w') as f:
-            f.write(self._build_phi_context_from_fhir(context, clinical_limits=clinical_limits))
-        print("=" * 100)
 
         # Add encounter-specific context
         encounters = context.get('encounters', [])
@@ -474,12 +456,6 @@ class NoteGenerator:
             phi_context = self._build_phi_context_from_fhir(context, clinical_limits=clinical_limits)
         else:
             phi_context = self._build_phi_context_from_faker(context)
-
-        print("=" * 100)
-        print("CONTEXT TO PASS TO LLM")
-        print("-" * 100)
-        print(phi_context)
-        print("=" * 100)
 
         # Load prompt template
         prompt_template = self._load_prompt(note_type, template_mode)

@@ -320,3 +320,26 @@ class TestNoteGeneratorGeneration:
         assert limits['max_procedures'] == 1, f"Expected max_procedures=1, got {limits.get('max_procedures')}"
 
         assert result is not None
+
+    def test_generate_from_fhir_rejects_invalid_encounter_index(self, minimal_fhir_bundle_path, mock_bedrock_client, tmp_path):
+        """Test generate_from_fhir rejects invalid encounter_index."""
+        from src.config import GeneratorConfig
+
+        config = GeneratorConfig(output_dir=tmp_path)
+        generator = NoteGenerator(bedrock_client=mock_bedrock_client, config=config)
+
+        # Test negative index < -1
+        with pytest.raises(ValueError, match="encounter_index must be -1 or >= 0"):
+            generator.generate_from_fhir(
+                bundle_path=minimal_fhir_bundle_path,
+                note_type=NoteType.PROGRESS_NOTE,
+                encounter_index=-2
+            )
+
+        # Test index beyond list
+        with pytest.raises(ValueError, match="out of range"):
+            generator.generate_from_fhir(
+                bundle_path=minimal_fhir_bundle_path,
+                note_type=NoteType.PROGRESS_NOTE,
+                encounter_index=999
+            )

@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 
 class PHIType(StrEnum):
@@ -86,6 +86,19 @@ class GeneratorConfig:
 
     # Bulk generation settings
     default_batch_size: int = 10
+
+    # Clinical context limits (None = unlimited)
+    max_conditions: Optional[int] = None
+    max_medications: Optional[int] = None
+    max_procedures: Optional[int] = None
+    max_allergies: Optional[int] = None
+    max_immunizations: Optional[int] = None
+    max_observations: Optional[int] = None
+    max_imaging_studies: Optional[int] = None
+    max_devices: Optional[int] = None
+
+    # Encounter selection (-1 = most recent, 0 = oldest, positive = specific index)
+    encounter_index: int = -1
 
     @property
     def notes_dir(self) -> Path:

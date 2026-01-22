@@ -365,6 +365,35 @@ class ProviderData:
     phone: str = ""
     address: str = ""
 
+    def to_context_string(self) -> str:
+        """
+        Convert provider data to context string for LLM.
+
+        Returns flat list of non-empty fields in 'Label: Value' format.
+        Skips fields that are None or empty string.
+        """
+        lines = []
+
+        # Helper to check if field should be included
+        def should_include(value) -> bool:
+            return value is not None and value != ""
+
+        # Add provider fields
+        if should_include(self.id):
+            lines.append(f"Provider ID: {self.id}")
+        if should_include(self.name):
+            lines.append(f"Provider Name: {self.name}")
+        if should_include(self.specialty):
+            lines.append(f"Specialty: {self.specialty}")
+        if should_include(self.organization):
+            lines.append(f"Organization: {self.organization}")
+        if should_include(self.phone):
+            lines.append(f"Phone: {self.phone}")
+        if should_include(self.address):
+            lines.append(f"Address: {self.address}")
+
+        return "\n".join(lines)
+
 
 @dataclass
 class OrganizationData:

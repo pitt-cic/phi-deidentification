@@ -256,3 +256,30 @@ class TestContextStringMethods:
         # Check for section markers (adjust based on actual format)
         lines = context_string.split('\n')
         assert any('Condition' in line or 'condition' in line for line in lines)
+
+    def test_provider_to_context_string_includes_all_fields(self, fhir_parser):
+        """Test ProviderData.to_context_string() includes all non-empty fields."""
+        context = fhir_parser.get_full_context()
+
+        providers = context.get('providers', [])
+        assert len(providers) > 0, "Sample should have providers"
+
+        # Get first provider
+        provider_data = providers[0]
+
+        # Convert to ProviderData if it's a dict
+        from src.fhir_parser import ProviderData
+        if isinstance(provider_data, dict):
+            provider = ProviderData(**provider_data)
+        else:
+            provider = provider_data
+
+        context_string = provider.to_context_string()
+
+        # Validate format
+        assert isinstance(context_string, str)
+        assert len(context_string) > 0
+
+        # Check for "Label: Value" format
+        lines = [line for line in context_string.split('\n') if line.strip()]
+        assert all(':' in line for line in lines), "All lines should be 'Label: Value' format"

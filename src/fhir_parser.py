@@ -228,6 +228,39 @@ class EncounterData:
     location_name: str = ""
     provider_name: str = ""
 
+    def to_context_string(self) -> str:
+        """
+        Convert encounter data to context string for LLM.
+
+        Returns flat list of non-empty fields in 'Label: Value' format.
+        Skips fields that are None or empty string.
+        """
+        lines = []
+
+        # Helper to check if field should be included
+        def should_include(value) -> bool:
+            return value is not None and value != ""
+
+        # Add encounter fields
+        if should_include(self.id):
+            lines.append(f"Encounter ID: {self.id}")
+        if should_include(self.type_display):
+            lines.append(f"Encounter Type: {self.type_display}")
+        if should_include(self.encounter_class):
+            lines.append(f"Encounter Class: {self.encounter_class}")
+        if should_include(self.reason_display):
+            lines.append(f"Reason: {self.reason_display}")
+        if should_include(self.start_datetime):
+            lines.append(f"Start Date/Time: {self.start_datetime}")
+        if should_include(self.end_datetime):
+            lines.append(f"End Date/Time: {self.end_datetime}")
+        if should_include(self.location_name):
+            lines.append(f"Location: {self.location_name}")
+        if should_include(self.provider_name):
+            lines.append(f"Provider: {self.provider_name}")
+
+        return "\n".join(lines)
+
 
 @dataclass
 class ClinicalContext:

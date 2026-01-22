@@ -199,3 +199,34 @@ class TestFullContext:
 
         # Organizations should be a list
         assert isinstance(context['organizations'], list)
+
+
+@pytest.mark.unit
+class TestContextStringMethods:
+    """Test to_context_string() methods on dataclasses."""
+
+    def test_encounter_to_context_string_includes_all_fields(self, fhir_parser):
+        """Test EncounterData.to_context_string() includes all non-empty fields."""
+        encounters = fhir_parser.extract_encounters()
+
+        assert len(encounters) > 0, "Sample should have encounters"
+
+        encounter = encounters[0]
+        context_string = encounter.to_context_string()
+
+        # Validate format
+        assert isinstance(context_string, str)
+        assert len(context_string) > 0
+
+        # Check for key fields - at least some should be present
+        lines = [line for line in context_string.split('\n') if line.strip()]
+        assert len(lines) > 0, "Should have at least one field"
+        assert all(':' in line for line in lines), "All lines should be 'Label: Value' format"
+
+        # Check that non-empty encounter fields appear in context string
+        if encounter.id:
+            assert f"Encounter ID: {encounter.id}" in context_string
+        if encounter.type_display:
+            assert f"Encounter Type: {encounter.type_display}" in context_string
+        if encounter.encounter_class:
+            assert f"Encounter Class: {encounter.encounter_class}" in context_string

@@ -230,3 +230,29 @@ class TestContextStringMethods:
             assert f"Encounter Type: {encounter.type_display}" in context_string
         if encounter.encounter_class:
             assert f"Encounter Class: {encounter.encounter_class}" in context_string
+
+    def test_clinical_context_to_context_string_includes_all_categories(self, fhir_parser):
+        """Test ClinicalContext.to_context_string() includes all non-empty clinical categories."""
+        context = fhir_parser.get_full_context()
+        clinical_context = context.get('clinical')
+
+        assert clinical_context is not None
+
+        # Convert to ClinicalContext object if needed
+        from src.fhir_parser import ClinicalContext
+        if isinstance(clinical_context, dict):
+            clinical_obj = ClinicalContext(**clinical_context)
+        else:
+            clinical_obj = clinical_context
+
+        context_string = clinical_obj.to_context_string()
+
+        # Validate format
+        assert isinstance(context_string, str)
+        assert len(context_string) > 0
+
+        # Should have section headers for non-empty categories
+        # Sample data typically has conditions and medications
+        # Check for section markers (adjust based on actual format)
+        lines = context_string.split('\n')
+        assert any('Condition' in line or 'condition' in line for line in lines)

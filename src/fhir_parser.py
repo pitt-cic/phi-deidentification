@@ -274,6 +274,86 @@ class ClinicalContext:
     imaging_studies: List[Dict[str, str]] = field(default_factory=list)
     devices: List[Dict[str, str]] = field(default_factory=list)
 
+    def to_context_string(self, max_per_category: Optional[int] = None) -> str:
+        """
+        Convert clinical context to string for LLM.
+
+        Args:
+            max_per_category: Optional limit per category (None = no limit)
+
+        Returns flat list with section headers for each non-empty category.
+        Format:
+            ## Conditions
+            - Display text 1
+            - Display text 2
+
+            ## Medications
+            - Display text 1
+        """
+        sections = []
+
+        # Helper to format a list category
+        def format_category(items: list, header: str) -> Optional[str]:
+            if not items:
+                return None
+
+            # Apply limit if specified
+            limited_items = items[:max_per_category] if max_per_category else items
+
+            lines = [f"## {header}"]
+            for item in limited_items:
+                if isinstance(item, dict):
+                    # Extract display text (adjust field names as needed)
+                    display = item.get('display') or item.get('name') or item.get('description') or str(item)
+                else:
+                    display = str(item)
+                lines.append(f"- {display}")
+
+            return "\n".join(lines)
+
+        # Add each category
+        if self.conditions:
+            section = format_category(self.conditions, "Conditions")
+            if section:
+                sections.append(section)
+
+        if self.medications:
+            section = format_category(self.medications, "Medications")
+            if section:
+                sections.append(section)
+
+        if self.procedures:
+            section = format_category(self.procedures, "Procedures")
+            if section:
+                sections.append(section)
+
+        if self.allergies:
+            section = format_category(self.allergies, "Allergies")
+            if section:
+                sections.append(section)
+
+        if self.immunizations:
+            section = format_category(self.immunizations, "Immunizations")
+            if section:
+                sections.append(section)
+
+        if self.observations:
+            section = format_category(self.observations, "Observations")
+            if section:
+                sections.append(section)
+
+        if self.imaging_studies:
+            section = format_category(self.imaging_studies, "Imaging Studies")
+            if section:
+                sections.append(section)
+
+        if self.devices:
+            section = format_category(self.devices, "Devices")
+            if section:
+                sections.append(section)
+
+        return "\n\n".join(sections)
+
 
 @dataclass
 class ProviderData:

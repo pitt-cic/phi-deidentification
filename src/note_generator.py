@@ -96,12 +96,17 @@ class NoteGenerator:
 
         return prompt
 
-    def _build_phi_context_from_fhir(self, fhir_context: Dict[str, Any]) -> str:
+    def _build_phi_context_from_fhir(
+        self,
+        fhir_context: Dict[str, Any],
+        clinical_limits: Optional[Dict[str, Optional[int]]] = None
+    ) -> str:
         """
         Build PHI context string from FHIR data using dataclass methods.
 
         Args:
             fhir_context: Full context from FHIRBundleParser
+            clinical_limits: Optional dict of clinical limits (max_conditions, max_medications, etc.)
 
         Returns:
             Formatted context string for LLM
@@ -135,11 +140,13 @@ class NoteGenerator:
             else:
                 clinical_obj = clinical
 
-            # Use config clinical limits if available
+            # Calculate max_per_category from clinical limits
+            # Use minimum of all non-None limits as general max_per_category
             max_per_category = None
-            if self.config:
-                # Will be implemented in next task to pass individual limits
-                max_per_category = None  # For now, pass None (unlimited)
+            if clinical_limits:
+                limits_list = [v for v in clinical_limits.values() if v is not None]
+                if limits_list:
+                    max_per_category = min(limits_list)
 
             clinical_context = clinical_obj.to_context_string(max_per_category=max_per_category)
             if clinical_context:
@@ -335,7 +342,7 @@ class NoteGenerator:
         note_type: NoteType,
         note_id: Optional[str] = None,
         template_mode: bool = False,
-        encounter_index: int = 0
+        encounter_index: Optional[int] = None
     ) -> GeneratedNote:
         """
         Generate a clinical note from a FHIR bundle.
@@ -345,11 +352,29 @@ class NoteGenerator:
             note_type: Type of clinical note to generate
             note_id: Optional ID for the note
             template_mode: If True, generate template with {{PLACEHOLDERS}}
-            encounter_index: Which encounter to use from the bundle (default: 0)
+            encounter_index: Which encounter to use (None = use config, -1 = most recent, 0+ = specific)
 
         Returns:
             GeneratedNote object
         """
+        # Use config default if encounter_index not specified
+        if encounter_index is None:
+            encounter_index = self.config.encounter_index if self.config else -1
+
+        # Build clinical limits dict from config
+        clinical_limits = None
+        if self.config:
+            clinical_limits = {
+                'max_conditions': self.config.max_conditions,
+                'max_medications': self.config.max_medications,
+                'max_procedures': self.config.max_procedures,
+                'max_allergies': self.config.max_allergies,
+                'max_immunizations': self.config.max_immunizations,
+                'max_observations': self.config.max_observations,
+                'max_imaging_studies': self.config.max_imaging_studies,
+                'max_devices': self.config.max_devices,
+            }
+
         # Parse FHIR bundle
         parser = FHIRBundleParser(bundle_path)
         context = parser.get_full_context()
@@ -361,7 +386,7 @@ class NoteGenerator:
         with open('original_context.json', 'w') as f:
             json.dump(context, f, indent=2)
         with open('original_context.txt', 'w') as f:
-            f.write(self._build_phi_context_from_fhir(context))
+            f.write(self._build_phi_context_from_fhir(context, clinical_limits=clinical_limits))
         print("=" * 100)
 
         # Inject additional PHI not in Synthea
@@ -374,12 +399,18 @@ class NoteGenerator:
         with open('injected_context.json', 'w') as f:
             json.dump(context, f, indent=2)
         with open('injected_context.txt', 'w') as f:
-            f.write(self._build_phi_context_from_fhir(context))
+            f.write(self._build_phi_context_from_fhir(context, clinical_limits=clinical_limits))
         print("=" * 100)
 
         # Add encounter-specific context
         encounters = context.get('encounters', [])
-        if encounters and encounter_index < len(encounters):
+        if encounters:
+            # Validate encounter_index
+            if encounter_index < -1:
+                raise ValueError(f"encounter_index must be -1 or >= 0, got {encounter_index}")
+            if encounter_index >= len(encounters):
+                raise ValueError(f"encounter_index {encounter_index} out of range (0-{len(encounters)-1})")
+
             enc = encounters[encounter_index]
             context['current_encounter'] = enc
             # Add encounter date in simple format
@@ -392,7 +423,8 @@ class NoteGenerator:
             note_id=note_id,
             context=context,
             template_mode=template_mode,
-            context_type='fhir'
+            context_type='fhir',
+            clinical_limits=clinical_limits
         )
 
     def generate_from_faker(
@@ -427,7 +459,8 @@ class NoteGenerator:
         note_id: Optional[str],
         context: Dict[str, Any],
         template_mode: bool,
-        context_type: str
+        context_type: str,
+        clinical_limits: Optional[Dict[str, Optional[int]]] = None
     ) -> GeneratedNote:
         """Internal method to generate a note."""
         # Generate note ID if not provided
@@ -438,7 +471,7 @@ class NoteGenerator:
 
         # Build PHI context string based on context type
         if context_type == 'fhir':
-            phi_context = self._build_phi_context_from_fhir(context)
+            phi_context = self._build_phi_context_from_fhir(context, clinical_limits=clinical_limits)
         else:
             phi_context = self._build_phi_context_from_faker(context)
 

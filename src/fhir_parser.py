@@ -92,6 +92,92 @@ class PatientData:
     def to_dict(self) -> dict:
         return asdict(self)
 
+    def to_context_string(self) -> str:
+        """
+        Convert patient data to context string for LLM.
+
+        Returns flat list of non-empty fields in 'Label: Value' format.
+        Skips fields that are None, empty string, or 0 (except age).
+        """
+        lines = []
+
+        # Helper to check if field should be included
+        def should_include(value, field_name: str) -> bool:
+            if value is None or value == "":
+                return False
+            # Allow age=0 (newborns), but skip other 0 values
+            if value == 0 and field_name != "age":
+                return False
+            return True
+
+        # Add all patient fields in logical order
+        if should_include(self.id, "id"):
+            lines.append(f"Patient ID: {self.id}")
+        if should_include(self.mrn, "mrn"):
+            lines.append(f"MRN: {self.mrn}")
+        if should_include(self.first_name, "first_name"):
+            lines.append(f"First Name: {self.first_name}")
+        if should_include(self.last_name, "last_name"):
+            lines.append(f"Last Name: {self.last_name}")
+        if should_include(self.full_name, "full_name"):
+            lines.append(f"Full Name: {self.full_name}")
+        if should_include(self.prefix, "prefix"):
+            lines.append(f"Prefix: {self.prefix}")
+        if should_include(self.nicknames, "nicknames"):
+            lines.append(f"Nicknames: {self.nicknames}")
+        if should_include(self.birth_date, "birth_date"):
+            lines.append(f"Date of Birth: {self.birth_date}")
+        if should_include(self.age, "age"):
+            lines.append(f"Age: {self.age}")
+        if should_include(self.deceased_date, "deceased_date"):
+            lines.append(f"Deceased Date: {self.deceased_date}")
+        if should_include(self.gender, "gender"):
+            lines.append(f"Gender: {self.gender}")
+        if should_include(self.race, "race"):
+            lines.append(f"Race: {self.race}")
+        if should_include(self.ethnicity, "ethnicity"):
+            lines.append(f"Ethnicity: {self.ethnicity}")
+        if should_include(self.marital_status, "marital_status"):
+            lines.append(f"Marital Status: {self.marital_status}")
+        if should_include(self.ssn, "ssn"):
+            lines.append(f"SSN: {self.ssn}")
+        if should_include(self.drivers_license, "drivers_license"):
+            lines.append(f"Driver's License: {self.drivers_license}")
+        if should_include(self.passport, "passport"):
+            lines.append(f"Passport: {self.passport}")
+        if should_include(self.phone, "phone"):
+            lines.append(f"Phone: {self.phone}")
+        if should_include(self.address_line, "address_line"):
+            lines.append(f"Address: {self.address_line}")
+        if should_include(self.city, "city"):
+            lines.append(f"City: {self.city}")
+        if should_include(self.state, "state"):
+            lines.append(f"State: {self.state}")
+        if should_include(self.zip_code, "zip_code"):
+            lines.append(f"ZIP Code: {self.zip_code}")
+        if should_include(self.country, "country"):
+            lines.append(f"Country: {self.country}")
+        if should_include(self.full_address, "full_address"):
+            lines.append(f"Full Address: {self.full_address}")
+        if should_include(self.birth_city, "birth_city"):
+            lines.append(f"Birth City: {self.birth_city}")
+        if should_include(self.birth_state, "birth_state"):
+            lines.append(f"Birth State: {self.birth_state}")
+        if should_include(self.birth_country, "birth_country"):
+            lines.append(f"Birth Country: {self.birth_country}")
+        if should_include(self.mothers_maiden_name, "mothers_maiden_name"):
+            lines.append(f"Mother's Maiden Name: {self.mothers_maiden_name}")
+        if should_include(self.disability_adjusted_life_years, "disability_adjusted_life_years"):
+            lines.append(f"Disability Adjusted Life Years: {self.disability_adjusted_life_years}")
+        if should_include(self.quality_adjusted_life_years, "quality_adjusted_life_years"):
+            lines.append(f"Quality Adjusted Life Years: {self.quality_adjusted_life_years}")
+        if should_include(self.emergency_contact_name, "emergency_contact_name"):
+            lines.append(f"Emergency Contact Name: {self.emergency_contact_name}")
+        if should_include(self.emergency_contact_phone, "emergency_contact_phone"):
+            lines.append(f"Emergency Contact Phone: {self.emergency_contact_phone}")
+
+        return "\n".join(lines)
+
     """
     def to_dict(self) -> dict:
         return {

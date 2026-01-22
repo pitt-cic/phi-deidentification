@@ -101,6 +101,29 @@ class TestPatientExtraction:
         assert 'birth_country' in patient
         assert patient['birth_country'] == 'US'
 
+    def test_patient_to_context_string_includes_all_fields(self, fhir_parser):
+        """Test PatientData.to_context_string() includes all non-empty fields."""
+        patient = fhir_parser.extract_patient()
+
+        context_string = patient.to_context_string()
+
+        # Should be multiline string with key: value format
+        assert isinstance(context_string, str)
+        assert len(context_string) > 0
+
+        # Check for key fields (sample has these)
+        assert "First Name:" in context_string
+        assert "Last Name:" in context_string
+        assert "Full Name:" in context_string
+        assert "Date of Birth:" in context_string
+        assert "Gender:" in context_string
+        assert "MRN:" in context_string
+
+        # Should skip empty fields (e.g., nickname is typically empty in Synthea)
+        # This assertion may need adjustment based on actual data
+        lines = [line for line in context_string.split('\n') if line.strip()]
+        assert all(':' in line for line in lines), "All lines should be 'Label: Value' format"
+
 
 @pytest.mark.unit
 class TestClinicalDataExtraction:

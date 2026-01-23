@@ -1,61 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
-import { listSafeHarborNotes, getSafeHarborComparison, getSafeHarborMetrics } from '../api/client'
+import { listSafeHarborNotes, getSafeHarborComparison } from '../api/client'
 import { useState } from 'react'
+import ThreePanelDiff from './ThreePanelDiff'
 import './SafeHarborNotes.css'
-
-function highlightPII(text: string, isGroundTruth: boolean = false): React.ReactNode[] {
-  const bracketPattern = /\[[^\]]+\]/g
-  const doubleStarPattern = /\*\*[^\s]+/g
-  const matches: Array<{ start: number; end: number; type: 'bracket' | 'star' }> = []
-  
-  let match
-  while ((match = bracketPattern.exec(text)) !== null) {
-    matches.push({ start: match.index, end: match.index + match[0].length, type: 'bracket' })
-  }
-  
-  while ((match = doubleStarPattern.exec(text)) !== null) {
-    matches.push({ start: match.index, end: match.index + match[0].length, type: 'star' })
-  }
-  
-  matches.sort((a, b) => a.start - b.start)
-  
-  const nonOverlapping: Array<{ start: number; end: number; type: 'bracket' | 'star' }> = []
-  for (const match of matches) {
-    const overlaps = nonOverlapping.some(m => 
-      (match.start < m.end && match.end > m.start)
-    )
-    if (!overlaps) {
-      nonOverlapping.push(match)
-    }
-  }
-  
-  const elements: React.ReactNode[] = []
-  let lastIndex = 0
-  
-  for (const match of nonOverlapping) {
-    if (match.start > lastIndex) {
-      elements.push(text.substring(lastIndex, match.start))
-    }
-    
-    const matchText = text.substring(match.start, match.end)
-    const highlightClass = isGroundTruth && match.type === 'bracket' 
-      ? 'pii-highlight star' 
-      : `pii-highlight ${match.type}`
-    elements.push(
-      <span key={match.start} className={highlightClass}>
-        {matchText}
-      </span>
-    )
-    
-    lastIndex = match.end
-  }
-  
-  if (lastIndex < text.length) {
-    elements.push(text.substring(lastIndex))
-  }
-  
-  return elements.length > 0 ? elements : [text]
-}
 
 export default function SafeHarborNotes() {
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
@@ -65,18 +12,13 @@ export default function SafeHarborNotes() {
     queryFn: listSafeHarborNotes,
   })
 
-  const { data: metrics, isLoading: metricsLoading } = useQuery({
-    queryKey: ['safe-harbor-metrics'],
-    queryFn: getSafeHarborMetrics,
-  })
-
   const { data: comparison, isLoading: comparisonLoading } = useQuery({
     queryKey: ['safe-harbor-comparison', selectedNoteId],
     queryFn: () => getSafeHarborComparison(selectedNoteId!),
     enabled: !!selectedNoteId,
   })
 
-  if (notesLoading || metricsLoading) {
+  if (notesLoading) {
     return (
       <div className="safe-harbor-notes">
         <div className="loading-state">Loading Safe Harbor Notes...</div>
@@ -100,14 +42,6 @@ export default function SafeHarborNotes() {
     <div className="safe-harbor-notes">
       <header className="page-header">
         <h1 className="page-title">Safe Harbor Notes Comparison</h1>
-        {metrics && (
-          <div className="metrics-summary">
-            <div className="metric-item">
-              <span className="metric-label">Files:</span>
-              <span className="metric-value">{metrics.total_files}</span>
-            </div>
-          </div>
-        )}
       </header>
 
       <div className="safe-harbor-layout">
@@ -141,20 +75,12 @@ export default function SafeHarborNotes() {
                 <h2>{comparison.note_id}</h2>
               </div>
 
-              <div className="side-by-side-comparison">
-                <div className="comparison-panel">
-                  <h3>Redacted Text (LLM Output)</h3>
-                  <div className="text-viewer">
-                    {highlightPII(comparison.redacted_text, false)}
-                  </div>
-                </div>
-
-                <div className="comparison-panel">
-                  <h3>Ground Truth (DEID)</h3>
-                  <div className="text-viewer ground-truth-viewer">
-                    {highlightPII(comparison.deid_text, true)}
-                  </div>
-                </div>
+              <div className="diff-viewer-container">
+                <ThreePanelDiff
+                  original={comparison.original_text}
+                  llmOutput={comparison.redacted_text}
+                  groundTruth={comparison.deid_text}
+                />
               </div>
             </div>
           )}
@@ -163,4 +89,3 @@ export default function SafeHarborNotes() {
     </div>
   )
 }
-

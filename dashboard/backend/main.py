@@ -42,6 +42,7 @@ MANIFESTS_DIR = PROJECT_ROOT / "synthetic_dataset" / "manifests"
 POSITIONS_DIR = PROJECT_ROOT / "output-json"
 SAFE_HARBOR_REDACTED_DIR = PROJECT_ROOT / "sample-output-text"
 SAFE_HARBOR_DEID_DIR = PROJECT_ROOT / "sample_safe_harbor_notes" / "text_manifest"
+SAFE_HARBOR_ORIGINAL_DIR = PROJECT_ROOT / "sample_safe_harbor_notes" / "notes"
 
 
 def parse_eval_timestamp(filename: str) -> str:
@@ -349,7 +350,7 @@ def get_note_annotations(note_id: str):
 
 @app.get("/api/safe-harbor/notes", response_model=list[NoteSummary])
 def list_safe_harbor_notes():
-    """List all available Safe Harbor Notes."""
+    """List all available Safe Harbor Notes (only those with all 3 files)."""
     notes = []
     
     if not SAFE_HARBOR_REDACTED_DIR.exists():
@@ -357,13 +358,17 @@ def list_safe_harbor_notes():
     
     for redacted_file in sorted(SAFE_HARBOR_REDACTED_DIR.glob("*_redacted.txt")):
         note_id = redacted_file.stem.replace("_redacted", "")
+        original_file = SAFE_HARBOR_ORIGINAL_DIR / f"{note_id}.txt"
         deid_file = SAFE_HARBOR_DEID_DIR / f"{note_id}.DEID"
-        has_ground_truth = deid_file.exists()
+        
+        # Only list notes where all three files exist
+        if not original_file.exists() or not deid_file.exists():
+            continue
         
         notes.append(NoteSummary(
             note_id=note_id,
             note_type=None,
-            has_mistakes=has_ground_truth,
+            has_mistakes=True,  # All listed notes have ground truth
         ))
     
     return notes
@@ -371,9 +376,13 @@ def list_safe_harbor_notes():
 
 @app.get("/api/safe-harbor/notes/{note_id}/comparison")
 def get_safe_harbor_comparison(note_id: str):
-    """Compare redacted text with DEID ground truth."""
+    """Compare original, redacted (LLM), and DEID (ground truth) texts."""
+    original_file = SAFE_HARBOR_ORIGINAL_DIR / f"{note_id}.txt"
     redacted_file = SAFE_HARBOR_REDACTED_DIR / f"{note_id}_redacted.txt"
     deid_file = SAFE_HARBOR_DEID_DIR / f"{note_id}.DEID"
+    
+    if not original_file.exists():
+        raise HTTPException(status_code=404, detail=f"Original file {note_id} not found")
     
     if not redacted_file.exists():
         raise HTTPException(status_code=404, detail=f"Redacted file {note_id} not found")
@@ -396,11 +405,13 @@ def get_safe_harbor_comparison(note_id: str):
             except UnicodeDecodeError:
                 return raw_bytes.decode('latin-1', errors='replace')
     
-    redacted_text = load_with_encoding(redacted_file)
-    deid_text = load_with_encoding(deid_file)
+    original_text = load_with_encoding(original_file).replace('\r\n', '\n').replace('\r', '\n')
+    redacted_text = load_with_encoding(redacted_file).replace('\r\n', '\n').replace('\r', '\n')
+    deid_text = load_with_encoding(deid_file).replace('\r\n', '\n').replace('\r', '\n')
     
     return {
         "note_id": note_id,
+        "original_text": original_text,
         "redacted_text": redacted_text,
         "deid_text": deid_text
     }

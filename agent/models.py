@@ -25,7 +25,7 @@ DEFAULT_PII_TYPES = [
     "url",                                  
     "ip_address",                           
     "biometric_identifier",                  
-    "photographic_image",                   
+    "photographic_image",            
     "other",             
 ]
 

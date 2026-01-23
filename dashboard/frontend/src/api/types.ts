@@ -88,6 +88,7 @@ export interface NoteAnnotations {
 
 export interface SafeHarborComparison {
   note_id: string
+  original_text: string
   redacted_text: string
   deid_text: string
 }

@@ -381,8 +381,16 @@ class NoteGenerator:
         parser = FHIRBundleParser(bundle_path)
         context = parser.get_full_context()
 
+        with open('original_context.json', 'w') as f:
+            json.dump(context, f, indent=2)
+            print(f"Original context saved to original_context.json")
+
         # Inject additional PHI not in Synthea
         context = self.phi_injector.inject(context)
+
+        with open('injected_context.json', 'w') as f:
+            json.dump(context, f, indent=2)
+            print(f"Injected context saved to injected_context.json")
 
         # Add encounter-specific context
         encounters = context.get('encounters', [])
@@ -456,6 +464,10 @@ class NoteGenerator:
             phi_context = self._build_phi_context_from_fhir(context, clinical_limits=clinical_limits)
         else:
             phi_context = self._build_phi_context_from_faker(context)
+
+        with open('phi_context.txt', 'w') as f:
+            f.write(phi_context)
+            print(f"PHI context saved to phi_context.txt")
 
         # Load prompt template
         prompt_template = self._load_prompt(note_type, template_mode)

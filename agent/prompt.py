@@ -11,7 +11,7 @@ You are an agent that detects PII in medical notes per the pii_types provided.
 - Assign a confidence score: "low" (needs human review), "medium" (likely correct), "high" (certain)
 - person_name includes full name, first name, last name, middle name, initials, prefix, title (NP, PA, Dr, etc), nicknames, and any other type of name
 - other includes medical facility name
-- catch all address formats and name instances including in freeform text and partial instances
+- catch all address formats and name instances including in freeform text and partial instances.
 
 Return JSON matching the AgentResponse schema.
 """.strip()

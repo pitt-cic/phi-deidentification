@@ -67,3 +67,89 @@
   color: var(--accent-primary);
   border-bottom-color: var(--accent-primary);
 }
+
+/* Failed notes styling */
+.eval-failed {
+  font-size: 12px;
+  padding: 6px 12px;
+  background: rgba(255, 149, 0, 0.15);
+  border: 1px solid rgba(255, 149, 0, 0.3);
+  border-radius: 6px;
+  color: #ff9500;
+  font-weight: 500;
+}
+
+.failed-notes-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 149, 0, 0.1);
+  border: 1px solid rgba(255, 149, 0, 0.25);
+  border-radius: 8px;
+  color: #ff9500;
+  font-size: 0.875rem;
+  margin-bottom: 1.5rem;
+}
+
+.failed-notes-banner .failed-icon {
+  font-size: 1.125rem;
+}
+
+.failed-notes-section {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 149, 0, 0.2);
+}
+
+.failed-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #ff9500;
+  margin-bottom: 0.5rem;
+}
+
+.failed-title .failed-icon {
+  font-size: 1.125rem;
+}
+
+.failed-description {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.failed-notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.failed-note-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-left: 3px solid #ff9500;
+  border-radius: 6px;
+}
+
+.failed-note-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.failed-note-fn {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}

@@ -33,3 +33,6 @@ sample-output-json/
 # Dashboard
 node_modules/
 .vite/
+
+# Redaction formats
+redaction_formats/

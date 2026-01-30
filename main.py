@@ -13,7 +13,12 @@ from typing import Any, Sequence
 import logfire
 from agent import AgentContext, AgentResponse, DetectionParameters, pii_agent
 from agent.prompt import SYSTEM_PROMPT
-from redact_pii import process_json_file
+from redact_pii import FormatterProtocol, process_json_file
+from redaction_formats import (
+    RedactionFormat,
+    RedactionFormatManager,
+    RedactionFormatter,
+)
 
 DEFAULT_PROMPT = (
     "Analyze the document text and identify all requested PII strings. "
@@ -93,7 +98,111 @@ def parse_args() -> argparse.Namespace:
         default=3,
         help="Maximum number of documents to process concurrently (default: 3).",
     )
+    
+    # Custom redaction format options
+    format_group = parser.add_argument_group("Custom Redaction Format")
+    format_group.add_argument(
+        "--custom",
+        metavar="FORMAT_NAME",
+        help="Use a saved custom redaction format by name.",
+    )
+    format_group.add_argument(
+        "--define-format",
+        metavar="TEMPLATE",
+        help="Define a custom format template. Use {TYPE} for PII type and {ID} for "
+             "unique identifier. Examples: '[REDACTED]', '[{TYPE}]', '**{TYPE}[{ID}]'",
+    )
+    format_group.add_argument(
+        "--id-scheme",
+        choices=["alpha", "numeric"],
+        default="alpha",
+        help="Identifier scheme: 'alpha' (A,B,C...) or 'numeric' (1,2,3...). Default: alpha",
+    )
+    format_group.add_argument(
+        "--save-as",
+        metavar="NAME",
+        help="Save the defined format with this name for future use.",
+    )
+    format_group.add_argument(
+        "--list-formats",
+        action="store_true",
+        help="List all saved custom formats and exit.",
+    )
+    
     return parser.parse_args()
+
+
+def create_formatter_from_args(args: argparse.Namespace) -> FormatterProtocol | None:
+    """Create a formatter based on command line arguments.
+    
+    Args:
+        args: Parsed command line arguments.
+        
+    Returns:
+        A RedactionFormatter if custom format is specified, None for default format.
+        
+    Raises:
+        FileNotFoundError: If --custom specifies a non-existent format.
+        ValueError: If --define-format template is invalid.
+    """
+    manager = RedactionFormatManager()
+    
+    # Load existing format by name
+    if args.custom:
+        fmt = manager.load(args.custom)
+        logger.info("Using custom format '%s': %s", args.custom, fmt.template)
+        return RedactionFormatter(fmt)
+    
+    # Create new format from template
+    if args.define_format:
+        fmt = RedactionFormat(
+            template=args.define_format,
+            id_scheme=args.id_scheme,
+            name=args.save_as,
+        )
+        
+        # Save if requested
+        if args.save_as:
+            manager.save(fmt)
+            logger.info("Saved format '%s'", args.save_as)
+        
+        logger.info("Using custom format: %s (id_scheme=%s)", fmt.template, fmt.id_scheme)
+        return RedactionFormatter(fmt)
+    
+    # No custom format specified, use default
+    return None
+
+
+def list_available_formats() -> None:
+    """Print all available custom redaction formats."""
+    manager = RedactionFormatManager()
+    formats = manager.list_formats()
+    
+    if formats:
+        print("Available custom redaction formats:")
+        print()
+        for name in formats:
+            try:
+                fmt = manager.load(name)
+                print(f"  {name}")
+                print(f"    Template:  {fmt.template}")
+                print(f"    ID Scheme: {fmt.id_scheme}")
+                if fmt.created:
+                    print(f"    Created:   {fmt.created}")
+                print()
+            except Exception as e:
+                print(f"  {name}: (error loading: {e})")
+                print()
+        print("Use --custom <name> to use a saved format.")
+    else:
+        print("No saved formats found.")
+        print()
+        print("Create a format with:")
+        print("  --define-format '<template>' --id-scheme <alpha|numeric> --save-as <name>")
+        print()
+        print("Example:")
+        print("  python main.py --define-format '**{TYPE}[{ID}]' --id-scheme alpha --save-as hipaa")
+
 
 def load_document(input_path: Path) -> str:
     if str(input_path) == "-":
@@ -253,7 +362,21 @@ async def process_dataset(
     output_dir: Path,
     auto_redact: bool = True,
     concurrency: int = 3,
+    formatter: FormatterProtocol | None = None,
 ) -> None:
+    """Process a dataset of documents through the PII agent.
+    
+    Args:
+        dataset_dir: Directory containing .txt files to process.
+        detection: PII detection parameters.
+        language: Document language code.
+        max_chars: Maximum document length.
+        raw_response: Whether to use raw response format.
+        output_dir: Directory for JSON output files.
+        auto_redact: Whether to automatically redact after processing.
+        concurrency: Maximum concurrent document processing.
+        formatter: Optional custom redaction formatter.
+    """
     if not dataset_dir.exists() or not dataset_dir.is_dir():
         raise FileNotFoundError(f"Dataset directory does not exist: {dataset_dir}")
 
@@ -310,12 +433,21 @@ async def process_dataset(
         
         json_files = sorted(output_dir.glob("*.json"))
         for json_path in json_files:
-            process_json_file(json_path, output_text_dir, output_json_dir)
+            process_json_file(json_path, output_text_dir, output_json_dir, formatter=formatter)
         
         logger.info("Redaction complete. Redacted files saved to %s, positions JSON saved to %s", output_text_dir, output_json_dir)
 
 async def run_cli() -> None:
     args = parse_args()
+    
+    # Handle --list-formats first (exit early)
+    if args.list_formats:
+        list_available_formats()
+        return
+    
+    # Create formatter from custom format arguments
+    formatter = create_formatter_from_args(args)
+    
     detection = build_detection_params(
         pii_types=args.pii_types,
         max_entities=args.max_entities,
@@ -331,6 +463,7 @@ async def run_cli() -> None:
             output_dir=args.output_dir,
             auto_redact=not args.no_redact,
             concurrency=args.concurrency,
+            formatter=formatter,
         )
         return
 

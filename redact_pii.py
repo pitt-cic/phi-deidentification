@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import re
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -63,6 +64,14 @@ def format_pii_tag(pii_type: str) -> str:
     return f"[{pii_type.upper()}]"
 
 
+def make_word_boundary_pattern(value: str) -> re.Pattern[str]:
+    """Create a regex pattern that matches value only at word boundaries.
+    
+    This prevents matching substrings within words (e.g., "MA" in "SUMMARY").
+    """
+    return re.compile(r'\b' + re.escape(value) + r'\b')
+
+
 def redact_text(
     text: str,
     pii_entities: list[dict[str, Any]],
@@ -116,10 +125,10 @@ def redact_text(
             continue
         processed_values.add(value)
         
-        # Get the tag from the formatter (which tracks unique values)
         tag = formatter.get_tag(pii_type, value)
         
-        occurrences = redacted_text.count(value)
+        pattern = make_word_boundary_pattern(value)
+        occurrences = len(pattern.findall(redacted_text))
         
         if occurrences == 0:
             logger.warning(
@@ -132,7 +141,7 @@ def redact_text(
             )
             continue
         
-        redacted_text = redacted_text.replace(value, tag)
+        redacted_text = pattern.sub(tag, redacted_text)
         total_replacements += occurrences
         
         logger.debug(
@@ -174,20 +183,15 @@ def find_pii_positions(text: str, pii_entities: list[dict[str, Any]], source_nam
             )
             continue
         
-        start_pos = 0
-        while True:
-            pos = text.find(value, start_pos)
-            if pos == -1:
-                break
-            
+        # Use word boundaries to match whole words only (same as redact_text)
+        pattern = make_word_boundary_pattern(value)
+        for match in pattern.finditer(text):
             positions.append({
                 "type": pii_type,
                 "value": value,
-                "start": pos,
-                "end": pos + len(value),
+                "start": match.start(),
+                "end": match.end(),
             })
-            
-            start_pos = pos + 1
     
     return positions
 

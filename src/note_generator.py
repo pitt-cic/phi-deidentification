@@ -51,11 +51,20 @@ class GeneratedNote:
     placeholders: List[str] = field(default_factory=list)
 
     def to_manifest(self) -> dict:
+        phi_entities_set = set()
+        phi_entities = []
+        for e in self.phi_entities:
+            entity_dict = e.to_dict()
+            unique_entity = (entity_dict["type"], entity_dict["value"], entity_dict["start"], entity_dict["end"])
+            if unique_entity not in phi_entities_set:
+                phi_entities_set.add(unique_entity)
+                phi_entities.append(entity_dict)
+
         manifest = {
             "note_id": self.note_id,
             "note_type": self.note_type.value,
             "generated_at": self.generated_at.isoformat(),
-            "phi_entities": [e.to_dict() for e in self.phi_entities]
+            "phi_entities": phi_entities
         }
         if self.is_template:
             manifest["is_template"] = True

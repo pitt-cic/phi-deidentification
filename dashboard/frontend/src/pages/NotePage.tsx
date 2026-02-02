@@ -1,6 +1,6 @@
 import { useParams, useSearchParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { getNote, getNoteAnnotations } from '../api/client'
+import { getNote, getNoteRedacted, getNoteAnnotations } from '../api/client'
 import NoteViewer from '../components/NoteViewer'
 import './NotePage.css'
 
@@ -18,6 +18,12 @@ export default function NotePage({ selectedEvalId }: NotePageProps) {
   const { data: noteContent, isLoading: contentLoading } = useQuery({
     queryKey: ['note', noteId],
     queryFn: () => getNote(noteId!),
+    enabled: !!noteId,
+  })
+
+  const { data: redactedContent } = useQuery({
+    queryKey: ['note-redacted', noteId],
+    queryFn: () => getNoteRedacted(noteId!),
     enabled: !!noteId,
   })
 
@@ -75,6 +81,7 @@ export default function NotePage({ selectedEvalId }: NotePageProps) {
       <NoteViewer
         noteId={noteId}
         text={noteContent.text}
+        redactedText={redactedContent?.text}
         spans={annotations?.spans || []}
         highlightPosition={highlightPosition}
       />

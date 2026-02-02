@@ -40,6 +40,10 @@ export async function getNote(noteId: string): Promise<NoteContent> {
   return fetchJson(`/notes/${noteId}`)
 }
 
+export async function getNoteRedacted(noteId: string): Promise<NoteContent> {
+  return fetchJson(`/notes/${noteId}/redacted`)
+}
+
 export async function getNoteAnnotations(noteId: string): Promise<NoteAnnotations> {
   return fetchJson(`/notes/${noteId}/annotations`)
 }

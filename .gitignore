@@ -1,6 +1,6 @@
 # Python cache
 __pycache__/
-
+.logfire/
 .venv/
 
 # Environment variables
@@ -33,6 +33,7 @@ sample-output-json/
 # Dashboard
 node_modules/
 .vite/
+*.tsbuildinfo
 
 # Redaction formats
 redaction_formats/

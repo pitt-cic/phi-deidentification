@@ -26,9 +26,15 @@ export default function AnnotationList({ mistakes }: AnnotationListProps) {
 
   const allAnnotations: FlatAnnotation[] = useMemo(() => {
     const annotations: FlatAnnotation[] = []
-    
+    const seen = new Set<string>()
+
     for (const doc of mistakes) {
       for (const fp of doc.false_positives) {
+        // Create unique key to deduplicate entries
+        const key = `${doc.doc_id}:fp:${fp.start}:${fp.end}:${fp.type || ''}`
+        if (seen.has(key)) continue
+        seen.add(key)
+
         annotations.push({
           docId: doc.doc_id,
           type: 'fp',
@@ -41,6 +47,11 @@ export default function AnnotationList({ mistakes }: AnnotationListProps) {
         })
       }
       for (const fn of doc.false_negatives) {
+        // Create unique key to deduplicate entries
+        const key = `${doc.doc_id}:fn:${fn.start}:${fn.end}:${fn.manifest_type || ''}`
+        if (seen.has(key)) continue
+        seen.add(key)
+
         annotations.push({
           docId: doc.doc_id,
           type: 'fn',

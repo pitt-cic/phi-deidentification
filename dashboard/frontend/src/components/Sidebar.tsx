@@ -26,9 +26,6 @@ export default function Sidebar({ selectedEvalId, onEvalChange }: SidebarProps) 
     onEvalChange(evaluations[0].eval_id)
   }
 
-  const notesWithMistakes = notes?.filter(n => n.has_mistakes) || []
-  const notesWithoutMistakes = notes?.filter(n => !n.has_mistakes) || []
-
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
@@ -63,7 +60,6 @@ export default function Sidebar({ selectedEvalId, onEvalChange }: SidebarProps) 
           to="/" 
           className={`nav-item ${location.pathname === '/' ? 'active' : ''}`}
         >
-          <span className="nav-icon">📊</span>
           <span>Overview</span>
         </Link>
       </nav>
@@ -78,51 +74,20 @@ export default function Sidebar({ selectedEvalId, onEvalChange }: SidebarProps) 
           <div className="loading-text">Loading notes...</div>
         ) : (
           <div className="notes-list">
-            {notesWithMistakes.length > 0 && (
-              <div className="notes-group">
-                <div className="group-label">
-                  <span className="mistake-indicator">●</span>
-                  With Mistakes ({notesWithMistakes.length})
-                </div>
-                {notesWithMistakes.map(note => (
-                  <Link
-                    key={note.note_id}
-                    to={`/note/${note.note_id}`}
-                    className={`note-item has-mistakes ${
-                      location.pathname === `/note/${note.note_id}` ? 'active' : ''
-                    }`}
-                  >
-                    <span className="note-id">{note.note_id}</span>
-                    {note.note_type && (
-                      <span className="note-type">{note.note_type}</span>
-                    )}
-                  </Link>
-                ))}
-              </div>
-            )}
-            
-            {notesWithoutMistakes.length > 0 && (
-              <div className="notes-group">
-                <div className="group-label">
-                  <span className="success-indicator">●</span>
-                  Clean ({notesWithoutMistakes.length})
-                </div>
-                {notesWithoutMistakes.map(note => (
-                  <Link
-                    key={note.note_id}
-                    to={`/note/${note.note_id}`}
-                    className={`note-item ${
-                      location.pathname === `/note/${note.note_id}` ? 'active' : ''
-                    }`}
-                  >
-                    <span className="note-id">{note.note_id}</span>
-                    {note.note_type && (
-                      <span className="note-type">{note.note_type}</span>
-                    )}
-                  </Link>
-                ))}
-              </div>
-            )}
+            {notes?.map(note => (
+              <Link
+                key={note.note_id}
+                to={`/note/${note.note_id}`}
+                className={`note-item ${note.has_mistakes ? 'has-mistakes' : ''} ${
+                  location.pathname === `/note/${note.note_id}` ? 'active' : ''
+                }`}
+              >
+                <span className="note-id">{note.note_id}</span>
+                {note.note_type && (
+                  <span className="note-type">{note.note_type}</span>
+                )}
+              </Link>
+            ))}
           </div>
         )}
       </div>

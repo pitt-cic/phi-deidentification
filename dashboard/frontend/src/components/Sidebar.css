@@ -101,10 +101,6 @@
   color: var(--bg-primary);
 }
 
-.nav-icon {
-  font-size: 16px;
-}
-
 .notes-section {
   flex: 1;
   overflow: hidden;
@@ -118,32 +114,6 @@
   overflow-y: auto;
   margin: 0 -20px;
   padding: 0 8px;
-}
-
-.notes-group {
-  margin-bottom: 16px;
-}
-
-.group-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.mistake-indicator {
-  color: var(--color-fn);
-  font-size: 8px;
-}
-
-.success-indicator {
-  color: var(--color-tp);
-  font-size: 8px;
 }
 
 .note-item {
@@ -169,7 +139,7 @@
 }
 
 .note-item.has-mistakes {
-  border-left: 2px solid var(--color-fn);
+  border-left: 2px solid var(--accent-primary);
   margin-left: 2px;
 }
 

@@ -2,9 +2,12 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import type { AnnotationSpan } from '../api/types'
 import './NoteViewer.css'
 
+type ViewMode = 'evaluation' | 'redacted'
+
 interface NoteViewerProps {
   noteId: string
   text: string
+  redactedText?: string
   spans: AnnotationSpan[]
   highlightPosition?: number
 }
@@ -15,16 +18,17 @@ interface TooltipInfo {
   y: number
 }
 
-export default function NoteViewer({ noteId, text, spans, highlightPosition }: NoteViewerProps) {
+export default function NoteViewer({ noteId, text, redactedText, spans, highlightPosition }: NoteViewerProps) {
   const [tooltip, setTooltip] = useState<TooltipInfo | null>(null)
+  const [viewMode, setViewMode] = useState<ViewMode>('evaluation')
   const containerRef = useRef<HTMLDivElement>(null)
   const highlightRef = useRef<HTMLSpanElement>(null)
 
   useEffect(() => {
-    if (highlightPosition !== undefined && highlightRef.current) {
+    if (highlightPosition !== undefined && highlightRef.current && viewMode === 'evaluation') {
       highlightRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }
-  }, [highlightPosition])
+  }, [highlightPosition, viewMode])
 
   const segments = useMemo(() => {
     if (spans.length === 0) {
@@ -94,53 +98,79 @@ export default function NoteViewer({ noteId, text, spans, highlightPosition }: N
     }
   }
 
+  const hasRedacted = !!redactedText
+
   return (
     <div className="note-viewer" ref={containerRef}>
       <div className="note-header">
         <h2 className="note-title">{noteId}</h2>
-        <div className="legend">
-          <span className="legend-item tp">
-            <span className="legend-swatch"></span>
-            True Positive
-          </span>
-          <span className="legend-item fp">
-            <span className="legend-swatch"></span>
-            False Positive
-          </span>
-          <span className="legend-item fn">
-            <span className="legend-swatch"></span>
-            False Negative
-          </span>
-        </div>
+
+        {viewMode === 'evaluation' && (
+          <div className="legend">
+            <span className="legend-item tp">
+              <span className="legend-swatch"></span>
+              True Positive
+            </span>
+            <span className="legend-item fp">
+              <span className="legend-swatch"></span>
+              False Positive
+            </span>
+            <span className="legend-item fn">
+              <span className="legend-swatch"></span>
+              False Negative
+            </span>
+          </div>
+        )}
+
+        {hasRedacted && (
+          <div className="view-toggle">
+            <button
+              className={`toggle-btn ${viewMode === 'evaluation' ? 'active' : ''}`}
+              onClick={() => setViewMode('evaluation')}
+            >
+              Evaluation
+            </button>
+            <button
+              className={`toggle-btn ${viewMode === 'redacted' ? 'active' : ''}`}
+              onClick={() => setViewMode('redacted')}
+            >
+              Redacted
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="note-content">
-        <pre className="note-text">
-          {segments.map((segment, idx) => {
-            if (!segment.span) {
-              return <span key={idx}>{segment.text}</span>
-            }
+        {viewMode === 'redacted' && redactedText ? (
+          <pre className="note-text">{redactedText}</pre>
+        ) : (
+          <pre className="note-text">
+            {segments.map((segment, idx) => {
+              if (!segment.span) {
+                return <span key={idx}>{segment.text}</span>
+              }
 
-            const isHighlighted = highlightPosition !== undefined && 
-              segment.start <= highlightPosition && 
-              highlightPosition < segment.end
+              const isHighlighted = highlightPosition !== undefined &&
+                segment.start <= highlightPosition &&
+                highlightPosition < segment.end
 
-            return (
-              <span
-                key={idx}
-                ref={isHighlighted ? highlightRef : undefined}
-                className={`highlight ${segment.span.classification} ${isHighlighted ? 'active' : ''}`}
-                onMouseEnter={(e) => handleMouseEnter(segment.span!, e)}
-                onMouseLeave={handleMouseLeave}
-              >
-                {segment.text}
-              </span>
-            )
-          })}
-        </pre>
+              return (
+                <span
+                  key={idx}
+                  ref={isHighlighted ? highlightRef : undefined}
+                  className={`highlight ${segment.span.classification} ${isHighlighted ? 'active' : ''}`}
+                  onMouseEnter={(e) => handleMouseEnter(segment.span!, e)}
+                  onMouseLeave={handleMouseLeave}
+                >
+                  {segment.text}
+                </span>
+              )
+            })}
+          </pre>
+        )}
       </div>
 
-      {tooltip && (
+      {tooltip && viewMode === 'evaluation' && (
         <div 
           className="annotation-tooltip"
           style={{

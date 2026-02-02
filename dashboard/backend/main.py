@@ -40,6 +40,7 @@ EVAL_RESULTS_DIR = PROJECT_ROOT / "eval_results"
 NOTES_DIR = PROJECT_ROOT / "synthetic_dataset" / "notes"
 MANIFESTS_DIR = PROJECT_ROOT / "synthetic_dataset" / "manifests"
 POSITIONS_DIR = PROJECT_ROOT / "output-json"
+REDACTED_DIR = PROJECT_ROOT / "output-text"
 SAFE_HARBOR_REDACTED_DIR = PROJECT_ROOT / "sample-output-text"
 SAFE_HARBOR_DEID_DIR = PROJECT_ROOT / "sample_safe_harbor_notes" / "text_manifest"
 SAFE_HARBOR_ORIGINAL_DIR = PROJECT_ROOT / "sample_safe_harbor_notes" / "notes"
@@ -211,11 +212,23 @@ def list_notes(eval_id: str | None = None):
 def get_note(note_id: str):
     """Get original note text."""
     note_file = NOTES_DIR / f"{note_id}.txt"
-    
+
     if not note_file.exists():
         raise HTTPException(status_code=404, detail=f"Note {note_id} not found")
-    
+
     text = note_file.read_text(encoding="utf-8")
+    return NoteContent(note_id=note_id, text=text)
+
+
+@app.get("/api/notes/{note_id}/redacted", response_model=NoteContent)
+def get_note_redacted(note_id: str):
+    """Get redacted note text."""
+    redacted_file = REDACTED_DIR / f"{note_id}_redacted.txt"
+
+    if not redacted_file.exists():
+        raise HTTPException(status_code=404, detail=f"Redacted note {note_id} not found")
+
+    text = redacted_file.read_text(encoding="utf-8")
     return NoteContent(note_id=note_id, text=text)
 
 

@@ -11,8 +11,8 @@ interface NotePageProps {
 export default function NotePage({ selectedEvalId }: NotePageProps) {
   const { noteId } = useParams<{ noteId: string }>()
   const [searchParams] = useSearchParams()
-  const highlightPosition = searchParams.get('highlight') 
-    ? parseInt(searchParams.get('highlight')!, 10) 
+  const highlightPosition = searchParams.get('highlight')
+    ? parseInt(searchParams.get('highlight')!, 10)
     : undefined
 
   const { data: noteContent, isLoading: contentLoading } = useQuery({

@@ -8,5 +8,9 @@
   flex: 1;
   overflow-y: auto;
   padding: 24px 32px;
+  background: var(--bg-primary);
+}
+
+[data-theme="dark"] .main-content {
   background: linear-gradient(135deg, var(--bg-primary) 0%, #131921 100%);
 }

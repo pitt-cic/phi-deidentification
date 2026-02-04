@@ -17,7 +17,7 @@
 
 .note-title {
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary);
   font-family: var(--font-mono);
   flex-shrink: 0;
@@ -105,6 +105,7 @@
 .note-text {
   font-family: var(--font-mono);
   font-size: 13px;
+  font-weight: 500;
   line-height: 1.8;
   color: var(--text-primary);
   white-space: pre-wrap;
@@ -220,12 +221,14 @@
 
 .tooltip-label {
   font-size: 11px;
+  font-weight: 600;
   color: var(--text-muted);
   flex-shrink: 0;
 }
 
 .tooltip-value {
   font-size: 12px;
+  font-weight: 600;
   color: var(--text-primary);
   text-align: right;
   word-break: break-all;

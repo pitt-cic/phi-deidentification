@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, useLocation } from 'react-router-dom'
 import { listEvaluations, listNotes } from '../api/client'
+import ThemeToggle from './ThemeToggle'
 import './Sidebar.css'
 
 interface SidebarProps {
@@ -10,7 +11,7 @@ interface SidebarProps {
 
 export default function Sidebar({ selectedEvalId, onEvalChange }: SidebarProps) {
   const location = useLocation()
-  
+
   const { data: evaluations, isLoading: evalsLoading } = useQuery({
     queryKey: ['evaluations'],
     queryFn: listEvaluations,
@@ -33,11 +34,12 @@ export default function Sidebar({ selectedEvalId, onEvalChange }: SidebarProps) 
           <span className="logo-icon">◈</span>
           <span className="logo-text">PII Dashboard</span>
         </Link>
+        <ThemeToggle />
       </div>
 
       <div className="sidebar-section">
         <label className="section-label">Evaluation Run</label>
-        <select 
+        <select
           className="eval-selector"
           value={selectedEvalId || ''}
           onChange={(e) => onEvalChange(e.target.value || null)}
@@ -56,8 +58,8 @@ export default function Sidebar({ selectedEvalId, onEvalChange }: SidebarProps) 
       </div>
 
       <nav className="sidebar-nav">
-        <Link 
-          to="/" 
+        <Link
+          to="/"
           className={`nav-item ${location.pathname === '/' ? 'active' : ''}`}
         >
           <span>Overview</span>
@@ -69,7 +71,7 @@ export default function Sidebar({ selectedEvalId, onEvalChange }: SidebarProps) 
           Notes
           {notes && <span className="count-badge">{notes.length}</span>}
         </label>
-        
+
         {notesLoading ? (
           <div className="loading-text">Loading notes...</div>
         ) : (

@@ -4,7 +4,7 @@
 
 .section-title {
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary);
   margin-bottom: 16px;
 }
@@ -26,7 +26,7 @@
   text-align: left;
   padding: 14px 16px;
   background: var(--bg-tertiary);
-  font-weight: 600;
+  font-weight: 700;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -59,6 +59,7 @@
   color: var(--text-secondary);
   font-family: var(--font-mono);
   font-size: 12px;
+  font-weight: 600;
 }
 
 .breakdown-table tr:hover td {
@@ -79,14 +80,14 @@
   background: var(--bg-primary);
   border-radius: 6px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary);
 }
 
 .f1-cell .f1-value {
   padding: 3px 8px;
   border-radius: 4px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .f1-value.good {

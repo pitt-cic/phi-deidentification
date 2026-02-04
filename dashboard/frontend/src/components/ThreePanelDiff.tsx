@@ -51,7 +51,7 @@ export default function ThreePanelDiff({
   const gtPanelRef = useRef<HTMLDivElement>(null)
   const [syncScrollEnabled, setSyncScrollEnabled] = useState(true)
   const syncScrollEnabledRef = useRef(syncScrollEnabled)
-  
+
   // Track last scroll positions for delta-based sync
   const lastScrollPositions = useRef<{ original: number; llm: number; gt: number }>({
     original: 0,
@@ -62,13 +62,13 @@ export default function ThreePanelDiff({
   // Keep ref in sync with state
   useEffect(() => {
     syncScrollEnabledRef.current = syncScrollEnabled
-    
+
     // When sync is re-enabled, capture current positions as the new baseline
     if (syncScrollEnabled) {
       const originalPanel = originalPanelRef.current
       const llmPanel = llmPanelRef.current
       const gtPanel = gtPanelRef.current
-      
+
       if (originalPanel && llmPanel && gtPanel) {
         lastScrollPositions.current = {
           original: originalPanel.scrollTop,
@@ -117,7 +117,7 @@ export default function ThreePanelDiff({
 
       // Calculate delta from last known position
       const delta = source.scrollTop - lastScrollPositions.current[sourceKey]
-      
+
       // Update source's last position
       lastScrollPositions.current[sourceKey] = source.scrollTop
 

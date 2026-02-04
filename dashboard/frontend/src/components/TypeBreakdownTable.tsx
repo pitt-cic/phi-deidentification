@@ -25,7 +25,7 @@ export default function TypeBreakdownTable({ data }: TypeBreakdownTableProps) {
   const sortedData = [...data].sort((a, b) => {
     const aVal = a[sortKey]
     const bVal = b[sortKey]
-    const cmp = typeof aVal === 'string' 
+    const cmp = typeof aVal === 'string'
       ? aVal.localeCompare(bVal as string)
       : (aVal as number) - (bVal as number)
     return sortDir === 'asc' ? cmp : -cmp

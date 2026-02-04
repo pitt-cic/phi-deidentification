@@ -75,7 +75,7 @@ export default function NoteViewer({ noteId, text, redactedText, spans, highligh
   const handleMouseEnter = (span: AnnotationSpan, event: React.MouseEvent) => {
     const rect = (event.target as HTMLElement).getBoundingClientRect()
     const containerRect = containerRef.current?.getBoundingClientRect()
-    
+
     if (containerRect) {
       setTooltip({
         span,
@@ -171,7 +171,7 @@ export default function NoteViewer({ noteId, text, redactedText, spans, highligh
       </div>
 
       {tooltip && viewMode === 'evaluation' && (
-        <div 
+        <div
           className="annotation-tooltip"
           style={{
             left: tooltip.x,

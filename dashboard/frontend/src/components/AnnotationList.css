@@ -38,7 +38,7 @@
 .filter-label {
   font-size: 12px;
   color: var(--text-secondary);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .entity-type-select {
@@ -171,6 +171,7 @@
 .ann-doc {
   font-family: var(--font-mono);
   font-size: 11px;
+  font-weight: 600;
   color: var(--text-secondary);
 }
 
@@ -200,6 +201,7 @@
 .ann-chars {
   font-family: var(--font-mono);
   font-size: 12px;
+  font-weight: 600;
   color: var(--text-primary);
   background: var(--bg-tertiary);
   padding: 2px 8px;

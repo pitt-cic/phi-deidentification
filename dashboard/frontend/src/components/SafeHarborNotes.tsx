@@ -6,7 +6,7 @@ import './SafeHarborNotes.css'
 
 export default function SafeHarborNotes() {
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
-  
+
   const { data: notes, isLoading: notesLoading } = useQuery({
     queryKey: ['safe-harbor-notes'],
     queryFn: listSafeHarborNotes,

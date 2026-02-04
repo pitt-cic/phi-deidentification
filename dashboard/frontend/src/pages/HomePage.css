@@ -24,6 +24,7 @@
 .eval-mode,
 .eval-files {
   font-size: 12px;
+  font-weight: 600;
   padding: 6px 12px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
@@ -53,7 +54,7 @@
   border-bottom: 2px solid transparent;
   cursor: pointer;
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-secondary);
   transition: all 0.2s;
 }
@@ -75,8 +76,13 @@
   background: rgba(255, 149, 0, 0.15);
   border: 1px solid rgba(255, 149, 0, 0.3);
   border-radius: 6px;
-  color: #ff9500;
-  font-weight: 500;
+  color: var(--accent-failed);
+  font-weight: 600;
+}
+
+[data-theme="light"] .eval-failed {
+  background: rgba(253, 126, 20, 0.15);
+  border-color: rgba(253, 126, 20, 0.3);
 }
 
 .failed-notes-banner {
@@ -87,9 +93,15 @@
   background: rgba(255, 149, 0, 0.1);
   border: 1px solid rgba(255, 149, 0, 0.25);
   border-radius: 8px;
-  color: #ff9500;
+  color: var(--accent-failed);
   font-size: 0.875rem;
+  font-weight: 600;
   margin-bottom: 1.5rem;
+}
+
+[data-theme="light"] .failed-notes-banner {
+  background: rgba(253, 126, 20, 0.1);
+  border-color: rgba(253, 126, 20, 0.25);
 }
 
 .failed-notes-banner .failed-icon {
@@ -104,11 +116,15 @@
   border: 1px solid rgba(255, 149, 0, 0.2);
 }
 
+[data-theme="light"] .failed-notes-section {
+  border-color: rgba(253, 126, 20, 0.2);
+}
+
 .failed-title {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: #ff9500;
+  color: var(--accent-failed);
   margin-bottom: 0.5rem;
 }
 
@@ -118,6 +134,7 @@
 
 .failed-description {
   font-size: 0.875rem;
+  font-weight: 600;
   color: var(--text-secondary);
   margin-bottom: 1rem;
   line-height: 1.5;
@@ -136,18 +153,19 @@
   padding: 0.75rem 1rem;
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
-  border-left: 3px solid #ff9500;
+  border-left: 3px solid var(--accent-failed);
   border-radius: 6px;
 }
 
 .failed-note-name {
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-primary);
 }
 
 .failed-note-fn {
   font-size: 0.75rem;
+  font-weight: 600;
   color: var(--text-secondary);
   background: var(--bg-secondary);
   padding: 0.25rem 0.5rem;

@@ -96,7 +96,7 @@ export default function AnnotationList({ mistakes }: AnnotationListProps) {
     if (selectedEntityType === 'all') return allAnnotations
     return allAnnotations.filter(ann => ann.entityType === selectedEntityType)
   }, [allAnnotations, selectedEntityType])
-  
+
   const fpCount = entityFilteredAnnotations.filter(a => a.type === 'fp').length
   const fnCount = entityFilteredAnnotations.filter(a => a.type === 'fn').length
 
@@ -124,14 +124,14 @@ export default function AnnotationList({ mistakes }: AnnotationListProps) {
             </select>
           </div>
           <div className="counts-summary">
-            <button 
+            <button
               className={`count-btn fp ${selectedMistakeType === 'fp' ? 'active' : ''}`}
               onClick={() => handleMistakeTypeClick('fp')}
               title="Click to filter by False Positives"
             >
               {fpCount} FP
             </button>
-            <button 
+            <button
               className={`count-btn fn ${selectedMistakeType === 'fn' ? 'active' : ''}`}
               onClick={() => handleMistakeTypeClick('fn')}
               title="Click to filter by False Negatives"
@@ -141,7 +141,7 @@ export default function AnnotationList({ mistakes }: AnnotationListProps) {
           </div>
         </div>
       </div>
-      
+
       {annotations.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon">✓</div>

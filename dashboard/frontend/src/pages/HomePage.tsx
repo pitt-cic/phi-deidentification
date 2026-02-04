@@ -14,13 +14,10 @@ interface HomePageProps {
 
 type TabType = 'evaluations' | 'safe-harbor'
 
-// A note is considered "failed" if LLM produced no predictions (0 TP and 0 FP)
-// This typically happens due to API errors, expired tokens, etc.
 function isFailedNote(file: FileMetrics): boolean {
   return file.true_positives === 0 && file.false_positives === 0
 }
 
-// Recalculate aggregate metrics from a list of file metrics
 function calculateAggregateMetrics(files: FileMetrics[]): MetricsSummary {
   const totals = files.reduce(
     (acc, f) => ({
@@ -66,7 +63,7 @@ function Tabs({ activeTab, setActiveTab }: { activeTab: TabType; setActiveTab: (
 
 export default function HomePage({ selectedEvalId }: HomePageProps) {
   const [activeTab, setActiveTab] = useState<TabType>('evaluations')
-  
+
   const { data: evaluation, isLoading: evalLoading } = useQuery({
     queryKey: ['evaluation', selectedEvalId],
     queryFn: () => getEvaluation(selectedEvalId!),
@@ -79,16 +76,13 @@ export default function HomePage({ selectedEvalId }: HomePageProps) {
     enabled: !!selectedEvalId && activeTab === 'evaluations',
   })
 
-  // Separate valid and failed notes
   const { validFiles, failedFiles, adjustedMetrics } = useMemo(() => {
     if (!evaluation) return { validFiles: [], failedFiles: [], adjustedMetrics: null }
-    
+
     const valid = evaluation.per_file.filter(f => !isFailedNote(f))
     const failed = evaluation.per_file.filter(f => isFailedNote(f))
-    
-    // Recalculate metrics excluding failed notes
     const adjusted = valid.length > 0 ? calculateAggregateMetrics(valid) : null
-    
+
     return { validFiles: valid, failedFiles: failed, adjustedMetrics: adjusted }
   }, [evaluation])
 
@@ -132,7 +126,6 @@ export default function HomePage({ selectedEvalId }: HomePageProps) {
     )
   }
 
-  // Use adjusted metrics (excluding failed notes) if there are any failed notes
   const displayMetrics = failedFiles.length > 0 && adjustedMetrics ? adjustedMetrics : evaluation.aggregate
 
   return (
@@ -148,17 +141,17 @@ export default function HomePage({ selectedEvalId }: HomePageProps) {
           )}
         </div>
       </header>
-      
+
       {failedFiles.length > 0 && (
         <div className="failed-notes-banner">
           <span className="failed-icon">⚠</span>
           <span>
-            {failedFiles.length} note{failedFiles.length !== 1 ? 's' : ''} excluded from statistics 
+            {failedFiles.length} note{failedFiles.length !== 1 ? 's' : ''} excluded from statistics
             (LLM produced no output — possible API error or expired token)
           </span>
         </div>
       )}
-      
+
       <MetricsOverview metrics={displayMetrics} />
       <TypeBreakdownTable data={evaluation.by_type} />
       {mistakesLoading ? (
@@ -166,7 +159,7 @@ export default function HomePage({ selectedEvalId }: HomePageProps) {
       ) : (
         <AnnotationList mistakes={mistakes || []} />
       )}
-      
+
       {failedFiles.length > 0 && (
         <div className="failed-notes-section">
           <h2 className="section-title failed-title">
@@ -174,7 +167,7 @@ export default function HomePage({ selectedEvalId }: HomePageProps) {
             Failed Notes ({failedFiles.length})
           </h2>
           <p className="failed-description">
-            These notes had no LLM predictions (0 true positives and 0 false positives). 
+            These notes had no LLM predictions (0 true positives and 0 false positives).
             This typically indicates API errors, expired tokens, or processing failures.
           </p>
           <div className="failed-notes-list">

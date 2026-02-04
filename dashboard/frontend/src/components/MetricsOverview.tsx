@@ -16,30 +16,30 @@ export default function MetricsOverview({ metrics }: MetricsOverviewProps) {
           <div className="metric-label">Precision</div>
           <div className="metric-value">{formatPercent(metrics.precision)}</div>
           <div className="metric-bar">
-            <div 
-              className="metric-bar-fill precision" 
+            <div
+              className="metric-bar-fill precision"
               style={{ width: formatPercent(metrics.precision) }}
             />
           </div>
         </div>
-        
+
         <div className="metric-card primary">
           <div className="metric-label">Recall</div>
           <div className="metric-value">{formatPercent(metrics.recall)}</div>
           <div className="metric-bar">
-            <div 
-              className="metric-bar-fill recall" 
+            <div
+              className="metric-bar-fill recall"
               style={{ width: formatPercent(metrics.recall) }}
             />
           </div>
         </div>
-        
+
         <div className="metric-card primary">
           <div className="metric-label">F1 Score</div>
           <div className="metric-value">{formatPercent(metrics.f1)}</div>
           <div className="metric-bar">
-            <div 
-              className="metric-bar-fill f1" 
+            <div
+              className="metric-bar-fill f1"
               style={{ width: formatPercent(metrics.f1) }}
             />
           </div>
@@ -54,7 +54,7 @@ export default function MetricsOverview({ metrics }: MetricsOverviewProps) {
             <div className="metric-label">True Positives</div>
           </div>
         </div>
-        
+
         <div className="metric-card count fp">
           <div className="count-icon">⚠</div>
           <div className="count-content">
@@ -62,7 +62,7 @@ export default function MetricsOverview({ metrics }: MetricsOverviewProps) {
             <div className="metric-label">False Positives</div>
           </div>
         </div>
-        
+
         <div className="metric-card count fn">
           <div className="count-icon">✗</div>
           <div className="count-content">

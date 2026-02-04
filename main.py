@@ -13,6 +13,7 @@ from typing import Any, Sequence
 import logfire
 from agent import AgentContext, AgentResponse, DetectionParameters, pii_agent
 from agent.prompt import SYSTEM_PROMPT
+from pydantic_ai.usage import RunUsage
 from redact_pii import FormatterProtocol, process_json_file
 from redaction_formats import (
     RedactionFormat,
@@ -276,6 +277,7 @@ async def process_document(
     max_chars: int = DEFAULT_MAX_CHARS,
 ) -> AgentResponse:
     validate_document_length(document_text, max_chars)
+    
     context = AgentContext(
         document_text=document_text,
         source_name=source_name,
@@ -296,24 +298,32 @@ async def process_document(
     )
     system_instructions = f"{SYSTEM_PROMPT}\n\n{detection_scope}"
     
+    usage = RunUsage()
+    
     with logfire.span('pii_detection', 
                       source=source_name,
                       document_length=len(document_text)) as span:
         span.set_attribute('system_instructions', system_instructions)
         span.set_attribute('user_prompt', full_prompt)
         
-        result = await pii_agent.run(full_prompt, deps=context)
+        result = await pii_agent.run(full_prompt, deps=context, usage=usage)
         response: AgentResponse = result.output
         
         span.set_attribute('response', response.model_dump())
         span.set_attribute('entities_count', len(response.pii_entities))
         span.set_attribute('needs_review', response.needs_review)
+        span.set_attribute('input_tokens', usage.input_tokens if usage else 0)
+        span.set_attribute('output_tokens', usage.output_tokens if usage else 0)
+        span.set_attribute('total_tokens', usage.total_tokens if usage else 0)
     
     logger.info(
-        "Processed '%s': %s entities (needs_review=%s)",
+        "Processed '%s': %s entities (needs_review=%s) - Tokens: input=%s, output=%s, total=%s",
         source_name,
         len(response.pii_entities),
         response.needs_review,
+        usage.input_tokens if usage else 0,
+        usage.output_tokens if usage else 0,
+        usage.total_tokens if usage else 0,
     )
     return response
 

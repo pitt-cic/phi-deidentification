@@ -109,8 +109,6 @@ def redact_text(
     for entity in sorted_entities:
         pii_type = entity.get("type", "")
         value = entity.get("value", "")
-        reason = entity.get("reason", "")
-        confidence = entity.get("confidence", "unknown")
         
         if not value:
             logger.warning(
@@ -132,11 +130,9 @@ def redact_text(
         
         if occurrences == 0:
             logger.warning(
-                "PII string %r (type=%s, confidence=%s, reason=%s) not found in %s, skipping",
+                "PII string %r (type=%s) not found in %s, skipping",
                 value,
                 pii_type,
-                confidence,
-                reason,
                 source_name,
             )
             continue
@@ -145,11 +141,10 @@ def redact_text(
         total_replacements += occurrences
         
         logger.debug(
-            "Redacted %s occurrence(s) of %r (type=%s, confidence=%s) -> %s in %s",
+            "Redacted %s occurrence(s) of %r (type=%s) -> %s in %s",
             occurrences,
             value,
             pii_type,
-            confidence,
             tag,
             source_name,
         )

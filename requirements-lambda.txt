@@ -1,0 +1,7 @@
+# Minimal dependencies for the worker Lambda.
+# Uses pydantic-ai-slim (no extra model providers) to stay under 250MB limit.
+# boto3 is already included in the Lambda runtime -- do NOT add it here.
+pydantic-ai-slim[bedrock]>=0.0.15
+pydantic>=2.8.0
+python-dotenv>=1.0.0
+logfire>=0.20.0

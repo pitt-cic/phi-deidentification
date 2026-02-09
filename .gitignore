@@ -29,6 +29,7 @@ sample-output-json/
 /dataset
 /old_dataset
 /synthetic_dataset
+/test_notes
 
 # Dashboard
 node_modules/
@@ -37,3 +38,7 @@ node_modules/
 
 # Redaction formats
 redaction_formats/
+
+# CDK
+cdk.out/
+response.json

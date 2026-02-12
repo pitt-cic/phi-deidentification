@@ -6,6 +6,7 @@ __pycache__/
 # Environment variables
 .env
 .env.local
+.claude
 
 # Generated output directories
 output/
@@ -31,10 +32,11 @@ sample-output-json/
 /synthetic_dataset
 /test_notes
 
-# Dashboard
+# Dashboard & Frontend
 node_modules/
 .vite/
 *.tsbuildinfo
+dist/
 
 # Redaction formats
 redaction_formats/

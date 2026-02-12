@@ -1,5 +1,5 @@
 {
-  "app": "python3 app.py",
+  "app": "npx tsx bin/app.ts",
   "watch": {
     "include": [
       "**"
@@ -7,11 +7,11 @@
     "exclude": [
       "README.md",
       "cdk*.json",
-      "requirements*.txt",
-      "**/__pycache__",
-      "**/*.pyc",
+      "**/*.d.ts",
+      "**/*.js",
       "**/node_modules",
-      "**/.git"
+      "**/.git",
+      "**/dist"
     ]
   },
   "context": {

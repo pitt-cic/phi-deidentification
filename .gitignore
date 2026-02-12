@@ -38,9 +38,6 @@ node_modules/
 *.tsbuildinfo
 dist/
 
-# Redaction formats
-redaction_formats/
-
 # CDK
 cdk.out/
 response.json

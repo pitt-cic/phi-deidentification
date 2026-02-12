@@ -1,0 +1,6 @@
+{
+  "name": "sample_id_format",
+  "template": "**{TYPE}[{ID}]",
+  "id_scheme": "alpha",
+  "created": "2026-01-30T01:17:10.342900+00:00"
+}

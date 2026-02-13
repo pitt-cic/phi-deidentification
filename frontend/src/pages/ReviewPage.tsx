@@ -42,9 +42,28 @@ export default function ReviewPage() {
   const approveMutation = useMutation({
     mutationFn: ({ approved }: { approved: boolean }) =>
       approveNote(batchId!, selectedNoteId!, approved),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['notes', batchId] })
       queryClient.invalidateQueries({ queryKey: ['note-detail', batchId, selectedNoteId] })
+      queryClient.invalidateQueries({ queryKey: ['batches'] })
+      queryClient.invalidateQueries({ queryKey: ['batch', batchId] })
+
+      if (variables.approved === false && batchId) {
+        queryClient.setQueryData(['batches'], (current: any) => {
+          if (!current || !Array.isArray(current.pages)) return current
+          return {
+            ...current,
+            pages: current.pages.map((page: any) => ({
+              ...page,
+              items: Array.isArray(page.items)
+                ? page.items.map((batch: any) =>
+                    batch?.batch_id === batchId ? { ...batch, all_approved: false } : batch,
+                  )
+                : page.items,
+            })),
+          }
+        })
+      }
     },
   })
 
@@ -71,7 +90,7 @@ export default function ReviewPage() {
     <div className="review-page">
       <aside className="review-sidebar">
         <div className="sidebar-header">
-          <Link to="/" className="back-link">&larr; Dashboard</Link>
+          <Link to={`/?batch=${encodeURIComponent(batchId)}`} className="back-link">&larr; Back to Dashboard</Link>
           <h3 className="sidebar-title">{batchId}</h3>
           <span className="note-count">{totalNotes > 0 ? `${totalNotes} notes` : '...'}</span>
         </div>
@@ -88,10 +107,13 @@ export default function ReviewPage() {
                 >
                   <span className="note-item-name">{note.note_id}</span>
                   <span className="note-item-badges">
-                    {note.has_output
-                      ? <span className="badge badge-ready">Ready</span>
-                      : <span className="badge badge-pending">Pending</span>}
-                    {note.approved && <span className="badge badge-approved">Approved</span>}
+                    {note.approved ? (
+                      <span className="badge badge-approved">Approved</span>
+                    ) : note.has_output ? (
+                      <span className="badge badge-ready">Ready</span>
+                    ) : (
+                      <span className="badge badge-pending">Pending</span>
+                    )}
                   </span>
                 </button>
               ))}

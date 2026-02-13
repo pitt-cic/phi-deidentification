@@ -1,85 +1,140 @@
 .app-layout {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-height: 100dvh;
+  height: 100dvh;
   overflow: hidden;
 }
 
 .app-header {
   display: flex;
   align-items: center;
-  gap: 24px;
-  padding: 0 24px;
+  gap: var(--space-4);
+  padding: 0 var(--content-gutter);
   height: var(--header-height);
-  background: var(--bg-secondary);
+  background: color-mix(in srgb, var(--bg-secondary) 86%, transparent);
   border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
+  backdrop-filter: blur(12px);
+  position: relative;
+}
+
+.app-header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent-primary), #7c6bff);
 }
 
 .header-logo {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-2);
   color: var(--text-primary);
-  font-weight: 700;
-  font-size: 16px;
+  font-weight: 800;
+  font-size: var(--text-lg);
+  letter-spacing: 0.01em;
   text-decoration: none;
 }
 
 .logo-icon {
-  font-size: 22px;
-  color: var(--accent-primary);
+  width: clamp(1.4rem, 1.15rem + 0.45vw, 1.9rem);
+  height: clamp(1.4rem, 1.15rem + 0.45vw, 1.9rem);
+  border-radius: clamp(0.34rem, 0.25rem + 0.2vw, 0.48rem);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-sm);
+  color: #fff;
+  background: var(--accent-primary);
 }
 
 .header-right {
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-2);
 }
 
 .user-info {
-  font-size: 13px;
-  font-weight: 600;
+  max-width: clamp(12rem, 24vw, 24rem);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--text-sm);
+  font-weight: 700;
   color: var(--text-muted);
+  padding: calc(var(--space-2) + 0.06rem) var(--space-3);
+  border: 1px solid var(--border-color);
+  border-radius: calc(var(--panel-radius) * 0.72);
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .sign-out-btn {
-  padding: 6px 14px;
-  font-size: 13px;
-  font-weight: 600;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  color: var(--text-secondary);
+  min-height: var(--control-height);
+  padding: 0 var(--space-4);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid color-mix(in srgb, var(--accent-danger) 44%, var(--border-color));
+  border-radius: 999px;
+  color: var(--accent-danger);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .sign-out-btn:hover {
+  transform: translateY(-1px);
   border-color: var(--accent-danger);
-  color: var(--accent-danger);
+  box-shadow: var(--shadow-soft);
 }
 
 .main-content {
   flex: 1;
-  overflow-y: auto;
-  background: var(--bg-primary);
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  overflow: hidden;
+  background: transparent;
 }
 
-[data-theme="dark"] .main-content {
-  background: linear-gradient(135deg, var(--bg-primary) 0%, #131921 100%);
+.main-content > * {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
 }
 
 [data-amplify-authenticator] {
   --amplify-colors-background-primary: var(--bg-primary);
   --amplify-colors-background-secondary: var(--bg-secondary);
   --amplify-colors-font-primary: var(--text-primary);
-  --amplify-colors-brand-primary-10: var(--accent-primary);
+  --amplify-colors-brand-primary-10: color-mix(in srgb, var(--accent-primary) 20%, transparent);
   --amplify-colors-brand-primary-80: var(--accent-primary);
   --amplify-colors-brand-primary-100: var(--accent-primary);
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+[data-amplify-authenticator] [data-amplify-container] {
+  border-radius: var(--panel-radius);
+  box-shadow: var(--shadow-hard);
+}
+
+@media (max-width: 720px) {
+  .app-header {
+    padding: 0 var(--space-3);
+  }
+
+  .user-info {
+    display: none;
+  }
+
+  .logo-text {
+    font-size: var(--text-md);
+  }
 }

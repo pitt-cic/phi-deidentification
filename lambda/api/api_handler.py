@@ -21,6 +21,7 @@ ROUTES = [
     ("POST", r"^/batches/(?P<batch_id>[^/]+)/start$", "start_batch"),
     ("POST", r"^/batches/(?P<batch_id>[^/]+)/upload-url$", "get_upload_url"),
     ("GET", r"^/batches/(?P<batch_id>[^/]+)/notes$", "list_notes"),
+    ("POST", r"^/batches/(?P<batch_id>[^/]+)/approve-all$", "approve_all_notes"),
     ("GET", r"^/batches/(?P<batch_id>[^/]+)/notes/(?P<note_id>[^/]+)$", "get_note"),
     ("POST", r"^/batches/(?P<batch_id>[^/]+)/notes/(?P<note_id>[^/]+)/approve$", "approve_note"),
     ("GET", r"^/batches/(?P<batch_id>[^/]+)/notes/(?P<note_id>[^/]+)/download-url$", "get_download_url"),

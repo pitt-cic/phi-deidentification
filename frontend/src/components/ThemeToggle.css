@@ -2,12 +2,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: var(--control-height);
+  height: var(--control-height);
   padding: 0;
-  background: var(--bg-tertiary);
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 999px;
   color: var(--text-primary);
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -15,22 +15,22 @@
 }
 
 .theme-toggle:hover {
-  background: var(--bg-hover);
   border-color: var(--accent-primary);
-  transform: scale(1.05);
+  color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(50, 197, 255, 0.12);
+  transform: translateY(-1px);
 }
 
 .theme-toggle:active {
-  transform: scale(0.95);
+  transform: translateY(0);
 }
 
-.theme-toggle:focus {
-  outline: none;
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.2);
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
 }
 
 .theme-toggle svg {
-  width: 20px;
-  height: 20px;
+  width: clamp(1rem, 0.9rem + 0.2vw, 1.2rem);
+  height: clamp(1rem, 0.9rem + 0.2vw, 1.2rem);
 }

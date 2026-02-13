@@ -21,6 +21,7 @@ def list_batches(params: dict, body: dict, query: dict) -> tuple[int, dict]:
             "batch_id": bid,
             "created_at": meta.get("created_at", ""),
             "status": meta.get("status", "unknown"),
+            "all_approved": bool(meta.get("all_approved", False)),
         })
     all_batches.sort(key=lambda b: b.get("created_at", ""), reverse=True)
     return 200, storage.paginate(all_batches, limit, offset)
@@ -28,7 +29,12 @@ def list_batches(params: dict, body: dict, query: dict) -> tuple[int, dict]:
 
 def create_batch(params: dict, body: dict, query: dict) -> tuple[int, dict]:
     batch_id = body.get("batch_id") or f"batch-{uuid.uuid4().hex[:8]}"
-    meta = {"batch_id": batch_id, "created_at": datetime.now(timezone.utc).isoformat(), "status": "created"}
+    meta = {
+        "batch_id": batch_id,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "status": "created",
+        "all_approved": False,
+    }
     storage.save_metadata(batch_id, meta)
     return 201, meta
 
@@ -36,15 +42,66 @@ def create_batch(params: dict, body: dict, query: dict) -> tuple[int, dict]:
 def get_batch(params: dict, body: dict, query: dict) -> tuple[int, dict]:
     batch_id = params["batch_id"]
     meta = storage.read_json(f"{batch_id}/metadata.json") or {"batch_id": batch_id}
-    input_count = len(storage.list_keys(f"{batch_id}/input/"))
+    input_keys = storage.list_keys(f"{batch_id}/input/")
+    input_count = len(input_keys)
+    required_note_ids = {storage.stem(key) for key in input_keys}
     output_count = len(storage.list_keys(f"{batch_id}/output/", suffix="_redacted.txt"))
+    entity_objects = storage.list_objects(f"{batch_id}/output/", suffix="_entities.json")
+    entity_keys = [obj["key"] for obj in entity_objects]
+    entity_file_count = len(entity_keys)
+    entity_signature = storage.objects_signature(entity_objects)
     if input_count == 0 and output_count == 0 and not meta.get("created_at"):
         return 404, {"error": f"Batch '{batch_id}' not found"}
+
+    metadata_changed = False
     status = storage.compute_status(input_count, output_count, meta.get("status", "created"))
     if status != meta.get("status"):
         meta["status"] = status
+        metadata_changed = True
+
+    pii_stats = meta.get("pii_stats")
+    if not isinstance(pii_stats, dict) or meta.get("pii_stats_signature") != entity_signature:
+        pii_stats = storage.compute_pii_stats(batch_id, entity_keys)
+        meta["pii_stats"] = pii_stats
+        meta["pii_stats_entity_file_count"] = entity_file_count
+        meta["pii_stats_signature"] = entity_signature
+        metadata_changed = True
+
+    approval_objects = storage.list_objects(f"{batch_id}/approvals/", suffix=".json")
+    approval_keys = [obj["key"] for obj in approval_objects]
+    approval_signature = storage.objects_signature(approval_objects)
+    approval_stats = meta.get("approval_stats")
+    if (
+        not isinstance(approval_stats, dict)
+        or meta.get("approval_stats_signature") != approval_signature
+        or "approved_required_note_count" not in approval_stats
+    ):
+        approval_stats = storage.compute_approval_stats(batch_id, approval_keys, required_note_ids)
+        meta["approval_stats"] = approval_stats
+        meta["approval_stats_signature"] = approval_signature
+        metadata_changed = True
+
+    approved_required_note_count = int(approval_stats.get("approved_required_note_count", 0))
+    all_approved = (
+        status == "completed"
+        and len(required_note_ids) > 0
+        and approved_required_note_count == len(required_note_ids)
+    )
+    if bool(meta.get("all_approved", False)) != all_approved:
+        meta["all_approved"] = all_approved
+        metadata_changed = True
+
+    if metadata_changed:
         storage.save_metadata(batch_id, meta)
-    return 200, {**meta, "status": status, "input_count": input_count, "output_count": output_count}
+
+    return 200, {
+        **meta,
+        "status": status,
+        "input_count": input_count,
+        "output_count": output_count,
+        "pii_stats": pii_stats,
+        "all_approved": all_approved,
+    }
 
 
 def start_batch(params: dict, body: dict, query: dict) -> tuple[int, dict]:
@@ -52,6 +109,7 @@ def start_batch(params: dict, body: dict, query: dict) -> tuple[int, dict]:
     meta = storage.read_json(f"{batch_id}/metadata.json") or {"batch_id": batch_id}
     meta["status"] = "processing"
     meta["started_at"] = datetime.now(timezone.utc).isoformat()
+    meta["all_approved"] = False
     storage.save_metadata(batch_id, meta)
     lambda_client.invoke(
         FunctionName=INGESTION_FUNCTION_NAME,
@@ -121,18 +179,103 @@ def get_note(params: dict, body: dict, query: dict) -> tuple[int, dict]:
 
 def approve_note(params: dict, body: dict, query: dict) -> tuple[int, dict]:
     batch_id, note_id = params["batch_id"], params["note_id"]
+    input_keys = storage.list_keys(f"{batch_id}/input/")
+    required_note_ids = {storage.stem(key) for key in input_keys}
+    if note_id not in required_note_ids:
+        return 404, {"error": f"Note '{note_id}' not found in batch '{batch_id}'"}
+
+    raw_approved = body.get("approved", True)
+    if isinstance(raw_approved, bool):
+        approved = raw_approved
+    else:
+        approved = str(raw_approved).strip().lower() in {"1", "true", "yes", "y"}
     approval = {
         "note_id": note_id,
-        "approved": body.get("approved", True),
+        "approved": approved,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
     storage.put_json(f"{batch_id}/approvals/{note_id}.json", approval)
+
+    meta = storage.read_json(f"{batch_id}/metadata.json") or {"batch_id": batch_id}
+    input_count = len(input_keys)
+    output_count = len(storage.list_keys(f"{batch_id}/output/", suffix="_redacted.txt"))
+    status = storage.compute_status(input_count, output_count, meta.get("status", "created"))
+    meta["status"] = status
+
+    approval_objects = storage.list_objects(f"{batch_id}/approvals/", suffix=".json")
+    approval_keys = [obj["key"] for obj in approval_objects]
+    approval_signature = storage.objects_signature(approval_objects)
+    approval_stats = storage.compute_approval_stats(batch_id, approval_keys, required_note_ids)
+    meta["approval_stats"] = approval_stats
+    meta["approval_stats_signature"] = approval_signature
+
+    approved_required_note_count = int(approval_stats.get("approved_required_note_count", 0))
+    meta["all_approved"] = (
+        status == "completed"
+        and len(required_note_ids) > 0
+        and approved_required_note_count == len(required_note_ids)
+    )
+    storage.save_metadata(batch_id, meta)
+
     return 200, approval
+
+
+def approve_all_notes(params: dict, body: dict, query: dict) -> tuple[int, dict]:
+    batch_id = params["batch_id"]
+    meta = storage.read_json(f"{batch_id}/metadata.json") or {"batch_id": batch_id}
+    input_keys = storage.list_keys(f"{batch_id}/input/")
+    input_count = len(input_keys)
+    required_note_ids = sorted({storage.stem(key) for key in input_keys})
+    if input_count == 0 and not meta.get("created_at"):
+        return 404, {"error": f"Batch '{batch_id}' not found"}
+
+    timestamp = datetime.now(timezone.utc).isoformat()
+    for note_id in required_note_ids:
+        storage.put_json(
+            f"{batch_id}/approvals/{note_id}.json",
+            {
+                "note_id": note_id,
+                "approved": True,
+                "timestamp": timestamp,
+            },
+        )
+
+    output_count = len(storage.list_keys(f"{batch_id}/output/", suffix="_redacted.txt"))
+    status = storage.compute_status(input_count, output_count, meta.get("status", "created"))
+    meta["status"] = status
+
+    required_note_id_set = set(required_note_ids)
+    approval_objects = storage.list_objects(f"{batch_id}/approvals/", suffix=".json")
+    approval_keys = [obj["key"] for obj in approval_objects]
+    approval_signature = storage.objects_signature(approval_objects)
+    approval_stats = storage.compute_approval_stats(batch_id, approval_keys, required_note_id_set)
+    meta["approval_stats"] = approval_stats
+    meta["approval_stats_signature"] = approval_signature
+
+    approved_required_note_count = int(approval_stats.get("approved_required_note_count", 0))
+    all_approved = (
+        status == "completed"
+        and len(required_note_id_set) > 0
+        and approved_required_note_count == len(required_note_id_set)
+    )
+    meta["all_approved"] = all_approved
+    storage.save_metadata(batch_id, meta)
+
+    return 200, {
+        "batch_id": batch_id,
+        "required_note_count": len(required_note_id_set),
+        "approved_note_count": approved_required_note_count,
+        "all_approved": all_approved,
+    }
 
 
 def get_download_url(params: dict, body: dict, query: dict) -> tuple[int, dict]:
     batch_id, note_id = params["batch_id"], params["note_id"]
-    key = f"{batch_id}/output/{note_id}_redacted.txt"
+    requested_format = (query or {}).get("format", "")
+    if requested_format == "entities":
+        key = f"{batch_id}/output/{note_id}_entities.json"
+    else:
+        key = f"{batch_id}/output/{note_id}_redacted.txt"
     return 200, {"download_url": storage.presigned_get_url(key), "key": key}
 
 
@@ -145,5 +288,6 @@ HANDLERS = {
     "list_notes": list_notes,
     "get_note": get_note,
     "approve_note": approve_note,
+    "approve_all_notes": approve_all_notes,
     "get_download_url": get_download_url,
 }

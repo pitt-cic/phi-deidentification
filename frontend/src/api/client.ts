@@ -4,11 +4,20 @@ export interface Batch {
   batch_id: string
   created_at: string
   status: 'created' | 'processing' | 'completed' | 'unknown'
+  all_approved?: boolean
 }
 
 export interface BatchDetail extends Batch {
   input_count: number
   output_count: number
+  pii_stats?: BatchPIIStats
+}
+
+export interface BatchPIIStats {
+  entity_file_count: number
+  notes_with_pii: number
+  total_entities: number
+  by_type: Record<string, number>
 }
 
 export interface Note {
@@ -54,6 +63,13 @@ export interface ApprovalResponse {
   note_id: string
   approved: boolean
   timestamp: string
+}
+
+export interface ApproveAllResponse {
+  batch_id: string
+  required_note_count: number
+  approved_note_count: number
+  all_approved: boolean
 }
 
 const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
@@ -138,6 +154,16 @@ export async function approveNote(batchId: string, noteId: string, approved: boo
   })
 }
 
+export async function approveAllNotes(batchId: string): Promise<ApproveAllResponse> {
+  return fetchApi(`/batches/${batchId}/approve-all`, {
+    method: 'POST',
+  })
+}
+
 export async function getDownloadUrl(batchId: string, noteId: string): Promise<DownloadUrlResponse> {
   return fetchApi(`/batches/${batchId}/notes/${noteId}/download-url`)
+}
+
+export async function getDetectionDownloadUrl(batchId: string, noteId: string): Promise<DownloadUrlResponse> {
+  return fetchApi(`/batches/${batchId}/notes/${noteId}/download-url?format=entities`)
 }

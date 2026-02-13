@@ -8,6 +8,8 @@ import '@aws-amplify/ui-react/styles.css'
 import './App.css'
 
 function Header({ signOut, username }: { signOut: () => void; username: string }) {
+  const displayName = username || 'unknown'
+
   return (
     <header className="app-header">
       <Link to="/" className="header-logo">
@@ -15,8 +17,8 @@ function Header({ signOut, username }: { signOut: () => void; username: string }
         <span className="logo-text">PII De-identification</span>
       </Link>
       <div className="header-right">
+        <span className="user-info">Logged in as: {displayName}</span>
         <ThemeToggle />
-        <span className="user-info">{username}</span>
         <button className="sign-out-btn" onClick={signOut}>
           Sign Out
         </button>

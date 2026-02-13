@@ -18,18 +18,8 @@ def _scrubbing_callback(m: logfire.ScrubMatch):
 
 _scrubbing_options = logfire.ScrubbingOptions(callback=_scrubbing_callback)
 
-logfire_api_key = os.getenv("LOGFIRE_API_KEY")
-logfire_project = os.getenv("LOGFIRE_PROJECT")
-if logfire_api_key:
-    if logfire_project:
-        logfire.configure(api_key=logfire_api_key, project_name=logfire_project, scrubbing=_scrubbing_options)
-    else:
-        logfire.configure(api_key=logfire_api_key, scrubbing=_scrubbing_options)
-else:
-    if logfire_project:
-        logfire.configure(project_name=logfire_project, scrubbing=_scrubbing_options)
-    else:
-        logfire.configure(scrubbing=_scrubbing_options)
+# Requires `LOGFIRE_TOKEN` env variable to be set
+logfire.configure(scrubbing=_scrubbing_options)
 
 aws_region = os.getenv("AWS_REGION") or os.getenv("AWS_DEFAULT_REGION") or "us-east-1"
 if not os.getenv("AWS_REGION") and not os.getenv("AWS_DEFAULT_REGION"):

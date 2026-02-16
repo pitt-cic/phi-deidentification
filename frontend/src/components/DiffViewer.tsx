@@ -1,10 +1,17 @@
-import { useMemo, useRef, useEffect, useState } from 'react'
+import { useMemo, useRef, useEffect, useState, useLayoutEffect } from 'react'
 import * as Diff from 'diff'
 import './DiffViewer.css'
 
 interface DiffViewerProps {
   original: string
   redacted: string
+  editableRedacted?: boolean
+  onRedactedChange?: (value: string) => void
+  onToggleEditRedacted?: () => void
+  editToggleDisabled?: boolean
+  onSaveRedacted?: () => void
+  saveDisabled?: boolean
+  saveLabel?: string
 }
 
 interface DiffChange {
@@ -17,9 +24,20 @@ function countWords(text: string): number {
   return text.trim().split(/\s+/).filter(w => w.length > 0).length
 }
 
-export default function DiffViewer({ original, redacted }: DiffViewerProps) {
-  const originalRef = useRef<HTMLDivElement>(null)
-  const redactedRef = useRef<HTMLDivElement>(null)
+export default function DiffViewer({
+  original,
+  redacted,
+  editableRedacted = false,
+  onRedactedChange,
+  onToggleEditRedacted,
+  editToggleDisabled = false,
+  onSaveRedacted,
+  saveDisabled = false,
+  saveLabel = 'Save',
+}: DiffViewerProps) {
+  const originalRef = useRef<HTMLElement | null>(null)
+  const redactedRef = useRef<HTMLElement | null>(null)
+  const redactedScrollTopRef = useRef(0)
   const [syncScrollEnabled, setSyncScrollEnabled] = useState(true)
   const syncScrollEnabledRef = useRef(syncScrollEnabled)
   const lastScrollPositions = useRef({ original: 0, redacted: 0 })
@@ -31,8 +49,25 @@ export default function DiffViewer({ original, redacted }: DiffViewerProps) {
         original: originalRef.current.scrollTop,
         redacted: redactedRef.current.scrollTop,
       }
+      redactedScrollTopRef.current = redactedRef.current.scrollTop
     }
   }, [syncScrollEnabled])
+
+  useLayoutEffect(() => {
+    const panel = redactedRef.current
+    if (panel) {
+      panel.scrollTop = redactedScrollTopRef.current
+      lastScrollPositions.current.redacted = panel.scrollTop
+    }
+
+    return () => {
+      const currentRedactedTop = redactedRef.current?.scrollTop
+      if (typeof currentRedactedTop === 'number') {
+        redactedScrollTopRef.current = currentRedactedTop
+        lastScrollPositions.current.redacted = currentRedactedTop
+      }
+    }
+  }, [editableRedacted])
 
   const changes = useMemo((): DiffChange[] => Diff.diffWords(original, redacted), [original, redacted])
 
@@ -54,13 +89,16 @@ export default function DiffViewer({ original, redacted }: DiffViewerProps) {
     let isSyncing = false
 
     const syncScroll = (
-      source: HTMLDivElement,
+      source: HTMLElement,
       sourceKey: 'original' | 'redacted',
-      target: HTMLDivElement,
+      target: HTMLElement,
       targetKey: 'original' | 'redacted',
     ) => {
       if (!syncScrollEnabledRef.current) {
         lastScrollPositions.current[sourceKey] = source.scrollTop
+        if (sourceKey === 'redacted') {
+          redactedScrollTopRef.current = source.scrollTop
+        }
         return
       }
       if (isSyncing) return
@@ -68,11 +106,17 @@ export default function DiffViewer({ original, redacted }: DiffViewerProps) {
 
       const delta = source.scrollTop - lastScrollPositions.current[sourceKey]
       lastScrollPositions.current[sourceKey] = source.scrollTop
+      if (sourceKey === 'redacted') {
+        redactedScrollTopRef.current = source.scrollTop
+      }
 
       const newTop = lastScrollPositions.current[targetKey] + delta
       const maxScroll = target.scrollHeight - target.clientHeight
       target.scrollTop = Math.max(0, Math.min(maxScroll, newTop))
       lastScrollPositions.current[targetKey] = target.scrollTop
+      if (targetKey === 'redacted') {
+        redactedScrollTopRef.current = target.scrollTop
+      }
 
       requestAnimationFrame(() => { isSyncing = false })
     }
@@ -87,7 +131,7 @@ export default function DiffViewer({ original, redacted }: DiffViewerProps) {
       oPanel.removeEventListener('scroll', handleOriginalScroll)
       rPanel.removeEventListener('scroll', handleRedactedScroll)
     }
-  }, [])
+  }, [editableRedacted])
 
   const renderOriginal = (diffs: DiffChange[]) =>
     diffs.map((change, i) => {
@@ -130,21 +174,68 @@ export default function DiffViewer({ original, redacted }: DiffViewerProps) {
             <span className="diff-panel-label">Original</span>
             <span className="diff-panel-stats">{countWords(original)} words</span>
           </div>
-          <div className="diff-panel-content" ref={originalRef}>
+          <div
+            className="diff-panel-content"
+            ref={(element) => {
+              originalRef.current = element
+            }}
+          >
             <pre className="diff-text">{renderOriginal(changes)}</pre>
           </div>
         </div>
 
         <div className="diff-panel">
           <div className="diff-panel-header">
-            <span className="diff-panel-label">Redacted</span>
+            <span className="diff-panel-title-wrap">
+              <span className="diff-panel-label">Redacted</span>
+              <span className="diff-panel-header-actions">
+                {onToggleEditRedacted && (
+                  <button
+                    type="button"
+                    className="diff-edit-toggle-btn"
+                    onClick={onToggleEditRedacted}
+                    disabled={editToggleDisabled || editableRedacted}
+                  >
+                    Edit
+                  </button>
+                )}
+                {onSaveRedacted && (
+                  <button
+                    type="button"
+                    className="diff-save-btn"
+                    onClick={onSaveRedacted}
+                    disabled={saveDisabled}
+                  >
+                    {saveLabel}
+                  </button>
+                )}
+              </span>
+            </span>
             <span className="diff-panel-stats diff-stats-info">
               {stats.removed} removed &middot; {stats.added} replaced
             </span>
           </div>
-          <div className="diff-panel-content" ref={redactedRef}>
-            <pre className="diff-text">{renderRedacted(changes)}</pre>
-          </div>
+          {editableRedacted ? (
+            <textarea
+              className="diff-text diff-text-editable"
+              value={redacted}
+              onChange={(event) => onRedactedChange?.(event.target.value)}
+              readOnly={!onRedactedChange}
+              spellCheck={false}
+              ref={(element) => {
+                redactedRef.current = element
+              }}
+            />
+          ) : (
+            <div
+              className="diff-panel-content"
+              ref={(element) => {
+                redactedRef.current = element
+              }}
+            >
+              <pre className="diff-text">{renderRedacted(changes)}</pre>
+            </div>
+          )}
         </div>
       </div>
     </div>

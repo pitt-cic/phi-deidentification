@@ -10,6 +10,36 @@ lambda_client = boto3.client("lambda")
 INGESTION_FUNCTION_NAME = os.environ["INGESTION_FUNCTION_NAME"]
 
 
+def parse_approved(raw_approved: object) -> bool:
+    if isinstance(raw_approved, bool):
+        return raw_approved
+    return str(raw_approved).strip().lower() in {"1", "true", "yes", "y"}
+
+
+def get_saved_redacted_text(approval: dict | None) -> str | None:
+    if isinstance(approval, dict) and isinstance(approval.get("redacted_text"), str):
+        return approval["redacted_text"]
+    return None
+
+
+def resolve_redacted_text(
+    batch_id: str,
+    note_id: str,
+    provided_redacted_text: object | None,
+    existing_approval: dict | None = None,
+) -> str:
+    if provided_redacted_text is not None:
+        if not isinstance(provided_redacted_text, str):
+            raise ValueError("Field 'redacted_text' must be a string when provided")
+        return provided_redacted_text
+
+    saved_text = get_saved_redacted_text(existing_approval)
+    if saved_text is not None:
+        return saved_text
+
+    return storage.read_text(f"{batch_id}/output/{note_id}_redacted.txt") or ""
+
+
 def list_batches(params: dict, body: dict, query: dict) -> tuple[int, dict]:
     limit, offset = storage.parse_pagination(query)
     batch_ids = storage.list_batch_ids()
@@ -138,13 +168,16 @@ def get_note(params: dict, body: dict, query: dict) -> tuple[int, dict]:
             break
     if not original_text:
         return 404, {"error": f"Note '{note_id}' not found in batch '{batch_id}'"}
-    redacted = storage.read_text(f"{batch_id}/output/{note_id}_redacted.txt") or ""
+    output_redacted_text = storage.read_text(f"{batch_id}/output/{note_id}_redacted.txt") or ""
     detection = storage.read_json(f"{batch_id}/output/{note_id}_entities.json") or {}
     approval = storage.read_json(f"{batch_id}/approvals/{note_id}.json")
+    saved_redacted_text = get_saved_redacted_text(approval)
+    review_redacted_text = saved_redacted_text if saved_redacted_text is not None else output_redacted_text
     return 200, {
         "note_id": note_id,
         "original_text": original_text,
-        "redacted_text": redacted,
+        "redacted_text": review_redacted_text,
+        "output_redacted_text": output_redacted_text,
         "pii_entities": detection.get("pii_entities", []),
         "summary": detection.get("summary", ""),
         "needs_review": detection.get("needs_review", False),
@@ -160,16 +193,28 @@ def approve_note(params: dict, body: dict, query: dict) -> tuple[int, dict]:
         return 404, {"error": f"Note '{note_id}' not found in batch '{batch_id}'"}
 
     raw_approved = body.get("approved", True)
-    if isinstance(raw_approved, bool):
-        approved = raw_approved
-    else:
-        approved = str(raw_approved).strip().lower() in {"1", "true", "yes", "y"}
+    approved = parse_approved(raw_approved)
+
+    approval_key = f"{batch_id}/approvals/{note_id}.json"
+    existing_approval = storage.read_json(approval_key) or {}
+
+    try:
+        redacted_text = resolve_redacted_text(
+            batch_id=batch_id,
+            note_id=note_id,
+            provided_redacted_text=body.get("redacted_text"),
+            existing_approval=existing_approval,
+        )
+    except ValueError as error:
+        return 400, {"error": str(error)}
+
     approval = {
         "note_id": note_id,
         "approved": approved,
+        "redacted_text": redacted_text,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
-    storage.put_json(f"{batch_id}/approvals/{note_id}.json", approval)
+    storage.put_json(approval_key, approval)
 
     meta = storage.read_json(f"{batch_id}/metadata.json") or {"batch_id": batch_id}
     input_count = len(input_keys)
@@ -206,11 +251,20 @@ def approve_all_notes(params: dict, body: dict, query: dict) -> tuple[int, dict]
 
     timestamp = datetime.now(timezone.utc).isoformat()
     for note_id in required_note_ids:
+        approval_key = f"{batch_id}/approvals/{note_id}.json"
+        existing_approval = storage.read_json(approval_key) or {}
+        redacted_text = resolve_redacted_text(
+            batch_id=batch_id,
+            note_id=note_id,
+            provided_redacted_text=None,
+            existing_approval=existing_approval,
+        )
         storage.put_json(
-            f"{batch_id}/approvals/{note_id}.json",
+            approval_key,
             {
                 "note_id": note_id,
                 "approved": True,
+                "redacted_text": redacted_text,
                 "timestamp": timestamp,
             },
         )

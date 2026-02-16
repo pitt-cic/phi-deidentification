@@ -36,6 +36,7 @@ export interface NoteDetail {
   note_id: string
   original_text: string
   redacted_text: string
+  output_redacted_text?: string
   pii_entities: PIIEntity[]
   summary: string
   needs_review: boolean
@@ -52,7 +53,13 @@ export interface PaginatedResponse<T> {
 export interface ApprovalResponse {
   note_id: string
   approved: boolean
+  redacted_text: string
   timestamp: string
+}
+
+export interface ApproveNotePayload {
+  approved: boolean
+  redacted_text?: string
 }
 
 export interface ApproveAllResponse {
@@ -114,10 +121,10 @@ export async function getNote(batchId: string, noteId: string): Promise<NoteDeta
   return fetchApi(`/batches/${batchId}/notes/${noteId}`)
 }
 
-export async function approveNote(batchId: string, noteId: string, approved: boolean): Promise<ApprovalResponse> {
+export async function approveNote(batchId: string, noteId: string, payload: ApproveNotePayload): Promise<ApprovalResponse> {
   return fetchApi(`/batches/${batchId}/notes/${noteId}/approve`, {
     method: 'POST',
-    body: JSON.stringify({ approved }),
+    body: JSON.stringify(payload),
   })
 }
 

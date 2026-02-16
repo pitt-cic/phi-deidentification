@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useInfiniteQuery, useQuery, useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { listNotes, getNote, approveNote, type Note, type Batch, type PaginatedResponse } from '../api/client'
@@ -7,10 +8,14 @@ import './ReviewPage.css'
 const PAGE_SIZE = 50
 type BatchesQueryData = InfiniteData<PaginatedResponse<Batch>, number>
 
+const normalizeRedactedForComparison = (value: string): string => value.replace(/\r\n/g, '\n')
+
 export default function ReviewPage() {
   const { batchId, noteId } = useParams<{ batchId: string; noteId: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const [editableRedactedText, setEditableRedactedText] = useState('')
+  const [isEditingRedacted, setIsEditingRedacted] = useState(false)
 
   const {
     data: notePages,
@@ -40,9 +45,14 @@ export default function ReviewPage() {
     enabled: !!batchId && !!selectedNoteId,
   })
 
+  useEffect(() => {
+    setEditableRedactedText(noteDetail?.redacted_text ?? '')
+    setIsEditingRedacted(false)
+  }, [noteDetail?.note_id, noteDetail?.redacted_text])
+
   const approveMutation = useMutation({
-    mutationFn: ({ approved }: { approved: boolean }) =>
-      approveNote(batchId!, selectedNoteId!, approved),
+    mutationFn: ({ approved, redacted_text }: { approved: boolean; redacted_text?: string }) =>
+      approveNote(batchId!, selectedNoteId!, { approved, redacted_text }),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['notes', batchId] })
       queryClient.invalidateQueries({ queryKey: ['note-detail', batchId, selectedNoteId] })
@@ -70,6 +80,33 @@ export default function ReviewPage() {
   const currentIdx = notes.findIndex(n => n.note_id === selectedNoteId)
   const hasPrev = currentIdx > 0
   const hasNext = currentIdx < notes.length - 1
+  const hasRedactedEdits = !!noteDetail && (
+    normalizeRedactedForComparison(editableRedactedText)
+    !== normalizeRedactedForComparison(noteDetail.redacted_text)
+  )
+  const canShowDiff =
+    !!noteDetail
+    && !!noteDetail.original_text
+    && (
+      editableRedactedText.length > 0
+      || (noteDetail.output_redacted_text ?? '').length > 0
+      || noteDetail.redacted_text.length > 0
+    )
+
+  const handleSaveRedacted = () => {
+    if (!noteDetail || !hasRedactedEdits || approveMutation.isPending) return
+    approveMutation.mutate(
+      {
+        approved: noteDetail.approved,
+        redacted_text: editableRedactedText,
+      },
+      {
+        onSuccess: () => {
+          setIsEditingRedacted(false)
+        },
+      },
+    )
+  }
 
   if (!batchId) {
     return <div className="review-page"><div className="error-state">No batch selected</div></div>
@@ -143,23 +180,47 @@ export default function ReviewPage() {
               <div className="toolbar-right">
                 {noteDetail.needs_review && <span className="review-flag">Needs Review</span>}
                 {noteDetail.approved ? (
-                  <button className="btn btn-sm btn-danger" onClick={() => approveMutation.mutate({ approved: false })} disabled={approveMutation.isPending}>
+                  <button
+                    className="btn btn-sm btn-danger"
+                    onClick={() => approveMutation.mutate({
+                      approved: false,
+                      redacted_text: editableRedactedText,
+                    })}
+                    disabled={approveMutation.isPending}
+                  >
                     Revoke Approval
                   </button>
                 ) : (
-                  <button className="btn btn-sm btn-approve" onClick={() => approveMutation.mutate({ approved: true })} disabled={approveMutation.isPending}>
-                    Approve
+                  <button
+                    className="btn btn-sm btn-approve"
+                    onClick={() => approveMutation.mutate({
+                      approved: true,
+                      redacted_text: editableRedactedText,
+                    })}
+                    disabled={approveMutation.isPending}
+                  >
+                    Save &amp; Approve
                   </button>
                 )}
               </div>
             </div>
 
             <div className="review-content">
-              {noteDetail.original_text && noteDetail.redacted_text ? (
-                <DiffViewer original={noteDetail.original_text} redacted={noteDetail.redacted_text} />
+              {canShowDiff ? (
+                <DiffViewer
+                  original={noteDetail.original_text}
+                  redacted={editableRedactedText}
+                  editableRedacted={isEditingRedacted}
+                  onRedactedChange={setEditableRedactedText}
+                  onToggleEditRedacted={() => setIsEditingRedacted(true)}
+                  editToggleDisabled={approveMutation.isPending}
+                  onSaveRedacted={handleSaveRedacted}
+                  saveDisabled={approveMutation.isPending || !hasRedactedEdits}
+                  saveLabel={approveMutation.isPending ? 'Saving...' : 'Save'}
+                />
               ) : (
                 <div className="empty-state">
-                  {noteDetail.redacted_text ? 'Original text not available' : 'Redacted output not yet available.'}
+                  {noteDetail.original_text ? 'Redacted output not yet available.' : 'Original text not available'}
                 </div>
               )}
             </div>

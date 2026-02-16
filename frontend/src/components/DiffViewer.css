@@ -108,6 +108,68 @@
   letter-spacing: 0.06em;
 }
 
+.diff-panel-title-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.diff-panel-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.diff-edit-toggle-btn {
+  border: 1px solid var(--color-removed);
+  background: var(--color-removed-bg);
+  color: var(--color-removed);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  line-height: 1;
+  border-radius: 999px;
+  padding: 0.26rem 0.62rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.diff-edit-toggle-btn:hover:not(:disabled) {
+  border-color: var(--color-removed);
+  background: color-mix(in srgb, var(--color-removed-bg) 72%, transparent);
+  color: var(--color-removed);
+}
+
+.diff-edit-toggle-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.diff-save-btn {
+  border: 1px solid var(--color-added);
+  background: var(--color-added-bg);
+  color: var(--color-added);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  line-height: 1;
+  border-radius: 999px;
+  padding: 0.26rem 0.62rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.diff-save-btn:hover:not(:disabled) {
+  border-color: var(--color-added);
+  background: color-mix(in srgb, var(--color-added-bg) 72%, transparent);
+  color: var(--color-added);
+}
+
+.diff-save-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .diff-panel-stats {
   font-size: var(--text-xs);
   font-weight: 700;
@@ -135,6 +197,21 @@
   color: var(--text-primary);
 }
 
+.diff-text-editable {
+  flex: 1;
+  margin: 0;
+  border: none;
+  border-top: 1px solid var(--border-color);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--bg-primary) 96%, transparent);
+  padding: var(--space-3);
+  resize: none;
+  outline: none;
+  width: 100%;
+  min-height: 0;
+  overflow: auto;
+}
+
 .diff-removed {
   background: var(--color-removed-bg);
   border-radius: 0.22rem;
@@ -158,6 +235,21 @@
 }
 
 .diff-panel-content::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 0.2rem;
+}
+
+.diff-text-editable::-webkit-scrollbar {
+  width: clamp(0.38rem, 0.34rem + 0.08vw, 0.52rem);
+  height: clamp(0.38rem, 0.34rem + 0.08vw, 0.52rem);
+}
+
+.diff-text-editable::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-radius: 0.2rem;
+}
+
+.diff-text-editable::-webkit-scrollbar-thumb {
   background: var(--border-color);
   border-radius: 0.2rem;
 }

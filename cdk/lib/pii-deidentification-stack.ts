@@ -24,7 +24,7 @@ export class PiiDeidentificationStack extends Stack {
     Tags.of(this).add('project', 'PiiDeidentification');
     Tags.of(this).add('managedBy', 'cdk');
 
-    const WORKER_CONCURRENCY = 3;
+    const WORKER_CONCURRENCY = 15;
     const WORKER_TIMEOUT = Duration.seconds(120);
     const WORKER_MEMORY = 1024;
     const SQS_VISIBILITY_TIMEOUT = Duration.seconds(360);
@@ -36,14 +36,6 @@ export class PiiDeidentificationStack extends Stack {
       removalPolicy: RemovalPolicy.RETAIN,
       autoDeleteObjects: false,
       versioned: false,
-      cors: [
-        {
-          allowedMethods: [s3.HttpMethods.GET, s3.HttpMethods.PUT],
-          allowedOrigins: ['*'],
-          allowedHeaders: ['*'],
-          maxAge: 3600,
-        },
-      ],
     });
 
     const dlq = new sqs.Queue(this, 'PiiDeidDLQ', {
@@ -213,7 +205,7 @@ export class PiiDeidentificationStack extends Stack {
       restApiName: 'PII De-identification API',
       defaultCorsPreflightOptions: {
         allowOrigins: apigw.Cors.ALL_ORIGINS,
-        allowMethods: apigw.Cors.ALL_METHODS,
+        allowMethods: ['OPTIONS', 'GET', 'POST'],
         allowHeaders: [
           'Content-Type',
           'X-Amz-Date',
@@ -232,7 +224,6 @@ export class PiiDeidentificationStack extends Stack {
 
     const batchesResource = api.root.addResource('batches');
     batchesResource.addMethod('GET', apiIntegration, authOpts);
-    batchesResource.addMethod('POST', apiIntegration, authOpts);
 
     const batchResource = batchesResource.addResource('{batchId}');
     batchResource.addMethod('GET', apiIntegration, authOpts);
@@ -240,8 +231,8 @@ export class PiiDeidentificationStack extends Stack {
     const startResource = batchResource.addResource('start');
     startResource.addMethod('POST', apiIntegration, authOpts);
 
-    const uploadUrlResource = batchResource.addResource('upload-url');
-    uploadUrlResource.addMethod('POST', apiIntegration, authOpts);
+    const approveAllResource = batchResource.addResource('approve-all');
+    approveAllResource.addMethod('POST', apiIntegration, authOpts);
 
     const notesResource = batchResource.addResource('notes');
     notesResource.addMethod('GET', apiIntegration, authOpts);
@@ -251,9 +242,6 @@ export class PiiDeidentificationStack extends Stack {
 
     const approveResource = noteResource.addResource('approve');
     approveResource.addMethod('POST', apiIntegration, authOpts);
-
-    const downloadResource = noteResource.addResource('download-url');
-    downloadResource.addMethod('GET', apiIntegration, authOpts);
 
     const amplifyApp = new amplify.CfnApp(this, 'PiiDeidFrontend', {
       name: 'pii-deidentification-frontend',
@@ -288,6 +276,7 @@ frontend:
         { name: 'VITE_USER_POOL_ID', value: userPool.userPoolId },
         { name: 'VITE_USER_POOL_CLIENT_ID', value: userPoolClient.userPoolClientId },
         { name: 'VITE_AWS_REGION', value: this.region },
+        { name: 'VITE_UPLOAD_BUCKET', value: bucket.bucketName },
       ],
     });
 

@@ -102,22 +102,6 @@ def paginate(items: list, limit: int, offset: int) -> dict:
     }
 
 
-def presigned_put_url(key: str, content_type: str = "text/plain", expires: int = 3600) -> str:
-    return s3.generate_presigned_url(
-        "put_object",
-        Params={"Bucket": BUCKET_NAME, "Key": key, "ContentType": content_type},
-        ExpiresIn=expires,
-    )
-
-
-def presigned_get_url(key: str, expires: int = 3600) -> str:
-    return s3.generate_presigned_url(
-        "get_object",
-        Params={"Bucket": BUCKET_NAME, "Key": key},
-        ExpiresIn=expires,
-    )
-
-
 def put_json(key: str, data: dict) -> None:
     s3.put_object(
         Bucket=BUCKET_NAME,

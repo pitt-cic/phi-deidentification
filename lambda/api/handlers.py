@@ -1,6 +1,5 @@
 import json
 import os
-import uuid
 from datetime import datetime, timezone
 
 import boto3
@@ -25,18 +24,6 @@ def list_batches(params: dict, body: dict, query: dict) -> tuple[int, dict]:
         })
     all_batches.sort(key=lambda b: b.get("created_at", ""), reverse=True)
     return 200, storage.paginate(all_batches, limit, offset)
-
-
-def create_batch(params: dict, body: dict, query: dict) -> tuple[int, dict]:
-    batch_id = body.get("batch_id") or f"batch-{uuid.uuid4().hex[:8]}"
-    meta = {
-        "batch_id": batch_id,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "status": "created",
-        "all_approved": False,
-    }
-    storage.save_metadata(batch_id, meta)
-    return 201, meta
 
 
 def get_batch(params: dict, body: dict, query: dict) -> tuple[int, dict]:
@@ -117,18 +104,6 @@ def start_batch(params: dict, body: dict, query: dict) -> tuple[int, dict]:
         Payload=json.dumps({"batch_id": batch_id}).encode("utf-8"),
     )
     return 200, {"status": "started", "batch_id": batch_id}
-
-
-def get_upload_url(params: dict, body: dict, query: dict) -> tuple[int, dict]:
-    batch_id = params["batch_id"]
-    filename = body.get("filename")
-    if not filename:
-        return 400, {"error": "filename is required"}
-    filename = os.path.basename(filename)
-    if not filename:
-        return 400, {"error": "Invalid filename"}
-    key = f"{batch_id}/input/{filename}"
-    return 200, {"upload_url": storage.presigned_put_url(key), "key": key}
 
 
 def list_notes(params: dict, body: dict, query: dict) -> tuple[int, dict]:
@@ -269,25 +244,12 @@ def approve_all_notes(params: dict, body: dict, query: dict) -> tuple[int, dict]
     }
 
 
-def get_download_url(params: dict, body: dict, query: dict) -> tuple[int, dict]:
-    batch_id, note_id = params["batch_id"], params["note_id"]
-    requested_format = (query or {}).get("format", "")
-    if requested_format == "entities":
-        key = f"{batch_id}/output/{note_id}_entities.json"
-    else:
-        key = f"{batch_id}/output/{note_id}_redacted.txt"
-    return 200, {"download_url": storage.presigned_get_url(key), "key": key}
-
-
 HANDLERS = {
     "list_batches": list_batches,
-    "create_batch": create_batch,
     "get_batch": get_batch,
     "start_batch": start_batch,
-    "get_upload_url": get_upload_url,
     "list_notes": list_notes,
     "get_note": get_note,
     "approve_note": approve_note,
     "approve_all_notes": approve_all_notes,
-    "get_download_url": get_download_url,
 }

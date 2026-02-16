@@ -42,16 +42,6 @@ export interface NoteDetail {
   approved: boolean
 }
 
-export interface UploadUrlResponse {
-  upload_url: string
-  key: string
-}
-
-export interface DownloadUrlResponse {
-  download_url: string
-  key: string
-}
-
 export interface PaginatedResponse<T> {
   items: T[]
   total: number
@@ -106,35 +96,12 @@ export async function listBatches(limit = 50, offset = 0): Promise<PaginatedResp
   return data
 }
 
-export async function createBatch(batchId?: string): Promise<Batch> {
-  return fetchApi('/batches', {
-    method: 'POST',
-    body: JSON.stringify(batchId ? { batch_id: batchId } : {}),
-  })
-}
-
 export async function getBatch(batchId: string): Promise<BatchDetail> {
   return fetchApi(`/batches/${batchId}`)
 }
 
 export async function startBatch(batchId: string): Promise<{ status: string; batch_id: string }> {
   return fetchApi(`/batches/${batchId}/start`, { method: 'POST' })
-}
-
-export async function getUploadUrl(batchId: string, filename: string): Promise<UploadUrlResponse> {
-  return fetchApi(`/batches/${batchId}/upload-url`, {
-    method: 'POST',
-    body: JSON.stringify({ filename }),
-  })
-}
-
-export async function uploadFileToS3(presignedUrl: string, file: File): Promise<void> {
-  const response = await fetch(presignedUrl, {
-    method: 'PUT',
-    body: file,
-    headers: { 'Content-Type': 'text/plain' },
-  })
-  if (!response.ok) throw new Error(`Upload failed: ${response.status}`)
 }
 
 export async function listNotes(batchId: string, limit = 50, offset = 0): Promise<PaginatedResponse<Note>> {
@@ -158,12 +125,4 @@ export async function approveAllNotes(batchId: string): Promise<ApproveAllRespon
   return fetchApi(`/batches/${batchId}/approve-all`, {
     method: 'POST',
   })
-}
-
-export async function getDownloadUrl(batchId: string, noteId: string): Promise<DownloadUrlResponse> {
-  return fetchApi(`/batches/${batchId}/notes/${noteId}/download-url`)
-}
-
-export async function getDetectionDownloadUrl(batchId: string, noteId: string): Promise<DownloadUrlResponse> {
-  return fetchApi(`/batches/${batchId}/notes/${noteId}/download-url?format=entities`)
 }

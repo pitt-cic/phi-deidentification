@@ -1,35 +1,64 @@
-import { useState, useEffect, useRef } from 'react'
-import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
+import { useState, useEffect } from 'react'
+import { useQuery, useInfiniteQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import JSZip from 'jszip'
 import {
   listBatches,
-  createBatch,
   getBatch,
   startBatch,
-  getUploadUrl,
-  uploadFileToS3,
-  listNotes,
   approveAllNotes,
-  getDownloadUrl,
-  getDetectionDownloadUrl,
   type Batch,
-  type Note,
+  type PaginatedResponse,
 } from '../api/client'
 import './DashboardPage.css'
 
 const PAGE_SIZE = 50
 
+type BatchStatusKey =
+  | 'created'
+  | 'ready-to-process'
+  | 'processing'
+  | 'needs-review'
+  | 'approved'
+  | 'unknown'
+
+type BatchStatusDisplay = {
+  key: BatchStatusKey
+  label: string
+}
+
+type BatchesQueryData = InfiniteData<PaginatedResponse<Batch>, number>
+
+const getBatchStatusDisplay = (status: Batch['status'], allApproved: boolean, inputCount?: number): BatchStatusDisplay => {
+  if (status === 'completed') {
+    return allApproved
+      ? { key: 'approved', label: 'Approved' }
+      : { key: 'needs-review', label: 'Needs Review' }
+  }
+
+  if (status === 'processing') {
+    return { key: 'processing', label: 'Processing' }
+  }
+
+  if (status === 'created') {
+    return (inputCount ?? 0) > 0
+      ? { key: 'ready-to-process', label: 'Ready to Process' }
+      : { key: 'created', label: 'Created' }
+  }
+
+  return { key: 'unknown', label: 'Unknown' }
+}
+
 export default function DashboardPage() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
-  const [processing, setProcessing] = useState(false)
-  const [status, setStatus] = useState('')
-  const [dragOver, setDragOver] = useState(false)
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(() => searchParams.get('batch'))
+  const [startingBatchId, setStartingBatchId] = useState<string | null>(null)
+  const [startError, setStartError] = useState('')
+  const [approvingAll, setApprovingAll] = useState(false)
+
+  const uploadBucket = String(import.meta.env.VITE_UPLOAD_BUCKET || '').trim()
+  const bucketName = uploadBucket || '<bucket-name>'
 
   useEffect(() => {
     const currentBatchParam = searchParams.get('batch')
@@ -43,6 +72,10 @@ export default function DashboardPage() {
     }
     setSearchParams(nextParams, { replace: true })
   }, [selectedBatchId, searchParams, setSearchParams])
+
+  useEffect(() => {
+    setStartError('')
+  }, [selectedBatchId])
 
   const {
     data: batchPages,
@@ -71,93 +104,41 @@ export default function DashboardPage() {
     refetchInterval: 5_000,
   })
 
-  const addFiles = (files: FileList | File[]) => {
-    const incomingFiles = Array.from(files)
-    if (incomingFiles.length === 0) return
-
-    setSelectedFiles(prev => {
-      const newFiles = incomingFiles.filter(f => !prev.some(s => s.name === f.name))
-      return newFiles.length > 0 ? [...prev, ...newFiles] : prev
-    })
+  const uploadCommandFor = (batchId: string) => {
+    return `aws s3 cp /path/to/notes "s3://${bucketName}/${batchId}/input/" --recursive --exclude "*" --include "*.txt"`
   }
 
-  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files ? Array.from(e.target.files) : []
-    addFiles(files)
-    e.target.value = ''
-  }
+  const createBatchCommand = `BATCH_ID="$(./scripts/create_batch.sh --bucket "${bucketName}")"`
 
-  const removeFile = (name: string) => setSelectedFiles(prev => prev.filter(f => f.name !== name))
+  const uploadNotesCommand = uploadCommandFor('$BATCH_ID')
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    setDragOver(false)
-    if (e.dataTransfer.files.length > 0) addFiles(e.dataTransfer.files)
-  }
-
-  const handleStart = async () => {
-    if (selectedFiles.length === 0) return
-    setProcessing(true)
+  const handleStartBatch = async (batchId: string) => {
+    setStartError('')
+    setStartingBatchId(batchId)
     try {
-      setStatus('Creating batch...')
-      const batch = await createBatch()
-      for (let i = 0; i < selectedFiles.length; i++) {
-        setStatus(`Uploading ${i + 1}/${selectedFiles.length}: ${selectedFiles[i].name}`)
-        const { upload_url } = await getUploadUrl(batch.batch_id, selectedFiles[i].name)
-        await uploadFileToS3(upload_url, selectedFiles[i])
-      }
-      setStatus('Starting de-identification...')
-      await startBatch(batch.batch_id)
-      setSelectedFiles([])
-      setStatus('')
+      await startBatch(batchId)
+      queryClient.invalidateQueries({ queryKey: ['batch', batchId] })
       queryClient.invalidateQueries({ queryKey: ['batches'] })
-      setSelectedBatchId(batch.batch_id)
     } catch (err) {
-      setStatus(`Error: ${err instanceof Error ? err.message : 'Failed'}`)
+      setStartError(err instanceof Error ? err.message : 'Failed to start batch')
     } finally {
-      setProcessing(false)
+      setStartingBatchId(null)
     }
   }
 
-  const [downloadingRedacted, setDownloadingRedacted] = useState(false)
-  const [downloadingDetectedPii, setDownloadingDetectedPii] = useState(false)
-  const [approvingAll, setApprovingAll] = useState(false)
-
   const updateBatchApprovalBadge = (batchId: string, allApproved: boolean) => {
-    queryClient.setQueryData(['batches'], (current: any) => {
-      if (!current || !Array.isArray(current.pages)) return current
+    queryClient.setQueryData<BatchesQueryData>(['batches'], (current) => {
+      if (!current) return current
       return {
         ...current,
-        pages: current.pages.map((page: any) => ({
+        pages: current.pages.map((page) => ({
           ...page,
-          items: Array.isArray(page.items)
-            ? page.items.map((batch: any) =>
-                batch?.batch_id === batchId ? { ...batch, all_approved: allApproved } : batch,
-              )
-            : page.items,
+          items: page.items.map((batch) => (
+            batch.batch_id === batchId ? { ...batch, all_approved: allApproved } : batch
+          )),
         })),
       }
     })
-  }
-
-  const loadAllNotes = async (batchId: string) => {
-    const limit = 200
-    let offset = 0
-    let total = Number.POSITIVE_INFINITY
-    const notes: Note[] = []
-
-    while (offset < total) {
-      const page = await listNotes(batchId, limit, offset)
-      notes.push(...page.items)
-      total = page.total
-
-      if (page.items.length === 0 || page.items.length < limit) {
-        break
-      }
-      offset += page.items.length
-    }
-
-    return notes
   }
 
   const handleApproveAll = async (batchId: string) => {
@@ -185,70 +166,12 @@ export default function DashboardPage() {
     }
   }
 
-  const handleDownloadRedacted = async (batchId: string) => {
-    setDownloadingRedacted(true)
-    try {
-      const notes = await loadAllNotes(batchId)
-      const downloadable = notes.filter(note => note.has_output)
-      const zip = new JSZip()
-      for (const note of downloadable) {
-        const { download_url } = await getDownloadUrl(batchId, note.note_id)
-        const resp = await fetch(download_url)
-        if (!resp.ok) {
-          throw new Error(`Failed to download redacted note '${note.note_id}' (${resp.status})`)
-        }
-        const text = await resp.text()
-        zip.file(`${note.note_id}_redacted.txt`, text)
-      }
-      const blob = await zip.generateAsync({ type: 'blob' })
-      const a = document.createElement('a')
-      a.href = URL.createObjectURL(blob)
-      a.download = `${batchId}_redacted_notes.zip`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(a.href)
-    } catch (err) {
-      alert(`Download error: ${err instanceof Error ? err.message : 'Unknown error'}`)
-    } finally {
-      setDownloadingRedacted(false)
-    }
-  }
-
-  const handleDownloadDetectedPii = async (batchId: string) => {
-    setDownloadingDetectedPii(true)
-    try {
-      const notes = await loadAllNotes(batchId)
-      const downloadable = notes.filter(note => note.has_output)
-      const zip = new JSZip()
-      for (const note of downloadable) {
-        const { download_url } = await getDetectionDownloadUrl(batchId, note.note_id)
-        const resp = await fetch(download_url)
-        if (!resp.ok) {
-          throw new Error(`Failed to download extracted PII for note '${note.note_id}' (${resp.status})`)
-        }
-        const text = await resp.text()
-        zip.file(`${note.note_id}_entities.json`, text)
-      }
-      const blob = await zip.generateAsync({ type: 'blob' })
-      const a = document.createElement('a')
-      a.href = URL.createObjectURL(blob)
-      a.download = `${batchId}_detected_pii.zip`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(a.href)
-    } catch (err) {
-      alert(`Download error: ${err instanceof Error ? err.message : 'Unknown error'}`)
-    } finally {
-      setDownloadingDetectedPii(false)
-    }
-  }
-
-  const statusLabel = (s: string) => {
-    const labels: Record<string, string> = { created: 'Created', processing: 'Processing', completed: 'Completed', unknown: 'Unknown' }
-    return labels[s] || s
-  }
+  const selectedBatchStatus = batchDetail
+    ? getBatchStatusDisplay(batchDetail.status, !!batchDetail.all_approved, batchDetail.input_count)
+    : null
+  const canStartSelectedBatch = selectedBatchStatus?.key === 'ready-to-process' && !!selectedBatchId
+  const isStartingSelectedBatch = !!selectedBatchId && startingBatchId === selectedBatchId
+  const isCreatedBatch = batchDetail?.status === 'created'
 
   const piiStats = batchDetail?.pii_stats
   const piiTypeEntries = piiStats
@@ -270,8 +193,7 @@ export default function DashboardPage() {
             className={`sidebar-item sidebar-item-new-batch ${!selectedBatchId ? 'active' : ''}`}
             onClick={() => setSelectedBatchId(null)}
           >
-            <span className="sidebar-item-icon">+</span>
-            <span>New Batch</span>
+            <span>Dashboard</span>
           </button>
         </div>
 
@@ -285,17 +207,8 @@ export default function DashboardPage() {
             ) : (
               <>
                 {batches.map((batch: Batch) => {
-                  const isApprovedBatch = batch.status === 'completed' && !!batch.all_approved
-                  const sidebarStatusKey = isApprovedBatch
-                    ? 'approved'
-                    : batch.status === 'completed'
-                      ? 'ready'
-                      : batch.status
-                  const sidebarStatusText = isApprovedBatch
-                    ? 'Approved'
-                    : batch.status === 'completed'
-                      ? 'Ready'
-                      : statusLabel(batch.status)
+                  const inputCount = batch.batch_id === selectedBatchId ? batchDetail?.input_count : undefined
+                  const sidebarStatus = getBatchStatusDisplay(batch.status, !!batch.all_approved, inputCount)
 
                   return (
                     <button
@@ -304,8 +217,8 @@ export default function DashboardPage() {
                       onClick={() => setSelectedBatchId(batch.batch_id)}
                     >
                       <span className="sidebar-item-name">{batch.batch_id}</span>
-                      <span className={`sidebar-badge sidebar-badge-${sidebarStatusKey}`}>
-                        {sidebarStatusText}
+                      <span className={`sidebar-badge sidebar-badge-${sidebarStatus.key}`}>
+                        {sidebarStatus.label}
                       </span>
                     </button>
                   )
@@ -327,53 +240,66 @@ export default function DashboardPage() {
 
       <main className="dashboard-main">
         {!selectedBatchId ? (
-          <div className="upload-panel">
-            <h2 className="panel-title">Upload & Process</h2>
-            <div
-              className={`drop-zone ${dragOver ? 'drag-over' : ''} ${processing ? 'uploading' : ''}`}
-              onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={handleDrop}
-              onClick={() => !processing && fileInputRef.current?.click()}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept=".txt,.text"
-                onChange={handleFileInputChange}
-                style={{ display: 'none' }}
-              />
-              <div className="drop-icon">+</div>
-              <p className="drop-text">Drag & drop .txt files here, or click to select</p>
-            </div>
+          <div className="upload-panel directions-panel">
+            <h2 className="panel-title">How To Use This Dashboard</h2>
+            <p className="panel-description">
+              Use the CLI for batch creation and upload, then use this UI to monitor processing and review output.
+            </p>
 
-            <button
-              className="btn btn-start"
-              onClick={handleStart}
-              disabled={processing || selectedFiles.length === 0}
-            >
-              {processing ? status || 'Processing...' : `Start De-identification (${selectedFiles.length} files)`}
-            </button>
+            <section className="directions-card directions-card-wide directions-command">
+              <h3 className="directions-card-title">Create New Folder</h3>
+              <pre className="cli-command">{createBatchCommand}</pre>
+              {!uploadBucket && (
+                <div className="cli-card-note">
+                  Replace <code>{'<bucket-name>'}</code> with your deployed S3 bucket name.
+                </div>
+              )}
 
-            {selectedFiles.length > 0 && (
-              <div className="file-list">
-                {selectedFiles.map(f => (
-                  <span key={f.name} className="file-tag">
-                    {f.name}
-                    {!processing && <button className="remove-file" onClick={() => removeFile(f.name)}>&times;</button>}
-                  </span>
-                ))}
+              <h3 className="directions-card-title">Upload Notes</h3>
+              <pre className="cli-command">{uploadNotesCommand}</pre>
+              <p className="directions-text">After running both commands, refresh and select your batch from the sidebar.</p>
+            </section>
+
+            <section className="directions-card">
+              <h3 className="directions-card-title">Status Meanings</h3>
+              <div className="directions-status-list">
+                <div className="directions-status-item">
+                  <span className="detail-status-badge detail-status-created">Created</span>
+                  <p className="directions-status-description">Batch exists but no input files have been uploaded.</p>
+                </div>
+                <div className="directions-status-item">
+                  <span className="detail-status-badge detail-status-ready-to-process">Ready to Process</span>
+                  <p className="directions-status-description">Input files are present and the batch can be started.</p>
+                </div>
+                <div className="directions-status-item">
+                  <span className="detail-status-badge detail-status-processing">Processing</span>
+                  <p className="directions-status-description">The worker Lambda is actively processing notes.</p>
+                </div>
+                <div className="directions-status-item">
+                  <span className="detail-status-badge detail-status-needs-review">Needs Review</span>
+                  <p className="directions-status-description">Processing finished, but not all notes are approved.</p>
+                </div>
+                <div className="directions-status-item">
+                  <span className="detail-status-badge detail-status-approved">Approved</span>
+                  <p className="directions-status-description">All notes are processed and approved.</p>
+                </div>
               </div>
-            )}
+            </section>
           </div>
         ) : (
-          <div className="batch-detail-panel">
+          <div className={`batch-detail-panel ${isCreatedBatch ? 'batch-detail-panel-created' : ''}`}>
             {batchDetail ? (
               <>
                 <div className="batch-header-row">
-                  <h2 className="panel-title">{selectedBatchId}</h2>
-                  {batchDetail.status === 'completed' && (
+                  <div className="batch-title-stack">
+                    <h2 className="panel-title">{selectedBatchId}</h2>
+                    {selectedBatchStatus && (
+                      <span className={`detail-status-badge detail-status-${selectedBatchStatus.key}`}>
+                        {selectedBatchStatus.label}
+                      </span>
+                    )}
+                  </div>
+                  {batchDetail.status === 'completed' && !batchDetail.all_approved && (
                     <button
                       className="btn btn-primary batch-header-approve-btn"
                       onClick={() => handleApproveAll(selectedBatchId)}
@@ -390,69 +316,51 @@ export default function DashboardPage() {
                     <div className="detail-card-label">Input Files</div>
                   </div>
 
-                  <div className="detail-card metric-card-pii">
-                    <div className="detail-card-value">{piiStats?.total_entities ?? 0}</div>
-                    <div className="detail-card-label">PII Detected</div>
-                  </div>
-
                   <div className="metric-processed-stack">
                     <div className="detail-card metric-card-processed">
                       <div className="detail-card-value">{batchDetail.output_count}</div>
                       <div className="detail-card-label">Processed</div>
                     </div>
 
+                    <div className="detail-card metric-card-pii">
+                      <div className="detail-card-value">{piiStats?.total_entities ?? 0}</div>
+                      <div className="detail-card-label">PII Detected</div>
+                    </div>
+
                     <div className="metric-processed-footer">
                       <div className="batch-buttons-stack">
-                        {batchDetail.status === 'completed' && (
-                          <>
-                            <div className="batch-buttons-row batch-buttons-row-single">
-                              <button className="btn btn-primary action-btn" onClick={() => navigate(`/review/${selectedBatchId}`)}>
-                                <span className="action-btn-label">
-                                  <span className="action-btn-topline">Review</span>
-                                  <span className="action-btn-subline">Notes</span>
-                                </span>
-                              </button>
-                            </div>
-                            <div className="batch-buttons-row">
-                              <button
-                                className="btn btn-outline action-btn"
-                                onClick={() => handleDownloadRedacted(selectedBatchId)}
-                                disabled={downloadingRedacted || downloadingDetectedPii}
-                              >
-                                {downloadingRedacted ? (
-                                  'Zipping...'
-                                ) : (
-                                  <span className="action-btn-label">
-                                    <span className="action-btn-topline">
-                                      <span className="action-btn-icon" aria-hidden="true">&darr;</span>
-                                      <span>Download</span>
-                                    </span>
-                                    <span className="action-btn-subline">Redacted Notes</span>
-                                  </span>
-                                )}
-                              </button>
-                              <button
-                                className="btn btn-outline action-btn"
-                                onClick={() => handleDownloadDetectedPii(selectedBatchId)}
-                                disabled={downloadingRedacted || downloadingDetectedPii}
-                              >
-                                {downloadingDetectedPii ? (
-                                  'Zipping...'
-                                ) : (
-                                  <span className="action-btn-label">
-                                    <span className="action-btn-topline">
-                                      <span className="action-btn-icon" aria-hidden="true">&darr;</span>
-                                      <span>Download</span>
-                                    </span>
-                                    <span className="action-btn-subline">Extracted PII</span>
-                                  </span>
-                                )}
-                              </button>
-                            </div>
-                          </>
+                        {canStartSelectedBatch && (
+                          <button
+                            className="btn btn-start action-btn action-btn-start"
+                            onClick={() => handleStartBatch(selectedBatchId)}
+                            disabled={isStartingSelectedBatch}
+                          >
+                            {isStartingSelectedBatch ? 'Starting...' : 'Start De-identification'}
+                          </button>
+                        )}
+                        {selectedBatchStatus?.key === 'created' && (
+                          <span className="processing-label">
+                            Upload notes with the CLI command below to enable processing.
+                          </span>
                         )}
                         {batchDetail.status === 'processing' && (
                           <span className="processing-label">Processing... auto-refreshing</span>
+                        )}
+                        {startError && (
+                          <span className="processing-label processing-label-error">
+                            Error: {startError}
+                          </span>
+                        )}
+                        {batchDetail.status === 'completed' && (
+                          <button
+                            className="btn btn-primary action-btn"
+                            onClick={() => navigate(`/review/${selectedBatchId}`)}
+                          >
+                            <span className="action-btn-label">
+                              <span className="action-btn-topline">Review</span>
+                              <span className="action-btn-subline">Notes</span>
+                            </span>
+                          </button>
                         )}
                       </div>
 
@@ -484,6 +392,18 @@ export default function DashboardPage() {
                     )}
                   </div>
                 </div>
+
+                {isCreatedBatch && (
+                  <div className="cli-card batch-cli-card">
+                    <div className="cli-card-title">Upload notes for this batch</div>
+                    <pre className="cli-command">{uploadCommandFor(selectedBatchId)}</pre>
+                    {!uploadBucket && (
+                      <div className="cli-card-note">
+                        Replace <code>{'<bucket-name>'}</code> with your deployed S3 bucket name.
+                      </div>
+                    )}
+                  </div>
+                )}
               </>
             ) : (
               <div className="loading-state">Loading batch details...</div>

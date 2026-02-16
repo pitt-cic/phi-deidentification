@@ -1,10 +1,11 @@
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { listNotes, getNote, approveNote, getDownloadUrl, type Note } from '../api/client'
+import { useInfiniteQuery, useQuery, useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query'
+import { listNotes, getNote, approveNote, type Note, type Batch, type PaginatedResponse } from '../api/client'
 import DiffViewer from '../components/DiffViewer'
 import './ReviewPage.css'
 
 const PAGE_SIZE = 50
+type BatchesQueryData = InfiniteData<PaginatedResponse<Batch>, number>
 
 export default function ReviewPage() {
   const { batchId, noteId } = useParams<{ batchId: string; noteId: string }>()
@@ -49,33 +50,21 @@ export default function ReviewPage() {
       queryClient.invalidateQueries({ queryKey: ['batch', batchId] })
 
       if (variables.approved === false && batchId) {
-        queryClient.setQueryData(['batches'], (current: any) => {
-          if (!current || !Array.isArray(current.pages)) return current
+        queryClient.setQueryData<BatchesQueryData>(['batches'], (current) => {
+          if (!current) return current
           return {
             ...current,
-            pages: current.pages.map((page: any) => ({
+            pages: current.pages.map((page) => ({
               ...page,
-              items: Array.isArray(page.items)
-                ? page.items.map((batch: any) =>
-                    batch?.batch_id === batchId ? { ...batch, all_approved: false } : batch,
-                  )
-                : page.items,
+              items: page.items.map((batch) => (
+                batch.batch_id === batchId ? { ...batch, all_approved: false } : batch
+              )),
             })),
           }
         })
       }
     },
   })
-
-  const handleDownload = async () => {
-    if (!batchId || !selectedNoteId) return
-    try {
-      const { download_url } = await getDownloadUrl(batchId, selectedNoteId)
-      window.open(download_url, '_blank')
-    } catch (err) {
-      alert(`Download error: ${err instanceof Error ? err.message : 'Unknown error'}`)
-    }
-  }
 
   const goToNote = (id: string) => navigate(`/review/${batchId}/${id}`)
   const currentIdx = notes.findIndex(n => n.note_id === selectedNoteId)
@@ -153,7 +142,6 @@ export default function ReviewPage() {
               </div>
               <div className="toolbar-right">
                 {noteDetail.needs_review && <span className="review-flag">Needs Review</span>}
-                <button className="btn btn-sm" onClick={handleDownload}>Download</button>
                 {noteDetail.approved ? (
                   <button className="btn btn-sm btn-danger" onClick={() => approveMutation.mutate({ approved: false })} disabled={approveMutation.isPending}>
                     Revoke Approval

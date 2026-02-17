@@ -63,7 +63,8 @@ class PHIGenerator:
     def generate_zip(self) -> str:
         """Generate a ZIP code."""
         return self.fake.zipcode()
-
+    
+    # TODO: add different date formats randomly
     def generate_date(self, start_year: int = 1950, end_year: int = 2024) -> str:
         """Generate a date in MM/DD/YYYY format."""
         start_date = date(start_year, 1, 1)
@@ -71,6 +72,7 @@ class PHIGenerator:
         random_date = self.fake.date_between(start_date=start_date, end_date=end_date)
         return random_date.strftime("%m/%d/%Y")
 
+    # TODO: add different date formats randomly
     def generate_dob(self, min_age: int = 18, max_age: int = 90) -> str:
         """Generate a date of birth for a person of given age range."""
         today = date.today()
@@ -83,7 +85,8 @@ class PHIGenerator:
         """Generate a datetime string."""
         dt = self.fake.date_time_this_year()
         return dt.strftime("%m/%d/%Y %H:%M")
-
+    
+    # TODO: add different phone number formats randomly
     def generate_phone(self) -> str:
         """Generate a phone number."""
         return self.fake.phone_number()

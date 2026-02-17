@@ -118,7 +118,7 @@ class PatientData:
         lines = []
 
         # Helper to check if field should be included
-        def should_include(value, field_name: str) -> bool:
+        def should_include(value, field_name: str | None = None) -> bool:
             if value is None or value == "":
                 return False
             # Allow age=0 (newborns), but skip other 0 values
@@ -143,9 +143,9 @@ class PatientData:
             lines.append(f"Nicknames: {self.nicknames}")
         if should_include(self.birth_date, "birth_date"):
             lines.append(f"Date of Birth: {self.birth_date}")
-        if should_include(self.age, "age"):
-            lines.append(f"Age: {self.age}")
-        if should_include(self.deceased_date, "deceased_date"):
+        if should_include(self.age, field_name='age'):
+            lines.append(f"Age: {self.age} years old")
+        if should_include(self.deceased_date):
             lines.append(f"Deceased Date: {self.deceased_date}")
         if should_include(self.gender, "gender"):
             lines.append(f"Gender: {self.gender}")

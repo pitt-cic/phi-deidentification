@@ -12,7 +12,7 @@ REQUIREMENTS:
 6. Reference the patient's address when documenting social history or discharge planning
 7. Include the SSN and insurance information in the registration/demographic section
 8. Reference the driver's license if relevant (e.g., patient arrived by personal vehicle, MVA, or ID verification)
-9. Include all dates and times naturally
+9. Include all dates and times as provided in the PHI context. Never transform dates or times.
 10. Make the clinical scenario realistic and coherent
 
 Generate a complete ED note now. Do not include any instructions or meta-commentary - just the clinical note itself.

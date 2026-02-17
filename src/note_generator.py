@@ -225,40 +225,53 @@ class NoteGenerator:
         """Find PHI positions in text using FHIR-extracted context."""
         entities = []
         patient = context.get('patient', {})
-        providers = context.get('providers', [{}])
-        provider = providers[0] if providers else {}
+        # providers = context.get('providers', [{}])
+        # provider = providers[0] if providers else {}
         facility = context.get('facility', {})
         device = context.get('device', {})
 
         # Build a list of PHI values to search for
         phi_values = [
-            (patient.get('full_name', ''), PHIType.NAME),
-            (patient.get('first_name', ''), PHIType.NAME),
-            (patient.get('last_name', ''), PHIType.NAME),
-            (patient.get('birth_date', ''), PHIType.DATE),
-            (patient.get('ssn', ''), PHIType.SSN),
-            (patient.get('mrn', ''), PHIType.MRN),
-            (patient.get('phone', ''), PHIType.PHONE),
-            (patient.get('email', ''), PHIType.EMAIL),
-            (patient.get('drivers_license', ''), PHIType.LICENSE),
-            (patient.get('passport', ''), PHIType.OTHER),
-            (patient.get('address_line', ''), PHIType.ADDRESS),
-            (patient.get('city', ''), PHIType.ADDRESS),
-            (patient.get('state', ''), PHIType.ADDRESS),
-            (patient.get('zip_code', ''), PHIType.ADDRESS),
-            (patient.get('health_plan_id', ''), PHIType.HEALTH_PLAN_ID),
-            (patient.get('account_number', ''), PHIType.ACCOUNT_NUMBER),
-            (patient.get('vehicle_id', ''), PHIType.VEHICLE_ID),
-            (patient.get('ip_address', ''), PHIType.IP_ADDRESS),
-            (patient.get('patient_portal_url', ''), PHIType.URL),
-            (patient.get('emergency_contact_name', ''), PHIType.NAME),
-            (patient.get('emergency_contact_phone', ''), PHIType.PHONE),
-            (provider.get('name', ''), PHIType.NAME),
-            (provider.get('phone', ''), PHIType.PHONE),
-            (provider.get('fax', ''), PHIType.FAX),
-            (facility.get('name', ''), PHIType.OTHER),
-            (facility.get('phone', ''), PHIType.PHONE),
-            (facility.get('fax', ''), PHIType.FAX),
+            (patient.get("prefix", ""), PHIType.NAME),
+            (patient.get("full_name", ""), PHIType.NAME),
+            (patient.get("first_name", ""), PHIType.NAME),
+            (patient.get("last_name", ""), PHIType.NAME),
+            (patient.get("birth_date", ""), PHIType.DATE),
+            (patient.get("ssn", ""), PHIType.SSN),
+            (patient.get("mrn", ""), PHIType.MRN),
+            (patient.get("phone", ""), PHIType.PHONE),
+            (patient.get("email", ""), PHIType.EMAIL),
+            (patient.get("drivers_license", ""), PHIType.LICENSE),
+            (patient.get("passport", ""), PHIType.OTHER),
+            (patient.get("full_address", ""), PHIType.ADDRESS),
+            (patient.get("address_city_and_state", ""), PHIType.ADDRESS),
+            (patient.get("address_state_and_country", ""), PHIType.ADDRESS),
+            (patient.get("address_city_state_and_country", ""), PHIType.ADDRESS),
+            (patient.get("address_line", ""), PHIType.ADDRESS),
+            (patient.get("city", ""), PHIType.ADDRESS),
+            (patient.get("state", ""), PHIType.ADDRESS),
+            (patient.get("zip_code", ""), PHIType.ADDRESS),
+            (patient.get("health_plan_id", ""), PHIType.HEALTH_PLAN_ID),
+            (patient.get("account_number", ""), PHIType.ACCOUNT_NUMBER),
+            (patient.get("vehicle_id", ""), PHIType.VEHICLE_ID),
+            (patient.get("license_plate", ""), PHIType.VEHICLE_ID),
+            (patient.get("ip_address", ""), PHIType.IP_ADDRESS),
+            (patient.get("patient_portal_url", ""), PHIType.URL),
+            (patient.get("emergency_contact_name", ""), PHIType.NAME),
+            (patient.get("emergency_contact_phone", ""), PHIType.PHONE),
+            (patient.get("birth_city_and_state", ""), PHIType.ADDRESS),
+            (patient.get("birth_state_and_country", ""), PHIType.ADDRESS),
+            (patient.get("birth_city_state_and_country", ""), PHIType.ADDRESS),
+            (patient.get("birth_city", ""), PHIType.ADDRESS),
+            (patient.get("birth_state", ""), PHIType.ADDRESS),
+            (patient.get("birth_country", ""), PHIType.ADDRESS),
+            (patient.get('mothers_maiden_name', ''), PHIType.NAME),
+            # (provider.get('name', ''), PHIType.NAME),
+            # (provider.get('phone', ''), PHIType.PHONE),
+            # (provider.get('fax', ''), PHIType.FAX),
+            (facility.get("name", ""), PHIType.OTHER),
+            (facility.get("phone", ""), PHIType.PHONE),
+            (facility.get("fax", ""), PHIType.FAX),
             (device.get('id', ''), PHIType.DEVICE_ID),
         ]
 
@@ -266,15 +279,29 @@ class NoteGenerator:
         for enc in context.get('encounters', []):
             if enc.get('start_datetime'):
                 phi_values.append((enc['start_datetime'][:10], PHIType.DATE))
+            if enc.get('end_datetime'):
+                phi_values.append((enc['end_datetime'][:10], PHIType.DATE))
+            if enc.get('location_name'):
+                phi_values.append((enc['location_name'], PHIType.OTHER))
+            if enc.get('provider_name'):
+                phi_values.append((enc['provider_name'], PHIType.OTHER))
+            if enc.get('primary_practitioner'):
+                phi_values.append((enc['primary_practitioner'], PHIType.NAME))
+
+        with open('phi_types_values.json', 'w') as f:
+            json.dump([{'phi_type': phi_type, 'value': value} for value, phi_type in phi_values if value], f, indent=2)
+            print('PHI types and values saved to phi_types_values.json')
 
         # Find all occurrences
         for value, phi_type in phi_values:
+            if phi_type == PHIType.DATE: print(f"DEBUG: {phi_type.value} {value}")
             if not value or len(str(value)) < 2:
                 continue
             value_str = str(value)
             # Use word boundaries to prevent substring matches (e.g., "PA" in "patient")
             pattern = r'(?<!\w)' + re.escape(value_str) + r'(?!\w)'
             for match in re.finditer(pattern, text):
+                if phi_type == PHIType.DATE: print('match', match)
                 entities.append(PHIEntity(
                     phi_type=phi_type,
                     value=value_str,
@@ -293,12 +320,14 @@ class NoteGenerator:
             (patient_context.get('full_name', ''), PHIType.NAME),
             (patient_context.get('first_name', ''), PHIType.NAME),
             (patient_context.get('last_name', ''), PHIType.NAME),
-            (patient_context.get('dob', ''), PHIType.DATE),
+            (patient_context.get('nicknames', ''), PHIType.NAME),
+            (patient_context.get('birth_date', ''), PHIType.DATE),
             (patient_context.get('ssn', ''), PHIType.SSN),
             (patient_context.get('mrn', ''), PHIType.MRN),
             (patient_context.get('phone', ''), PHIType.PHONE),
             (patient_context.get('email', ''), PHIType.EMAIL),
             (patient_context.get('drivers_license', ''), PHIType.LICENSE),
+            (patient_context.get('passport', ''), PHIType.OTHER),
             (patient_context.get('emergency_contact', {}).get('name', ''), PHIType.NAME),
             (patient_context.get('emergency_contact', {}).get('phone', ''), PHIType.PHONE),
             (patient_context.get('insurance', {}).get('plan_id', ''), PHIType.HEALTH_PLAN_ID),
@@ -394,19 +423,38 @@ class NoteGenerator:
 
         # Add encounter-specific context
         encounters = context.get('encounters', [])
-        if encounters:
-            # Validate encounter_index
-            if encounter_index < -1:
-                raise ValueError(f"encounter_index must be -1 or >= 0, got {encounter_index}")
-            if encounter_index >= len(encounters):
-                raise ValueError(f"encounter_index {encounter_index} out of range (0-{len(encounters)-1})")
+        current_encounter = (
+            encounters[encounter_index]
+            if (encounters and -1 <= encounter_index < len(encounters))
+            else {}
+        )
+        context['current_encounter'] = current_encounter
+        if current_encounter.get('start_datetime'):
+            context['encounter_date'] = current_encounter['start_datetime'][:10]
+            context['encounter_datetime'] = current_encounter['start_datetime']
 
-            enc = encounters[encounter_index]
-            context['current_encounter'] = enc
-            # Add encounter date in simple format
-            if enc.get('start_datetime'):
-                context['encounter_date'] = enc['start_datetime'][:10]
-                context['encounter_datetime'] = enc['start_datetime']
+        # Inject additional PHI not in Synthea
+        context = self.phi_injector.inject(context)
+
+        with open('injected_context.json', 'w') as f:
+            json.dump(context, f, indent=2)
+            print(f"Injected context saved to injected_context.json")
+
+        # Add encounter-specific context
+        # encounters = context.get('encounters', [])
+        # if encounters:
+        #     # Validate encounter_index
+        #     if encounter_index < -1:
+        #         raise ValueError(f"encounter_index must be -1 or >= 0, got {encounter_index}")
+        #     if encounter_index >= len(encounters):
+        #         raise ValueError(f"encounter_index {encounter_index} out of range (0-{len(encounters)-1})")
+        #
+        #     enc = encounters[encounter_index]
+        #     context['current_encounter'] = enc
+        #     # Add encounter date in simple format
+        #     if enc.get('start_datetime'):
+        #         context['encounter_date'] = enc['start_datetime'][:10]
+        #         context['encounter_datetime'] = enc['start_datetime']
 
         return self._generate_note_internal(
             note_type=note_type,
@@ -524,6 +572,8 @@ Use the clinical context (conditions, procedures, medications) as-is, but replac
         }
         system_role = system_roles.get(note_type, "You are a clinical documentation specialist.")
 
+        # system_role = f"{system_role}. **IMPORTANT: DO NOT TRANSFORM the PHI context values (e.g., dates) given to you. Include it as given to you."
+
         # Generate note
         generated_content = self.bedrock.generate(
             prompt=prompt,
@@ -588,7 +638,6 @@ Use the clinical context (conditions, procedures, medications) as-is, but replac
         else:
             notes_dir = self.config.notes_dir
             manifests_dir = self.config.manifests_dir
-
 
         # notes_dir = output_dir / self.config.notes_subdir
         # manifests_dir = output_dir / self.config.manifests_subdir

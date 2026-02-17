@@ -71,6 +71,9 @@ class PatientData:
     state: str = ""
     zip_code: str = ""
     country: str = ""
+    address_city_and_state: str = ""
+    address_state_and_country: str = ""
+    address_city_state_and_country: str = ""
     full_address: str = ""
 
     # Additional demographics
@@ -81,6 +84,10 @@ class PatientData:
     birth_city: str = ""
     birth_state: str = ""
     birth_country: str = ""
+    birth_city_and_state: str = ""
+    birth_state_and_country: str = ""
+    birth_city_state_and_country: str = ""
+    birth_city_and_country: str = ""
     mothers_maiden_name: str = ""
 
     # Additional information
@@ -225,10 +232,10 @@ class PatientData:
 class EncounterData:
     """Extracted encounter information."""
     id: str = ""
-    type_code: str = ""
+    # type_code: str = ""
     type_display: str = ""
     encounter_class: str = ""
-    reason_code: str = ""
+    # reason_code: str = ""
     reason_display: str = ""
     start_datetime: str = ""
     end_datetime: str = ""
@@ -236,6 +243,7 @@ class EncounterData:
     # location_id: str = ""
     location_name: str = ""
     provider_name: str = ""
+    primary_practitioner: str = ""
 
     def to_context_string(self) -> str:
         """
@@ -251,8 +259,8 @@ class EncounterData:
             return value is not None and value != ""
 
         # Add encounter fields
-        if should_include(self.id):
-            lines.append(f"Encounter ID: {self.id}")
+        # if should_include(self.id):
+        #     lines.append(f"Encounter ID: {self.id}")
         if should_include(self.type_display):
             lines.append(f"Encounter Type: {self.type_display}")
         if should_include(self.encounter_class):
@@ -267,6 +275,8 @@ class EncounterData:
             lines.append(f"Location: {self.location_name}")
         if should_include(self.provider_name):
             lines.append(f"Provider: {self.provider_name}")
+        if should_include(self.primary_practitioner):
+            lines.append(f"Primary Practitioner: {self.primary_practitioner}")
 
         return "\n".join(lines)
 
@@ -609,7 +619,6 @@ class FHIRBundleParser:
                 data.emergency_contact_name = f"{emergency_contact_first_name} {emergency_contact_last_name}".strip()
                 data.emergency_contact_phone = jmespath.search("telecom[?system=='phone'] | [0].value", emergency_contact) or ''
 
-
         # Extract address
         address_data = patient.get('address', [{}])[0]
         data.address_line = address_data.get('line', [""])[0]
@@ -617,7 +626,12 @@ class FHIRBundleParser:
         data.state = address_data.get('state', '')
         data.country = address_data.get('country', '')
         data.zip_code = address_data.get('postalCode', '')
-        data.full_address = f"{data.address_line}, {data.city}, {data.state} {data.zip_code}".strip()
+        # print([data.city, data.state])
+        data.address_city_and_state = ", ".join([address_part for address_part in [data.city, data.state] if address_part]).strip()
+        # print(f"Address City & State {data.address_city_and_state}")
+        data.address_state_and_country = ", ".join([address_part for address_part in [data.state, data.country] if address_part]).strip()
+        data.address_city_state_and_country = ", ".join([address_part for address_part in [data.city, data.state, data.country] if address_part]).strip()
+        data.full_address = ", ".join([address_part for address_part in [data.address_line, data.city, data.state, data.zip_code] if address_part]).strip()
 
         data.phone = jmespath.search(f"telecom[?system=='phone'] | [0].value", patient) or ''
 
@@ -629,6 +643,9 @@ class FHIRBundleParser:
         data.birth_city = birth_place.get('city', '')
         data.birth_state = birth_place.get('state', '')
         data.birth_country = birth_place.get('country', '')
+        data.birth_city_and_state = ", ".join([address_part for address_part in [data.birth_city, data.birth_state] if address_part]).strip()
+        data.birth_state_and_country = ", ".join([address_part for address_part in [data.birth_state, data.birth_country] if address_part]).strip()
+        data.birth_city_state_and_country = ", ".join([address_part for address_part in [data.city, data.state, data.country] if address_part]).strip()
         data.disability_adjusted_life_years = round_and_to_str(jmespath.search(f"extension[?url=='{ExtensionURL.DISABILITY_ADJUSTED_LIFE_YEARS}'] | [0].valueDecimal", patient))
         data.quality_adjusted_life_years = round_and_to_str(jmespath.search(f"extension[?url=='{ExtensionURL.QUALITY_ADJUSTED_LIFE_YEARS}'] | [0].valueDecimal", patient))
 
@@ -651,7 +668,7 @@ class FHIRBundleParser:
             # print('DEBUGGG', enc)
             # print('DEBUGGG2222')
             # print(jmespath.search("type[].coding[].display", enc))
-            print("ID:", data.id)
+            # print("ID:", data.id)
             types = jmespath.search("type[].coding[].display", enc)
             data.type_display = ', '.join(types) if types else ''
 
@@ -679,6 +696,10 @@ class FHIRBundleParser:
             locations = jmespath.search("location[].location.display", enc) or []
             data.location_name = ', '.join(locations)
             data.provider_name = jmespath.search("serviceProvider.display", enc) or []
+
+            # Extract primary practitioner
+            primary_practitioner = jmespath.search("participant[?type[?coding[?code=='PPRF']]].individual | [0]", enc) or {}
+            data.primary_practitioner = strip_digits(primary_practitioner.get('display', ''))
 
             encounters.append(data)
 

@@ -1,28 +1,14 @@
 """PHI value generator using Faker library."""
 
 import random
-from dataclasses import dataclass
 from datetime import date, datetime, timedelta
-from typing import Dict, List, Optional, Literal
-import phonenumbers
+from typing import Dict, List, Literal, Optional
 
+import phonenumbers
 from faker import Faker
 from nicknames import NickNamer
 
-from .config import PHIType
-
-
-@dataclass
-class PHIValue:
-    """A generated PHI value with its type."""
-    phi_type: PHIType
-    value: str
-
-    def to_dict(self) -> dict:
-        return {
-            "type": self.phi_type.value,
-            "value": self.value
-        }
+from .models.note_models import PHIType, PHIValue
 
 
 class PHIGenerator:

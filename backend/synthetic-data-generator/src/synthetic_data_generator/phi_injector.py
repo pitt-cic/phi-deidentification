@@ -1,67 +1,8 @@
 """PHI Injector - Adds PHI types not present in Synthea data."""
-
-from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
+from .models.note_models import InjectedPHI
 from .phi_generator import PHIGenerator
-
-
-@dataclass
-class InjectedPHI:
-    """PHI values injected to supplement Synthea data."""
-    # Contact info not in Synthea
-    email: str = ""
-    fax: str = ""
-
-    # Identifiers not in Synthea
-    health_plan_id: str = ""
-    account_number: str = ""
-    vehicle_id: str = ""
-    license_plate: str = ""
-
-    # Technical identifiers
-    ip_address: str = ""
-    patient_portal_url: str = ""
-
-    # Emergency contact (often not in FHIR)
-    emergency_contact_name: str = ""
-    emergency_contact_phone: str = ""
-    emergency_contact_relationship: str = ""
-
-    # Provider contact info
-    provider_fax: str = ""
-    provider_email: str = ""
-
-    # Facility info
-    facility_name: str = ""
-    facility_phone: str = ""
-    facility_fax: str = ""
-
-    # Device IDs (supplement if not in bundle)
-    device_id: str = ""
-    scanner_id: str = ""
-
-    def to_dict(self) -> dict:
-        return {
-            "email": self.email,
-            "fax": self.fax,
-            "health_plan_id": self.health_plan_id,
-            "account_number": self.account_number,
-            "vehicle_id": self.vehicle_id,
-            "license_plate": self.license_plate,
-            "ip_address": self.ip_address,
-            "patient_portal_url": self.patient_portal_url,
-            "emergency_contact_name": self.emergency_contact_name,
-            "emergency_contact_phone": self.emergency_contact_phone,
-            "emergency_contact_relationship": self.emergency_contact_relationship,
-            "provider_fax": self.provider_fax,
-            "provider_email": self.provider_email,
-            "facility_name": self.facility_name,
-            "facility_phone": self.facility_phone,
-            "facility_fax": self.facility_fax,
-            "device_id": self.device_id,
-            "scanner_id": self.scanner_id,
-        }
 
 
 class PHIInjector:

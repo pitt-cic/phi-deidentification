@@ -5,9 +5,6 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 
-from src.config import NoteType
-
-
 def is_s3_path(path: str | None) -> bool:
     """
     Determine if the given path is an S3 path.
@@ -76,37 +73,6 @@ def list_local_files(path: str, pattern: str | None = None, limit: int | None = 
 
     return file_paths
 
-def get_note_types(type_str: str) -> list[NoteType | str]:
-    """
-    Get a list of note types from a string. Skips unknown types.
-
-    Args:
-        type_str (str): A comma-separated string of note types.
-
-    Returns:
-        list[NoteType | str]: A list of note types.
-    """
-    if type_str.lower() == "all":
-        return list(NoteType)
-
-    type_map = {
-        "emergency_dept": NoteType.EMERGENCY_DEPT,
-        "discharge_summary": NoteType.DISCHARGE_SUMMARY,
-        "progress_note": NoteType.PROGRESS_NOTE,
-        "radiology_report": NoteType.RADIOLOGY_REPORT,
-        "telehealth_consult": NoteType.TELEHEALTH_CONSULT,
-    }
-
-    types = []
-    for t in type_str.lower().split(","):
-        t = t.strip()
-        if t in type_map:
-            types.append(type_map[t])
-        else:
-            print(f"Warning: unknown type {t}, skipping")
-
-    return types
-
 def round_and_to_str(value: float | int | str | None = None) -> str:
     if not value:
         return ''
@@ -129,3 +95,13 @@ def human_readable_datetime(date_str: str) -> str:
     # Return the original string if not a valid date
     except Exception:
         return date_str
+
+
+def should_include_in_llm_context(value, allow_zero_if_number_field: bool = False) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, str) and not value.strip():
+        return False
+    if isinstance(value, (int, float)) and value == 0 and not allow_zero_if_number_field:
+        return False
+    return True

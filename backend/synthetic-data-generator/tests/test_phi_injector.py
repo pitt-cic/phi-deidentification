@@ -1,6 +1,6 @@
 """Tests for PHIInjector."""
 import pytest
-from src.phi_injector import PHIInjector
+from synthetic_data_generator.phi_injector import PHIInjector
 
 
 @pytest.mark.unit

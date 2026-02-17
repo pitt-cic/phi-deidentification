@@ -2,74 +2,22 @@
 
 import json
 import re
-from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from .bedrock_client import BedrockClient
 from .config import (
     DEFAULT_GENERATOR_CONFIG,
     GeneratorConfig,
-    NoteType,
-    NOTE_PHI_MAPPING,
-    PHIType,
 )
 from .fhir_parser import FHIRBundleParser
+from .models.note_models import GeneratedNote, NoteType, PHIEntity, PHIType
 from .phi_generator import PHIGenerator
 from .phi_injector import PHIInjector
 from .s3_client import S3Client
 from .utils import parse_s3_path
-
-
-@dataclass
-class PHIEntity:
-    """A PHI entity found in generated text."""
-    phi_type: PHIType
-    value: str
-    start: int
-    end: int
-
-    def to_dict(self) -> dict:
-        return {
-            "type": self.phi_type.value,
-            "value": self.value,
-            "start": self.start,
-            "end": self.end
-        }
-
-
-@dataclass
-class GeneratedNote:
-    """A generated clinical note with its manifest."""
-    note_id: str
-    note_type: NoteType
-    content: str
-    phi_entities: List[PHIEntity] = field(default_factory=list)
-    generated_at: datetime = field(default_factory=datetime.now)
-    is_template: bool = False
-    placeholders: List[str] = field(default_factory=list)
-
-    def to_manifest(self) -> dict:
-        phi_entities_set = set()
-        phi_entities = []
-        for e in self.phi_entities:
-            entity_dict = e.to_dict()
-            unique_entity = (entity_dict["type"], entity_dict["value"], entity_dict["start"], entity_dict["end"])
-            if unique_entity not in phi_entities_set:
-                phi_entities_set.add(unique_entity)
-                phi_entities.append(entity_dict)
-
-        manifest = {
-            "note_id": self.note_id,
-            "note_type": self.note_type.value,
-            "generated_at": self.generated_at.isoformat(),
-            "phi_entities": phi_entities
-        }
-        if self.is_template:
-            manifest["is_template"] = True
-            manifest["placeholders"] = self.placeholders
-        return manifest
+from .prompts import PROMPTS, TEMPLATE_MODE_PROMPT
 
 
 class NoteGenerator:
@@ -87,21 +35,16 @@ class NoteGenerator:
         self.phi_gen = phi_generator or PHIGenerator()
         self.phi_injector = PHIInjector(phi_generator=self.phi_gen)
         self.config = config or DEFAULT_GENERATOR_CONFIG
-        self.prompts_dir = Path(__file__).parent / "prompts"
 
     def _load_prompt(self, note_type: NoteType, template_mode: bool = False) -> str:
         """Load a prompt for the given note type."""
-        prompt_file_path = self.prompts_dir / f"{note_type.value}.txt"
-
-        if not prompt_file_path.exists():
-            raise FileNotFoundError(f"Prompt file not found: {prompt_file_path}")
-
-        prompt = prompt_file_path.read_text()
+        if note_type not in PROMPTS:
+            raise ValueError(f"No prompt found for note type: {note_type}")
+        
+        prompt = PROMPTS.get(note_type)
 
         if template_mode:
-            template_mode_prompt_file_path = self.prompts_dir / "template_mode_prompt.md"
-            template_prompt = template_mode_prompt_file_path.read_text()
-            prompt += "\n\n" + template_prompt
+            prompt += "\n\n" + TEMPLATE_MODE_PROMPT
 
         return prompt
 
@@ -120,7 +63,12 @@ class NoteGenerator:
         Returns:
             Formatted context string for LLM
         """
-        from .fhir_parser import PatientData, ClinicalContext, ProviderData, EncounterData
+        from .fhir_parser import (
+            ClinicalContext,
+            EncounterData,
+            PatientData,
+            ProviderData,
+        )
 
         sections = []
 
@@ -303,14 +251,12 @@ class NoteGenerator:
 
         # Find all occurrences
         for value, phi_type in phi_values:
-            if phi_type == PHIType.DATE: print(f"DEBUG: {phi_type.value} {value}")
             if not value or len(str(value)) < 2:
                 continue
             value_str = str(value)
             # Use word boundaries to prevent substring matches (e.g., "PA" in "patient")
             pattern = r'(?<!\w)' + re.escape(value_str) + r'(?!\w)'
             for match in re.finditer(pattern, text):
-                if phi_type == PHIType.DATE: print('match', match)
                 entities.append(PHIEntity(
                     phi_type=phi_type,
                     value=value_str,
@@ -419,10 +365,6 @@ class NoteGenerator:
         parser = FHIRBundleParser(bundle_path)
         context = parser.get_full_context()
 
-        with open('original_context.json', 'w') as f:
-            json.dump(context, f, indent=2)
-            print(f"Original context saved to original_context.json")
-
         # Inject additional PHI not in Synthea
         context = self.phi_injector.inject(context)
 
@@ -444,10 +386,6 @@ class NoteGenerator:
 
         # Inject additional PHI not in Synthea
         context = self.phi_injector.inject(context)
-
-        with open('injected_context.json', 'w') as f:
-            json.dump(context, f, indent=2)
-            print(f"Injected context saved to injected_context.json")
 
         # Add encounter-specific context
         # encounters = context.get('encounters', [])
@@ -521,10 +459,6 @@ class NoteGenerator:
             phi_context = self._build_phi_context_from_fhir(context, clinical_limits=clinical_limits)
         else:
             phi_context = self._build_phi_context_from_faker(context)
-
-        with open('phi_context.txt', 'w') as f:
-            f.write(phi_context)
-            print(f"PHI context saved to phi_context.txt")
 
         # Load prompt template
         prompt_template = self._load_prompt(note_type, template_mode)

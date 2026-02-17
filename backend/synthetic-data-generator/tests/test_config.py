@@ -1,7 +1,7 @@
 """Tests for configuration module."""
 
 import pytest
-from src.config import GeneratorConfig
+from synthetic_data_generator.config import GeneratorConfig
 
 
 def test_generator_config_has_clinical_limit_fields():

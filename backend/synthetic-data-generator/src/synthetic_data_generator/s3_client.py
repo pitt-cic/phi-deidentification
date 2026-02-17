@@ -1,8 +1,10 @@
-import boto3
-from pathlib import Path
 import fnmatch
+from pathlib import Path
 
-from .config import AWSConfig, DEFAULT_AWS_CONFIG
+import boto3
+
+from .config import DEFAULT_AWS_CONFIG, AWSConfig
+
 
 class S3Client:
     """Client for interacting with Amazon S3 buckets"""

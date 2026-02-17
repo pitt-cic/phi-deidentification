@@ -1,15 +1,13 @@
 """Shared test fixtures for PHI Note Generator tests."""
 import json
-import pytest
 from pathlib import Path
 from unittest.mock import Mock
 
-from src.config import GeneratorConfig, NoteType
-from src.fhir_parser import FHIRBundleParser
-from src.phi_generator import PHIGenerator
-from src.phi_injector import PHIInjector
-from src.note_generator import NoteGenerator
-from src.bedrock_client import BedrockClient
+import pytest
+from synthetic_data_generator.bedrock_client import BedrockClient
+from synthetic_data_generator.config import GeneratorConfig
+from synthetic_data_generator.fhir_parser import FHIRBundleParser
+from synthetic_data_generator.phi_generator import PHIGenerator
 
 
 @pytest.fixture

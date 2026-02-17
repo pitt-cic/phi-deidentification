@@ -1,7 +1,10 @@
 """Tests for NoteGenerator."""
+from unittest.mock import patch
+
 import pytest
-from src.note_generator import NoteGenerator
-from src.config import NoteType, PHIType
+from synthetic_data_generator.config import GeneratorConfig
+from synthetic_data_generator.models.note_models import NoteType, PHIType
+from synthetic_data_generator.note_generator import NoteGenerator
 
 
 @pytest.mark.unit
@@ -212,9 +215,6 @@ class TestNoteGeneratorGeneration:
 
     def test_generate_from_fhir_uses_config_encounter_default(self, minimal_fhir_bundle_path, mock_bedrock_client, tmp_path):
         """Test generate_from_fhir uses config encounter_index default when not specified."""
-        from src.config import GeneratorConfig
-        from unittest.mock import patch
-
         # Create config with encounter_index = -1 (most recent)
         config = GeneratorConfig(output_dir=tmp_path, encounter_index=-1)
         generator = NoteGenerator(bedrock_client=mock_bedrock_client, config=config)
@@ -247,9 +247,6 @@ class TestNoteGeneratorGeneration:
 
     def test_generate_from_fhir_encounter_index_parameter_overrides_config(self, minimal_fhir_bundle_path, mock_bedrock_client, tmp_path):
         """Test explicit encounter_index parameter overrides config default."""
-        from src.config import GeneratorConfig
-        from unittest.mock import patch
-
         # Create config with encounter_index = -1 (most recent)
         config = GeneratorConfig(output_dir=tmp_path, encounter_index=-1)
         generator = NoteGenerator(bedrock_client=mock_bedrock_client, config=config)
@@ -277,9 +274,6 @@ class TestNoteGeneratorGeneration:
 
     def test_generate_from_fhir_passes_clinical_limits(self, minimal_fhir_bundle_path, mock_bedrock_client, tmp_path):
         """Test generate_from_fhir passes clinical limits to context builder."""
-        from src.config import GeneratorConfig
-        from unittest.mock import patch
-
         # Create config with clinical limits
         config = GeneratorConfig(
             output_dir=tmp_path,
@@ -323,7 +317,6 @@ class TestNoteGeneratorGeneration:
 
     def test_generate_from_fhir_rejects_invalid_encounter_index(self, minimal_fhir_bundle_path, mock_bedrock_client, tmp_path):
         """Test generate_from_fhir rejects invalid encounter_index."""
-        from src.config import GeneratorConfig
 
         config = GeneratorConfig(output_dir=tmp_path)
         generator = NoteGenerator(bedrock_client=mock_bedrock_client, config=config)

@@ -1,66 +1,8 @@
 """Configuration settings for PHI Note Generator."""
 
 from dataclasses import dataclass, field
-from enum import StrEnum
 from pathlib import Path
-from typing import Dict, List, Optional
-
-
-class PHIType(StrEnum):
-    """HIPAA 18 PHI Identifier Types."""
-    NAME = "NAME"
-    ADDRESS = "ADDRESS"
-    DATE = "DATE"
-    PHONE = "PHONE"
-    FAX = "FAX"
-    EMAIL = "EMAIL"
-    SSN = "SSN"
-    MRN = "MRN"
-    HEALTH_PLAN_ID = "HEALTH_PLAN_ID"
-    ACCOUNT_NUMBER = "ACCOUNT_NUMBER"
-    LICENSE = "LICENSE"
-    VEHICLE_ID = "VEHICLE_ID"
-    DEVICE_ID = "DEVICE_ID"
-    URL = "URL"
-    IP_ADDRESS = "IP_ADDRESS"
-    BIOMETRIC = "BIOMETRIC"
-    PHOTO = "PHOTO"
-    OTHER = "OTHER"
-
-
-class NoteType(StrEnum):
-    """Supported clinical note types."""
-    EMERGENCY_DEPT = "emergency_dept"
-    DISCHARGE_SUMMARY = "discharge_summary"
-    PROGRESS_NOTE = "progress_note"
-    RADIOLOGY_REPORT = "radiology_report"
-    TELEHEALTH_CONSULT = "telehealth_consult"
-
-
-# PHI types typically found in each note type
-NOTE_PHI_MAPPING: Dict[NoteType, List[PHIType]] = {
-    NoteType.EMERGENCY_DEPT: [
-        PHIType.NAME, PHIType.ADDRESS, PHIType.DATE, PHIType.PHONE,
-        PHIType.SSN, PHIType.MRN, PHIType.HEALTH_PLAN_ID, PHIType.LICENSE,
-        PHIType.VEHICLE_ID, PHIType.EMAIL
-    ],
-    NoteType.DISCHARGE_SUMMARY: [
-        PHIType.NAME, PHIType.ADDRESS, PHIType.DATE, PHIType.PHONE,
-        PHIType.MRN, PHIType.HEALTH_PLAN_ID, PHIType.FAX, PHIType.EMAIL
-    ],
-    NoteType.PROGRESS_NOTE: [
-        PHIType.NAME, PHIType.DATE, PHIType.MRN, PHIType.PHONE
-    ],
-    NoteType.RADIOLOGY_REPORT: [
-        PHIType.NAME, PHIType.DATE, PHIType.MRN, PHIType.DEVICE_ID,
-        PHIType.ACCOUNT_NUMBER
-    ],
-    NoteType.TELEHEALTH_CONSULT: [
-        PHIType.NAME, PHIType.DATE, PHIType.PHONE, PHIType.EMAIL,
-        PHIType.MRN, PHIType.IP_ADDRESS, PHIType.URL
-    ],
-}
-
+from typing import Optional
 
 @dataclass
 class AWSConfig:
@@ -138,12 +80,13 @@ class GeneratorConfig:
     def template_manifests_dir(self) -> Path:
         return self.output_dir / self.templates_subdir / self.manifests_subdir
 
-    def ensure_dirs(self):
+    def ensure_dirs(self, template_mode: bool = False):
         """Create output directories if they don't exist."""
         self.notes_dir.mkdir(parents=True, exist_ok=True)
         self.manifests_dir.mkdir(parents=True, exist_ok=True)
-        self.template_notes_dir.mkdir(parents=True, exist_ok=True)
-        self.template_manifests_dir.mkdir(parents=True, exist_ok=True)
+        if template_mode:
+            self.template_notes_dir.mkdir(parents=True, exist_ok=True)
+            self.template_manifests_dir.mkdir(parents=True, exist_ok=True)
 
 
 # Default configurations

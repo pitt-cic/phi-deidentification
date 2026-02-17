@@ -1,7 +1,0 @@
-pydantic-ai>=0.0.15
-anthropic>=0.39.0
-boto3>=1.34.0
-pydantic>=2.8.0
-faker>=18.0.0
-python-dotenv>=1.0.0
-logfire>=0.20.0

@@ -1,7 +1,9 @@
 """Tests for FHIRBundleParser."""
-import pytest
 from dataclasses import asdict
-from src.fhir_parser import FHIRBundleParser
+
+import pytest
+from synthetic_data_generator.fhir_parser import FHIRBundleParser
+from synthetic_data_generator.models.fhir_models import ClinicalContext, ProviderData
 
 
 @pytest.mark.unit
@@ -239,7 +241,6 @@ class TestContextStringMethods:
         assert clinical_context is not None
 
         # Convert to ClinicalContext object if needed
-        from src.fhir_parser import ClinicalContext
         if isinstance(clinical_context, dict):
             clinical_obj = ClinicalContext(**clinical_context)
         else:
@@ -268,7 +269,6 @@ class TestContextStringMethods:
         provider_data = providers[0]
 
         # Convert to ProviderData if it's a dict
-        from src.fhir_parser import ProviderData
         if isinstance(provider_data, dict):
             provider = ProviderData(**provider_data)
         else:

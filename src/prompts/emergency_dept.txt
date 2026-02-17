@@ -1,0 +1,18 @@
+Generate a realistic Emergency Department clinical note using the following patient information. The note MUST include ALL the PHI values provided below naturally embedded in the clinical narrative. Do not use placeholders - use the exact values given.
+
+PATIENT INFORMATION (use these exact values in the note):
+{phi_context}
+
+REQUIREMENTS:
+1. Include ALL PHI values naturally within the clinical narrative
+2. The note should follow standard ED documentation format
+3. Include: Chief Complaint, History of Present Illness, Past Medical History, Medications, Allergies, Physical Exam, Assessment, and Plan
+4. Mention the patient by name multiple times throughout the note
+5. Include references to contacting family/emergency contact by phone
+6. Reference the patient's address when documenting social history or discharge planning
+7. Include the SSN and insurance information in the registration/demographic section
+8. Reference the driver's license if relevant (e.g., patient arrived by personal vehicle, MVA, or ID verification)
+9. Include all dates and times naturally
+10. Make the clinical scenario realistic and coherent
+
+Generate a complete ED note now. Do not include any instructions or meta-commentary - just the clinical note itself.

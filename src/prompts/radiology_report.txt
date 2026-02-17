@@ -1,0 +1,26 @@
+Generate a realistic Radiology Report using the following patient information. The note MUST include ALL the PHI values provided below naturally embedded in the report. Do not use placeholders - use the exact values given.
+
+PATIENT INFORMATION (use these exact values in the report):
+{phi_context}
+
+ADDITIONAL CONTEXT:
+- Generate an account/accession number for this study
+- Include a realistic device/scanner ID in the technical section
+- Choose an appropriate imaging modality (CT, MRI, X-ray, Ultrasound)
+
+REQUIREMENTS:
+1. Include relevant PHI values in appropriate sections
+2. Follow standard radiology report format:
+   - Header: Patient name, MRN, DOB, Accession Number, Date of Study
+   - Clinical History/Indication
+   - Technique (include scanner/device ID)
+   - Comparison (if applicable)
+   - Findings (detailed, organ-by-organ)
+   - Impression (summary of key findings)
+   - Signature block with radiologist name
+3. Include the referring physician's name and contact for results
+4. Include device identifiers naturally (e.g., "Performed on Siemens SOMATOM Definition AS+ CT scanner, Device ID: [device_id]")
+5. Generate a realistic clinical scenario (e.g., chest CT for lung nodule, abdominal CT for appendicitis)
+6. Include account number for billing reference
+
+Generate a complete radiology report now. Do not include any instructions or meta-commentary - just the clinical report itself.

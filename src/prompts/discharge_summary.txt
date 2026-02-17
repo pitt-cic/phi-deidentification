@@ -1,0 +1,26 @@
+Generate a realistic Hospital Discharge Summary using the following patient information. The note MUST include ALL the PHI values provided below naturally embedded in the clinical narrative. Do not use placeholders - use the exact values given.
+
+PATIENT INFORMATION (use these exact values in the note):
+{phi_context}
+
+REQUIREMENTS:
+1. Include ALL PHI values naturally within the clinical narrative
+2. Follow standard discharge summary format with sections:
+   - Patient Demographics (name, DOB, MRN, SSN for billing)
+   - Admission Date and Discharge Date
+   - Attending Physician
+   - Principal Diagnosis
+   - Hospital Course
+   - Procedures Performed
+   - Discharge Medications
+   - Follow-up Instructions (include provider phone/fax numbers)
+   - Discharge Condition
+3. Mention the patient by name multiple times
+4. Include the patient's address in the discharge instructions (e.g., "Patient discharged to home at [address]")
+5. Include contact numbers for follow-up appointments
+6. Reference insurance/health plan information
+7. Include emergency contact information in case of questions
+8. Include fax number for sending records to PCP
+9. Make the clinical scenario realistic (e.g., pneumonia, CHF exacerbation, post-surgical)
+
+Generate a complete discharge summary now. Do not include any instructions or meta-commentary - just the clinical note itself.

@@ -84,6 +84,19 @@ def test_config(tmp_path):
 
 
 @pytest.fixture
+def comprehensive_fhir_bundle_path(fixtures_dir):
+    """Return path to comprehensive FHIR bundle fixture with multiple resources."""
+    return fixtures_dir / "comprehensive_fhir_bundle.json"
+
+
+@pytest.fixture
+def comprehensive_fhir_bundle(comprehensive_fhir_bundle_path):
+    """Load comprehensive FHIR bundle JSON with multiple conditions, medications, procedures, encounters."""
+    with open(comprehensive_fhir_bundle_path) as f:
+        return json.load(f)
+
+
+@pytest.fixture
 def fhir_parser(minimal_fhir_bundle_path):
     """FHIRBundleParser instance with minimal bundle loaded."""
     parser = FHIRBundleParser(minimal_fhir_bundle_path)

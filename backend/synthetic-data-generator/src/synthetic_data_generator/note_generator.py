@@ -245,10 +245,6 @@ class NoteGenerator:
             if enc.get('primary_practitioner'):
                 phi_values.append((enc['primary_practitioner'], PHIType.NAME))
 
-        with open('phi_types_values.json', 'w') as f:
-            json.dump([{'phi_type': phi_type, 'value': value} for value, phi_type in phi_values if value], f, indent=2)
-            print('PHI types and values saved to phi_types_values.json')
-
         # Find all occurrences
         for value, phi_type in phi_values:
             if not value or len(str(value)) < 2:
@@ -367,10 +363,6 @@ class NoteGenerator:
 
         # Inject additional PHI not in Synthea
         context = self.phi_injector.inject(context)
-
-        with open('injected_context.json', 'w') as f:
-            json.dump(context, f, indent=2)
-            print(f"Injected context saved to injected_context.json")
 
         # Add encounter-specific context
         encounters = context.get('encounters', [])

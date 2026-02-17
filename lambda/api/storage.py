@@ -8,6 +8,7 @@ BUCKET_NAME = os.environ["BUCKET_NAME"]
 s3 = boto3.client("s3")
 
 DEFAULT_PAGE_SIZE = 50
+APPROVED_SUFFIX = "_approved.txt"
 
 
 def list_keys(prefix: str, suffix: str = "") -> list[str]:
@@ -60,9 +61,29 @@ def read_text(key: str) -> str | None:
         return None
 
 
+def prefix_has_non_folder_object(prefix: str) -> bool:
+    try:
+        resp = s3.list_objects_v2(Bucket=BUCKET_NAME, Prefix=prefix, MaxKeys=2)
+    except Exception:
+        return False
+
+    for obj in resp.get("Contents", []):
+        if obj.get("Key") != prefix:
+            return True
+    return False
+
+
 def stem(key: str) -> str:
     name = key.rsplit("/", 1)[-1]
     return name.rsplit(".", 1)[0] if "." in name else name
+
+
+def approved_note_id_from_key(key: str) -> str | None:
+    name = key.rsplit("/", 1)[-1]
+    if not name.endswith(APPROVED_SUFFIX):
+        return None
+    note_id = name[: -len(APPROVED_SUFFIX)]
+    return note_id or None
 
 
 def compute_status(input_count: int, output_count: int, fallback: str = "created") -> str:
@@ -108,6 +129,21 @@ def put_json(key: str, data: dict) -> None:
         Key=key,
         Body=json.dumps(data).encode("utf-8"),
     )
+
+
+def put_text(key: str, data: str) -> None:
+    s3.put_object(
+        Bucket=BUCKET_NAME,
+        Key=key,
+        Body=data.encode("utf-8"),
+    )
+
+
+def delete_key(key: str) -> None:
+    try:
+        s3.delete_object(Bucket=BUCKET_NAME, Key=key)
+    except Exception:
+        return
 
 
 def objects_signature(objects: list[dict]) -> str:
@@ -164,25 +200,33 @@ def compute_pii_stats(batch_id: str, entity_keys: list[str] | None = None) -> di
     }
 
 
+def list_approved_note_ids(batch_id: str) -> set[str]:
+    approved_note_ids: set[str] = set()
+    approval_keys = list_keys(f"{batch_id}/approvals/", suffix=".txt")
+    for key in approval_keys:
+        note_id = approved_note_id_from_key(key)
+        if note_id:
+            approved_note_ids.add(note_id)
+
+    return approved_note_ids
+
+
 def compute_approval_stats(
     batch_id: str,
-    approval_keys: list[str] | None = None,
+    approved_note_ids: set[str] | None = None,
     required_note_ids: set[str] | None = None,
 ) -> dict:
-    if approval_keys is None:
-        approval_keys = list_keys(f"{batch_id}/approvals/", suffix=".json")
-
-    approved_note_count = 0
-    approved_required_note_count = 0
-    for key in approval_keys:
-        data = read_json(key) or {}
-        if data.get("approved") is True:
-            approved_note_count += 1
-            if required_note_ids is None or stem(key) in required_note_ids:
-                approved_required_note_count += 1
+    if approved_note_ids is None:
+        approved_note_ids = list_approved_note_ids(batch_id)
+    approved_note_count = len(approved_note_ids)
+    approved_required_note_count = (
+        approved_note_count
+        if required_note_ids is None
+        else len(approved_note_ids.intersection(required_note_ids))
+    )
 
     stats = {
-        "approval_file_count": len(approval_keys),
+        "approval_file_count": approved_note_count,
         "approved_note_count": approved_note_count,
     }
     if required_note_ids is not None:

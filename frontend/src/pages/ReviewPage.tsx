@@ -94,7 +94,7 @@ export default function ReviewPage() {
     )
 
   const handleSaveRedacted = () => {
-    if (!noteDetail || !hasRedactedEdits || approveMutation.isPending) return
+    if (!noteDetail || !noteDetail.approved || !hasRedactedEdits || approveMutation.isPending) return
     approveMutation.mutate(
       {
         approved: noteDetail.approved,
@@ -215,7 +215,7 @@ export default function ReviewPage() {
                   onToggleEditRedacted={() => setIsEditingRedacted(true)}
                   editToggleDisabled={approveMutation.isPending}
                   onSaveRedacted={handleSaveRedacted}
-                  saveDisabled={approveMutation.isPending || !hasRedactedEdits}
+                  saveDisabled={approveMutation.isPending || !hasRedactedEdits || !noteDetail.approved}
                   saveLabel={approveMutation.isPending ? 'Saving...' : 'Save'}
                 />
               ) : (

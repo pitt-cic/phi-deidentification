@@ -3,15 +3,15 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Create batch metadata in S3 and print the batch ID.
+Create a batch input folder in your existing S3 bucket, optionally upload notes, and print the batch ID.
 
 Usage:
-  ./scripts/create_batch.sh --bucket <bucket-name> [options]
-
-Required:
-  --bucket <name>         S3 bucket name
+  ./scripts/create_batch.sh [options]
 
 Optional:
+  --bucket <name>         S3 bucket name (if omitted, resolved from stack output)
+  --stack-name <name>     CloudFormation stack name for bucket lookup (default: PiiDeidentificationStack)
+  --notes-dir <path>      Upload .txt files from this directory to input/
   --batch-id <id>         Use a specific batch id
   --profile <profile>     AWS profile to use
   --region <region>       AWS region override
@@ -20,6 +20,8 @@ EOF
 }
 
 BUCKET=""
+STACK_NAME="PiiDeidentificationStack"
+NOTES_DIR=""
 BATCH_ID=""
 PROFILE=""
 REGION=""
@@ -32,6 +34,14 @@ while [[ $# -gt 0 ]]; do
       ;;
     --batch-id)
       BATCH_ID="${2:-}"
+      shift 2
+      ;;
+    --stack-name)
+      STACK_NAME="${2:-}"
+      shift 2
+      ;;
+    --notes-dir)
+      NOTES_DIR="${2:-}"
       shift 2
       ;;
     --profile)
@@ -54,35 +64,81 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ -z "$BUCKET" ]]; then
-  echo "Error: --bucket is required." >&2
-  usage
-  exit 1
-fi
-
 if ! command -v aws >/dev/null 2>&1; then
   echo "Error: aws CLI is not installed or not in PATH." >&2
   exit 1
 fi
 
+run_aws() {
+  if [[ -n "$PROFILE" && -n "$REGION" ]]; then
+    aws --profile "$PROFILE" --region "$REGION" "$@"
+    return
+  fi
+
+  if [[ -n "$PROFILE" ]]; then
+    aws --profile "$PROFILE" "$@"
+    return
+  fi
+
+  if [[ -n "$REGION" ]]; then
+    aws --region "$REGION" "$@"
+    return
+  fi
+
+  aws "$@"
+}
+
+if [[ -z "$BUCKET" ]]; then
+  BUCKET="$(run_aws cloudformation describe-stacks \
+    --stack-name "$STACK_NAME" \
+    --query "Stacks[0].Outputs[?OutputKey=='BucketName'].OutputValue | [0]" \
+    --output text 2>/dev/null || true)"
+  if [[ -z "$BUCKET" || "$BUCKET" == "None" ]]; then
+    echo "Error: Could not resolve bucket from stack '$STACK_NAME'. Provide --bucket explicitly or verify AWS credentials/region." >&2
+    exit 1
+  fi
+  echo "Resolved bucket from stack '$STACK_NAME': $BUCKET" >&2
+fi
+
+batch_exists() {
+  local candidate="$1"
+  local key_count
+  key_count="$(run_aws s3api list-objects-v2 \
+    --bucket "$BUCKET" \
+    --prefix "$candidate/" \
+    --max-keys 1 \
+    --query 'length(Contents)' \
+    --output text 2>/dev/null || echo "0")"
+
+  [[ "$key_count" != "0" && "$key_count" != "None" ]]
+}
+
 if [[ -z "$BATCH_ID" ]]; then
-  BATCH_ID="batch-$(date -u +%Y%m%d%H%M%S)-$RANDOM"
+  BASE_BATCH_ID="batch-$(date -u +%Y%m%d%H%M%S)"
+  BATCH_ID="$BASE_BATCH_ID"
+  SUFFIX=1
+  while batch_exists "$BATCH_ID"; do
+    BATCH_ID="${BASE_BATCH_ID}-${SUFFIX}"
+    SUFFIX=$((SUFFIX + 1))
+  done
 fi
 
-CREATED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-METADATA_PAYLOAD="$(printf '{"batch_id":"%s","created_at":"%s","status":"created","all_approved":false}\n' "$BATCH_ID" "$CREATED_AT")"
+run_aws s3api put-object \
+  --bucket "$BUCKET" \
+  --key "$BATCH_ID/input/" >/dev/null
 
-AWS_ARGS=()
-if [[ -n "$PROFILE" ]]; then
-  AWS_ARGS+=(--profile "$PROFILE")
+echo "Created input folder: s3://$BUCKET/$BATCH_ID/input/" >&2
+
+if [[ -n "$NOTES_DIR" ]]; then
+  if [[ ! -d "$NOTES_DIR" ]]; then
+    echo "Error: --notes-dir must be an existing directory." >&2
+    exit 1
+  fi
+
+  run_aws s3 cp "$NOTES_DIR" "s3://$BUCKET/$BATCH_ID/input/" \
+    --recursive --exclude "*" --include "*.txt" >/dev/null
+  echo "Uploaded .txt files from $NOTES_DIR to s3://$BUCKET/$BATCH_ID/input/" >&2
 fi
-if [[ -n "$REGION" ]]; then
-  AWS_ARGS+=(--region "$REGION")
-fi
 
-printf '%s' "$METADATA_PAYLOAD" \
-  | aws "${AWS_ARGS[@]}" s3 cp - "s3://$BUCKET/$BATCH_ID/metadata.json" --content-type application/json >/dev/null
-
-echo "Created metadata: s3://$BUCKET/$BATCH_ID/metadata.json" >&2
 echo "Batch ID: $BATCH_ID" >&2
 printf '%s\n' "$BATCH_ID"

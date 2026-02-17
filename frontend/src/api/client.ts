@@ -5,6 +5,7 @@ export interface Batch {
   created_at: string
   status: 'created' | 'processing' | 'completed' | 'unknown'
   all_approved?: boolean
+  has_input?: boolean
 }
 
 export interface BatchDetail extends Batch {

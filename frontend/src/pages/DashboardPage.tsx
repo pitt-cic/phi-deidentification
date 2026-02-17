@@ -57,9 +57,6 @@ export default function DashboardPage() {
   const [startError, setStartError] = useState('')
   const [approvingAll, setApprovingAll] = useState(false)
 
-  const uploadBucket = String(import.meta.env.VITE_UPLOAD_BUCKET || '').trim()
-  const bucketName = uploadBucket || '<bucket-name>'
-
   useEffect(() => {
     const currentBatchParam = searchParams.get('batch')
     if (selectedBatchId === currentBatchParam) return
@@ -104,13 +101,10 @@ export default function DashboardPage() {
     refetchInterval: 5_000,
   })
 
-  const uploadCommandFor = (batchId: string) => {
-    return `aws s3 cp /path/to/notes "s3://${bucketName}/${batchId}/input/" --recursive --exclude "*" --include "*.txt"`
+  const createAndUploadCommand = `./scripts/create_batch.sh --notes-dir /PATH/TO/YOUR-NOTES`
+  const uploadToExistingBatchCommandFor = (batchId: string) => {
+    return `./scripts/create_batch.sh --batch-id "${batchId}" --notes-dir /PATH/TO/YOUR-NOTES`
   }
-
-  const createBatchCommand = `BATCH_ID="$(./scripts/create_batch.sh --bucket "${bucketName}")"`
-
-  const uploadNotesCommand = uploadCommandFor('$BATCH_ID')
 
   const handleStartBatch = async (batchId: string) => {
     setStartError('')
@@ -207,7 +201,9 @@ export default function DashboardPage() {
             ) : (
               <>
                 {batches.map((batch: Batch) => {
-                  const inputCount = batch.batch_id === selectedBatchId ? batchDetail?.input_count : undefined
+                  const inputCount = batch.batch_id === selectedBatchId
+                    ? (batchDetail?.input_count ?? (batch.has_input ? 1 : 0))
+                    : (batch.has_input ? 1 : 0)
                   const sidebarStatus = getBatchStatusDisplay(batch.status, !!batch.all_approved, inputCount)
 
                   return (
@@ -243,21 +239,22 @@ export default function DashboardPage() {
           <div className="upload-panel directions-panel">
             <h2 className="panel-title">How To Use This Dashboard</h2>
             <p className="panel-description">
-              Use the CLI for batch creation and upload, then use this UI to monitor processing and review output.
+              Use one CLI command to create a batch folder and upload notes in your existing deployed bucket. Metadata is created automatically when you click Start De-identification.
             </p>
 
             <section className="directions-card directions-card-wide directions-command">
-              <h3 className="directions-card-title">Create New Folder</h3>
-              <pre className="cli-command">{createBatchCommand}</pre>
-              {!uploadBucket && (
-                <div className="cli-card-note">
-                  Replace <code>{'<bucket-name>'}</code> with your deployed S3 bucket name.
-                </div>
-              )}
+              <h3 className="directions-card-title">Upload Notes and Create a New Folder</h3>
+              <pre className="cli-command">{createAndUploadCommand}</pre>
+              <div className="cli-card-note">
+                Replace <code>/PATH/TO/YOUR-NOTES</code> with your local notes folder path.
+              </div>
+              <div className="cli-card-note">
+                If your stack name is not <code>PiiDeidentificationStack</code>, add <code>--stack-name &lt;your-stack-name&gt;</code>.
+              </div>
 
-              <h3 className="directions-card-title">Upload Notes</h3>
-              <pre className="cli-command">{uploadNotesCommand}</pre>
-              <p className="directions-text">After running both commands, refresh and select your batch from the sidebar.</p>
+              <p className="directions-text">
+                The script prints the batch ID. After running the command, refresh, select your batch, and click Start De-identification.
+              </p>
             </section>
 
             <section className="directions-card">
@@ -396,12 +393,13 @@ export default function DashboardPage() {
                 {isCreatedBatch && (
                   <div className="cli-card batch-cli-card">
                     <div className="cli-card-title">Upload notes for this batch</div>
-                    <pre className="cli-command">{uploadCommandFor(selectedBatchId)}</pre>
-                    {!uploadBucket && (
-                      <div className="cli-card-note">
-                        Replace <code>{'<bucket-name>'}</code> with your deployed S3 bucket name.
-                      </div>
-                    )}
+                    <pre className="cli-command">{uploadToExistingBatchCommandFor(selectedBatchId)}</pre>
+                    <div className="cli-card-note">
+                      Replace <code>/PATH/TO/YOUR-NOTES</code> with your local notes folder path.
+                    </div>
+                    <div className="cli-card-note">
+                      Re-run with <code>--stack-name &lt;your-stack-name&gt;</code> if needed.
+                    </div>
                   </div>
                 )}
               </>

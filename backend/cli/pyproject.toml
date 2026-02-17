@@ -1,0 +1,22 @@
+[project]
+name = "cli"
+version = "0.1.0"
+description = "CLI for PII Deidentification"
+requires-python = ">=3.12"
+dependencies = []
+
+[tool.uv.sources]
+agent = { workspace = true }
+deidentification = { workspace = true }
+synthetic-data-generator = { workspace = true }
+
+[project.scripts]
+deidentification = "cli.run_deidentification:main"
+generate-notes = "cli.generate_notes:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cli"]

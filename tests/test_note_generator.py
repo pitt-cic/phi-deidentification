@@ -31,6 +31,28 @@ class TestNoteGeneratorContextBuilding:
         # Check for various PHI types
         assert any(field in context_str for field in ['Name', 'DOB', 'Birth', 'MRN', 'SSN'])
 
+    def test_build_phi_context_uses_dataclass_methods(self, test_config, fhir_parser, mock_bedrock_client):
+        """Test that _build_phi_context_from_fhir uses dataclass to_context_string methods."""
+        generator = NoteGenerator(bedrock_client=mock_bedrock_client, config=test_config)
+        sample_fhir_context = fhir_parser.get_full_context()
+
+        context_string = generator._build_phi_context_from_fhir(sample_fhir_context)
+
+        # Should include patient data from PatientData.to_context_string()
+        assert "Patient ID:" in context_string or "MRN:" in context_string
+        assert "First Name:" in context_string or "Full Name:" in context_string
+
+        # Should include clinical context from ClinicalContext.to_context_string()
+        # (if sample has conditions/medications)
+        if sample_fhir_context.get('clinical_context'):
+            clinical = sample_fhir_context['clinical_context']
+            if clinical.conditions or clinical.medications:
+                assert "##" in context_string  # Section headers from ClinicalContext
+
+        # Should be structured output (not just raw dict dump)
+        assert isinstance(context_string, str)
+        assert len(context_string) > 100  # Should have substantial content
+
 
 @pytest.mark.unit
 class TestNoteGeneratorPHIExtraction:

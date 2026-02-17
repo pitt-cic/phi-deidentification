@@ -64,6 +64,8 @@ class PatientData:
 
     # Contact info
     phone: str = ""
+    email: str = ""
+    fax: str = ""
     address_line: str = ""
     city: str = ""
     state: str = ""
@@ -84,10 +86,17 @@ class PatientData:
     # Additional information
     disability_adjusted_life_years: str = ""
     quality_adjusted_life_years: str = ""
+    health_plan_id: str = ""
+    account_number: str = ""
+    vehicle_id: str = ""
+    license_plate: str = ""
+    ip_address: str = ""
+    patient_portal_url: str = ""
 
     # Emergency contact
     emergency_contact_name: str = ""
     emergency_contact_phone: str = ""
+    emergency_contact_relationship: str = ""
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -363,6 +372,8 @@ class ProviderData:
     specialty: str = ""
     organization: str = ""
     phone: str = ""
+    fax: str = ""
+    email: str = ""
     address: str = ""
 
     def to_context_string(self) -> str:
@@ -389,6 +400,10 @@ class ProviderData:
             lines.append(f"Organization: {self.organization}")
         if should_include(self.phone):
             lines.append(f"Phone: {self.phone}")
+        if should_include(self.fax):
+            lines.append(f"Fax: {self.fax}")
+        if should_include(self.email):
+            lines.append(f"Email: {self.email}")
         if should_include(self.address):
             lines.append(f"Address: {self.address}")
 

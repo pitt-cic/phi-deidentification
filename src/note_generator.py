@@ -96,52 +96,86 @@ class NoteGenerator:
 
         return prompt
 
-    def _build_phi_context_from_fhir(self, context: Dict[str, Any]) -> str:
-        """Build PHI context string from FHIR-extracted data."""
-        patient = context.get('patient', {})
-        providers = context.get('providers', [{}])
-        provider = providers[0] if providers else {}
-        facility = context.get('facility', {})
-        clinical = context.get('clinical', {})
+    def _build_phi_context_from_fhir(self, fhir_context: Dict[str, Any]) -> str:
+        """
+        Build PHI context string from FHIR data using dataclass methods.
 
-        lines = [
-            f"Patient Name: {patient.get('full_name', '')}",
-            f"Date of Birth: {patient.get('birth_date', '')}",
-            f"Birth Place: {patient.get('birth_city', '')}, {patient.get('birth_state', '')}, {patient.get('birth_country', '')}"
-            f"Age: {patient.get('age', '')} years old",
-            f"Gender: {patient.get('gender', '')}",
-            f"SSN: {patient.get('ssn', '')}",
-            f"MRN: {patient.get('mrn', '')}",
-            f"Phone: {patient.get('phone', '')}",
-            f"Email: {patient.get('email', '')}",
-            f"Address: {patient.get('full_address', '')}",
-            f"Driver's License: {patient.get('drivers_license', '')}",
-            f"Passport: {patient.get('passport', '')}",
-            f"Emergency Contact: {patient.get('emergency_contact_name', '')} ({patient.get('emergency_contact_relationship', '')}), Phone: {patient.get('emergency_contact_phone', '')}",
-            f"Insurance ID: {patient.get('health_plan_id', '')}",
-            f"Account Number: {patient.get('account_number', '')}",
-            f"Attending Provider: {provider.get('name', '')}",
-            f"Provider Phone: {provider.get('phone', '')}",
-            f"Provider Fax: {provider.get('fax', '')}",
-            f"Facility: {facility.get('name', '')}",
-            f"Facility Phone: {facility.get('phone', '')}",
-            f"Facility Fax: {facility.get('fax', '')}",
-        ]
+        Args:
+            fhir_context: Full context from FHIRBundleParser
 
-        # Add clinical context
-        if clinical.get('conditions'):
-            conditions_str = ', '.join([c.get('display', '') for c in clinical['conditions'][:5]])
-            lines.append(f"Conditions: {conditions_str}")
+        Returns:
+            Formatted context string for LLM
+        """
+        from .fhir_parser import PatientData, ClinicalContext, ProviderData, EncounterData
 
-        if clinical.get('medications'):
-            meds_str = ', '.join([m.get('name', '') for m in clinical['medications'][:5]])
-            lines.append(f"Medications: {meds_str}")
+        sections = []
 
-        if clinical.get('procedures'):
-            procs_str = ', '.join([p.get('display', '') for p in clinical['procedures'][:5]])
-            lines.append(f"Procedures: {procs_str}")
+        # Patient Information
+        if 'patient' in fhir_context and fhir_context['patient']:
+            patient = fhir_context['patient']
 
-        return "\n".join(lines)
+            # Convert dict to PatientData if needed
+            if isinstance(patient, dict):
+                patient_obj = PatientData(**patient)
+            else:
+                patient_obj = patient
+
+            patient_context = patient_obj.to_context_string()
+            if patient_context:
+                sections.append("## Patient Information")
+                sections.append(patient_context)
+
+        # Clinical Context
+        if 'clinical' in fhir_context and fhir_context['clinical']:
+            clinical = fhir_context['clinical']
+
+            # Convert dict to ClinicalContext if needed
+            if isinstance(clinical, dict):
+                clinical_obj = ClinicalContext(**clinical)
+            else:
+                clinical_obj = clinical
+
+            # Use config clinical limits if available
+            max_per_category = None
+            if self.config:
+                # Will be implemented in next task to pass individual limits
+                max_per_category = None  # For now, pass None (unlimited)
+
+            clinical_context = clinical_obj.to_context_string(max_per_category=max_per_category)
+            if clinical_context:
+                sections.append(clinical_context)
+
+        # Provider Information
+        if 'providers' in fhir_context and fhir_context['providers']:
+            sections.append("## Provider Information")
+
+            for provider_data in fhir_context['providers']:
+                if isinstance(provider_data, dict):
+                    provider_obj = ProviderData(**provider_data)
+                else:
+                    provider_obj = provider_data
+
+                provider_context = provider_obj.to_context_string()
+                if provider_context:
+                    sections.append(provider_context)
+                    sections.append("")  # Blank line between providers
+
+        # Encounter Information (if present)
+        if 'encounters' in fhir_context and fhir_context['encounters']:
+            sections.append("## Encounter Information")
+
+            for encounter_data in fhir_context['encounters']:
+                if isinstance(encounter_data, dict):
+                    encounter_obj = EncounterData(**encounter_data)
+                else:
+                    encounter_obj = encounter_data
+
+                encounter_context = encounter_obj.to_context_string()
+                if encounter_context:
+                    sections.append(encounter_context)
+                    sections.append("")  # Blank line between encounters
+
+        return "\n\n".join(sections)
 
     def _build_phi_context_from_faker(self, patient_context: dict) -> str:
         """Build PHI context string from Faker-generated data."""

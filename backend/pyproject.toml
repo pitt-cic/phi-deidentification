@@ -23,6 +23,9 @@ members = [
     "agent",
     "deidentification",
     "synthetic-data-generator",
+    "lambda/api",
+    "lambda/ingestion",
+    "lambda/worker",
 ]
 
 [tool.setuptools]

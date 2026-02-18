@@ -72,6 +72,36 @@ def resolve_redacted_text(
     return storage.read_text(f"{batch_id}/output/{note_id}_redacted.txt") or ""
 
 
+def update_batch_approval_metadata(
+    *,
+    batch_id: str,
+    meta: dict,
+    input_count: int,
+    required_note_ids: set[str],
+) -> tuple[int, bool]:
+    output_count = len(storage.list_keys(f"{batch_id}/output/", suffix="_redacted.txt"))
+    status = storage.compute_status(input_count, output_count, meta.get("status", "created"))
+    meta["status"] = status
+
+    approval_objects = list_approval_objects_for_signature(batch_id)
+    approval_signature = storage.objects_signature(approval_objects)
+    approved_note_ids = storage.list_approved_note_ids(batch_id)
+    approval_stats = storage.compute_approval_stats(batch_id, approved_note_ids, required_note_ids)
+    meta["approval_stats"] = approval_stats
+    meta["approval_stats_signature"] = approval_signature
+
+    approved_required_note_count = int(approval_stats.get("approved_required_note_count", 0))
+    all_approved = (
+        status == "completed"
+        and len(required_note_ids) > 0
+        and approved_required_note_count == len(required_note_ids)
+    )
+    meta["all_approved"] = all_approved
+    storage.save_metadata(batch_id, meta)
+
+    return approved_required_note_count, all_approved
+
+
 def list_batches(params: dict, body: dict, query: dict) -> tuple[int, dict]:
     limit, offset = storage.parse_pagination(query)
     batch_ids = storage.list_batch_ids()
@@ -280,25 +310,12 @@ def approve_note(params: dict, body: dict, query: dict) -> tuple[int, dict]:
     }
 
     meta = storage.read_json(f"{batch_id}/metadata.json") or {"batch_id": batch_id}
-    input_count = len(input_keys)
-    output_count = len(storage.list_keys(f"{batch_id}/output/", suffix="_redacted.txt"))
-    status = storage.compute_status(input_count, output_count, meta.get("status", "created"))
-    meta["status"] = status
-
-    approval_objects = list_approval_objects_for_signature(batch_id)
-    approval_signature = storage.objects_signature(approval_objects)
-    approved_note_ids = storage.list_approved_note_ids(batch_id)
-    approval_stats = storage.compute_approval_stats(batch_id, approved_note_ids, required_note_ids)
-    meta["approval_stats"] = approval_stats
-    meta["approval_stats_signature"] = approval_signature
-
-    approved_required_note_count = int(approval_stats.get("approved_required_note_count", 0))
-    meta["all_approved"] = (
-        status == "completed"
-        and len(required_note_ids) > 0
-        and approved_required_note_count == len(required_note_ids)
+    update_batch_approval_metadata(
+        batch_id=batch_id,
+        meta=meta,
+        input_count=len(input_keys),
+        required_note_ids=required_note_ids,
     )
-    storage.save_metadata(batch_id, meta)
 
     return 200, approval
 
@@ -324,26 +341,13 @@ def approve_all_notes(params: dict, body: dict, query: dict) -> tuple[int, dict]
         storage.delete_key(prior_approval_text_key(batch_id, note_id))
         storage.delete_key(legacy_approval_key(batch_id, note_id))
 
-    output_count = len(storage.list_keys(f"{batch_id}/output/", suffix="_redacted.txt"))
-    status = storage.compute_status(input_count, output_count, meta.get("status", "created"))
-    meta["status"] = status
-
     required_note_id_set = set(required_note_ids)
-    approval_objects = list_approval_objects_for_signature(batch_id)
-    approval_signature = storage.objects_signature(approval_objects)
-    approved_note_ids = storage.list_approved_note_ids(batch_id)
-    approval_stats = storage.compute_approval_stats(batch_id, approved_note_ids, required_note_id_set)
-    meta["approval_stats"] = approval_stats
-    meta["approval_stats_signature"] = approval_signature
-
-    approved_required_note_count = int(approval_stats.get("approved_required_note_count", 0))
-    all_approved = (
-        status == "completed"
-        and len(required_note_id_set) > 0
-        and approved_required_note_count == len(required_note_id_set)
+    approved_required_note_count, all_approved = update_batch_approval_metadata(
+        batch_id=batch_id,
+        meta=meta,
+        input_count=input_count,
+        required_note_ids=required_note_id_set,
     )
-    meta["all_approved"] = all_approved
-    storage.save_metadata(batch_id, meta)
 
     return 200, {
         "batch_id": batch_id,
@@ -351,14 +355,3 @@ def approve_all_notes(params: dict, body: dict, query: dict) -> tuple[int, dict]
         "approved_note_count": approved_required_note_count,
         "all_approved": all_approved,
     }
-
-
-HANDLERS = {
-    "list_batches": list_batches,
-    "get_batch": get_batch,
-    "start_batch": start_batch,
-    "list_notes": list_notes,
-    "get_note": get_note,
-    "approve_note": approve_note,
-    "approve_all_notes": approve_all_notes,
-}

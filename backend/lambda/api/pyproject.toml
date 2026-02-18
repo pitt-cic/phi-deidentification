@@ -3,4 +3,6 @@ name = "api"
 version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "aws-lambda-powertools>=3.24.0",
+]

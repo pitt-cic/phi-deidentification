@@ -184,7 +184,16 @@ export class PiiDeidentificationStack extends Stack {
     const apiLambda = new lambda.Function(this, 'ApiLambda', {
       runtime: lambda.Runtime.PYTHON_3_12,
       handler: 'api_handler.handler',
-      code: lambda.Code.fromAsset(path.join(PROJECT_ROOT, 'lambda', 'api')),
+      code: lambda.Code.fromAsset(path.join(PROJECT_ROOT, 'lambda', 'api'), {
+        bundling: {
+          image: lambda.Runtime.PYTHON_3_12.bundlingImage,
+          command: [
+            'bash', '-c',
+            'pip install -r /asset-input/requirements.txt -t /asset-output && ' +
+            'cp /asset-input/*.py /asset-output/',
+          ],
+        },
+      }),
       timeout: Duration.seconds(30),
       memorySize: 256,
       environment: {

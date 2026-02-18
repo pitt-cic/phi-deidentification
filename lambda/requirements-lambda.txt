@@ -5,3 +5,4 @@ pydantic-ai-slim[bedrock]>=0.0.15
 pydantic>=2.8.0
 python-dotenv>=1.0.0
 logfire>=0.20.0
+aws-lambda-powertools>=2.16.2,<3

@@ -7,7 +7,9 @@ from .redaction_formats import (
 
 from .redact_pii import (
     FormatterProtocol,
-    process_json_file
+    process_json_file,
+    find_pii_positions,
+    redact_text
 )
 
 __all__ = [
@@ -17,4 +19,6 @@ __all__ = [
     "RedactionFormatter",
     "FormatterProtocol",
     "process_json_file",
+    "find_pii_positions",
+    "redact_text"
 ]

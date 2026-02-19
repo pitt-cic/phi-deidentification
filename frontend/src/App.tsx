@@ -27,10 +27,42 @@ function Header({ signOut, username }: { signOut: () => void; username: string }
   )
 }
 
+const authComponents = {
+  Header() {
+    return (
+      <div className="auth-header">
+        <div className="auth-header-toggle">
+          <ThemeToggle />
+        </div>
+        <div className="auth-brand">
+          <span className="logo-icon auth-brand-icon">◈</span>
+          <div className="auth-brand-text">
+            <h1 className="auth-title">PII De-identification</h1>
+            <p className="auth-subtitle">Sign in to review and approve redacted notes</p>
+          </div>
+        </div>
+      </div>
+    )
+  },
+  Footer() {
+    return (
+      <div className="auth-footer">
+        <p className="auth-footer-note">
+          Need an account? Ask your administrator to create and invite your user.
+        </p>
+        <p className="auth-footer-note">
+          Use the temporary password from your invite email to sign in, then set a new password.
+        </p>
+        <p className="auth-footer-meta">Protected access provided through Amazon Cognito.</p>
+      </div>
+    )
+  },
+}
+
 function App() {
   return (
     <ThemeProvider>
-      <Authenticator>
+      <Authenticator components={authComponents} hideSignUp>
         {({ signOut, user }) => (
           <BrowserRouter>
             <div className="app-layout">

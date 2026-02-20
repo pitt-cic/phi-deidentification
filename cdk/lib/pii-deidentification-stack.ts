@@ -153,10 +153,10 @@ export class PiiDeidentificationStack extends Stack {
       accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
       autoVerify: { email: true },
       userInvitation: {
-        emailSubject: 'Welcome to PII De-identification Platform',
+        emailSubject: 'Welcome to the PII De-identification Platform',
         emailBody:
-          'Hello {username}, you have been invited to the ' +
-          'PII De-identification Platform. ' +
+          'Hello! You have been invited to the PII De-identification Platform. \n' +
+          'Your username is {username} \n' +
           'Your temporary password is {####}',
       },
       removalPolicy: RemovalPolicy.RETAIN,

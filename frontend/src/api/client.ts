@@ -72,6 +72,16 @@ export interface ApproveAllResponse {
 
 const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
 
+function getSanitizedErrorMessage(status: number): string {
+  if (status === 400) return 'Invalid request. Please review your input and try again.'
+  if (status === 401) return 'Your session has expired. Please sign in again.'
+  if (status === 403) return 'You do not have permission to perform this action.'
+  if (status === 404) return 'The requested resource could not be found.'
+  if (status === 429) return 'Too many requests. Please wait a moment and try again.'
+  if (status >= 500) return 'A server error occurred. Please try again shortly.'
+  return 'Request failed. Please try again.'
+}
+
 async function getAuthHeaders(): Promise<Record<string, string>> {
   try {
     const session = await fetchAuthSession()
@@ -92,8 +102,18 @@ async function fetchApi<T>(path: string, options: RequestInit = {}): Promise<T> 
     headers: { ...headers, ...(options.headers as Record<string, string> || {}) },
   })
   if (!response.ok) {
-    const errorBody = await response.text().catch(() => '')
-    throw new Error(`API error ${response.status}: ${errorBody || response.statusText}`)
+    const status = response.status
+    const requestId = response.headers.get('x-amzn-requestid')
+      || response.headers.get('x-amz-request-id')
+      || response.headers.get('x-request-id')
+
+    if (import.meta.env.DEV) {
+      const errorBody = await response.text().catch(() => '')
+      throw new Error(`API error ${status}: ${errorBody || response.statusText}`)
+    }
+
+    const safeMessage = getSanitizedErrorMessage(status)
+    throw new Error(requestId ? `${safeMessage} (ref: ${requestId})` : safeMessage)
   }
   return response.json()
 }

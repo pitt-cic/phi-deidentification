@@ -28,6 +28,9 @@ DEFAULT_PII_TYPES = [
     "other",             
 ]
 
+SUMMARY_MAX_LENGTH = 100
+REVIEW_REASON_MAX_LENGTH = 50
+
 class PIIEntity(BaseModel):
     """Represents a single detected PII string to redact."""
 
@@ -46,14 +49,18 @@ class AgentResponse(BaseModel):
     """
 
     pii_entities: list[PIIEntity] = Field(default_factory=list)
-    summary: str | None = Field(default=None, max_length=100)
+    summary: str | None = Field(default=None)
     needs_review: bool = False
-    review_reason: str | None = Field(default=None, max_length=50)
+    review_reason: str | None = Field(default=None)
 
     @model_validator(mode="after")
     def _ensure_review_reason(self) -> "AgentResponse":
+        if self.summary is not None:
+            self.summary = self.summary[:SUMMARY_MAX_LENGTH]
         if self.needs_review and not self.review_reason:
             raise ValueError("review_reason must be provided when needs_review is true")
+        if self.review_reason is not None:
+            self.review_reason = self.review_reason[:REVIEW_REASON_MAX_LENGTH]
         if not self.needs_review:
             self.review_reason = None
         return self
@@ -97,4 +104,3 @@ class AgentContext:
             raise ValueError("document_text must not be empty")
         if not self.language:
             self.language = "en"
-

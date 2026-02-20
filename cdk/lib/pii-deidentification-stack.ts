@@ -24,7 +24,7 @@ export class PiiDeidentificationStack extends Stack {
     Tags.of(this).add('project', 'PiiDeidentification');
     Tags.of(this).add('managedBy', 'cdk');
 
-    const WORKER_CONCURRENCY = 15;
+    const WORKER_CONCURRENCY = 10;
     const WORKER_TIMEOUT = Duration.seconds(120);
     const WORKER_MEMORY = 1024;
     const SQS_VISIBILITY_TIMEOUT = Duration.seconds(360);

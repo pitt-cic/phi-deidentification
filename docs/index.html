@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PII De-identification Platform</title>
+    <meta name="description" content="Automated PII detection and redaction powered by AWS. Process sensitive documents at scale with human-in-the-loop review." />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script type="module" crossorigin src="./assets/index-CMoALMLR.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-DmyJtcKU.css">
+  </head>
+  <body>
+    <div class="noise-overlay"></div>
+
+    <!-- Navigation -->
+    <nav class="nav">
+      <a href="#" class="nav-logo">
+        <span class="nav-logo-icon">&#9670;</span>
+        <span class="nav-logo-text">PII De-Identification</span>
+      </a>
+      <div class="nav-links">
+        <a href="#tech-stack">Tech Stack</a>
+        <a href="#architecture">Architecture</a>
+        <a href="#demo">Demo</a>
+        <a href="#features">Features</a>
+        <a href="https://github.com" class="nav-cta" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="hero-bg">
+        <div class="hero-gradient hero-gradient-1"></div>
+        <div class="hero-gradient hero-gradient-2"></div>
+        <div class="hero-grid"></div>
+      </div>
+      <div class="hero-content">
+        <div class="hero-badge">
+          <span class="hero-badge-dot"></span>
+          Powered by AWS
+        </div>
+        <h1 class="hero-title">
+          <span class="hero-title-line">Intelligent</span>
+          <span class="hero-title-line hero-title-accent">PII Redaction</span>
+          <span class="hero-title-line">at Scale</span>
+        </h1>
+        <p class="hero-description">
+          Automatically detect and redact personally identifiable information from documents
+          using advanced AI. Built for healthcare, legal, and enterprise compliance workflows.
+        </p>
+        <div class="hero-actions">
+          <a href="#demo" class="btn btn-primary">
+            <span>See it in action</span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+          <a href="#tech-stack" class="btn btn-secondary">View Tech Stack</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tech Stack Section -->
+    <section id="tech-stack" class="tech-section">
+      <div class="section-header">
+        <span class="section-tag">Built With</span>
+        <h2 class="section-title">Technology Stack</h2>
+        <p class="section-description">
+          Serverless architecture on AWS with automatic scaling, fault tolerance, and pay-per-use pricing.
+        </p>
+      </div>
+
+      <div class="tech-grid">
+        <div class="tech-node" data-tech="lambda">
+          <div class="tech-node-icon tech-node-icon-compute">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+            </svg>
+          </div>
+          <span class="tech-node-label">AWS Lambda</span>
+          <span class="tech-node-sublabel">Serverless Compute</span>
+        </div>
+
+        <div class="tech-node" data-tech="s3">
+          <div class="tech-node-icon tech-node-icon-storage">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M4 7v10c0 1 2 2 8 2s8-1 8-2V7"/>
+              <ellipse cx="12" cy="7" rx="8" ry="3"/>
+              <path d="M4 12c0 1 2 2 8 2s8-1 8-2"/>
+            </svg>
+          </div>
+          <span class="tech-node-label">Amazon S3</span>
+          <span class="tech-node-sublabel">Document Storage</span>
+        </div>
+
+        <div class="tech-node" data-tech="sqs">
+          <div class="tech-node-icon tech-node-icon-queue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="6" width="18" height="4" rx="1"/>
+              <rect x="3" y="14" width="18" height="4" rx="1"/>
+              <path d="M7 10v4M12 10v4M17 10v4"/>
+            </svg>
+          </div>
+          <span class="tech-node-label">Amazon SQS</span>
+          <span class="tech-node-sublabel">Message Queue</span>
+        </div>
+
+        <div class="tech-node" data-tech="bedrock">
+          <div class="tech-node-icon tech-node-icon-ai">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 2v4m0 12v4M2 12h4m12 0h4"/>
+              <path d="M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/>
+            </svg>
+          </div>
+          <span class="tech-node-label">Amazon Bedrock</span>
+          <span class="tech-node-sublabel">Claude AI</span>
+        </div>
+
+        <div class="tech-node" data-tech="cognito">
+          <div class="tech-node-icon tech-node-icon-auth">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/>
+              <path d="M19 21v-2a4 4 0 00-3-3.87M5 21v-2a4 4 0 013-3.87M16 3.13a4 4 0 010 7.75M8 3.13a4 4 0 000 7.75"/>
+            </svg>
+          </div>
+          <span class="tech-node-label">Amazon Cognito</span>
+          <span class="tech-node-sublabel">Authentication</span>
+        </div>
+
+        <div class="tech-node" data-tech="apigw">
+          <div class="tech-node-icon tech-node-icon-api">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+            </svg>
+          </div>
+          <span class="tech-node-label">API Gateway</span>
+          <span class="tech-node-sublabel">REST API</span>
+        </div>
+
+        <div class="tech-node" data-tech="cdk">
+          <div class="tech-node-icon tech-node-icon-iac">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/>
+            </svg>
+          </div>
+          <span class="tech-node-label">AWS CDK</span>
+          <span class="tech-node-sublabel">Infrastructure as Code</span>
+        </div>
+
+        <div class="tech-node" data-tech="react">
+          <div class="tech-node-icon tech-node-icon-frontend">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="2"/>
+              <ellipse cx="12" cy="12" rx="10" ry="4"/>
+              <ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(60 12 12)"/>
+              <ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(120 12 12)"/>
+            </svg>
+          </div>
+          <span class="tech-node-label">React</span>
+          <span class="tech-node-sublabel">Frontend UI</span>
+        </div>
+
+        <div class="tech-node" data-tech="typescript">
+          <div class="tech-node-icon tech-node-icon-lang">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <path d="M12 8v8M8 12h8"/>
+            </svg>
+          </div>
+          <span class="tech-node-label">TypeScript</span>
+          <span class="tech-node-sublabel">Type Safety</span>
+        </div>
+
+        <div class="tech-node" data-tech="python">
+          <div class="tech-node-icon tech-node-icon-lang">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 2C6.5 2 6 4.5 6 6v2h6v1H5c-2 0-4 1.5-4 5s1 5.5 4 5.5h2v-3c0-2 1.5-3 3-3h6c1.5 0 3-1.5 3-3V6c0-2-2-4-7-4z"/>
+              <circle cx="9" cy="5" r="1" fill="currentColor"/>
+            </svg>
+          </div>
+          <span class="tech-node-label">Python</span>
+          <span class="tech-node-sublabel">Backend Logic</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Architecture Section -->
+    <section id="architecture" class="architecture">
+      <div class="section-header">
+        <span class="section-tag">System Design</span>
+        <h2 class="section-title">Architecture</h2>
+        <p class="section-description">
+          Infrastructure defined as code with AWS CDK. One-command deployment to your AWS account.
+        </p>
+      </div>
+
+      <div class="architecture-placeholder">
+        <div class="placeholder-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <path d="M3 9h18M9 21V9"/>
+            <circle cx="6" cy="6" r="1" fill="currentColor"/>
+            <circle cx="9" cy="6" r="1" fill="currentColor"/>
+          </svg>
+        </div>
+        <span class="placeholder-text">Architecture Diagram Coming Soon</span>
+        <span class="placeholder-subtext">Detailed system architecture and data flow visualization</span>
+      </div>
+    </section>
+
+    <!-- Demo Section -->
+    <section id="demo" class="demo">
+      <div class="section-header">
+        <span class="section-tag">Live Preview</span>
+        <h2 class="section-title">See Redaction in Action</h2>
+        <p class="section-description">
+          Watch how the AI identifies and redacts sensitive information while preserving document context.
+        </p>
+      </div>
+
+      <div class="demo-container">
+        <div class="demo-panel demo-panel-original">
+          <div class="demo-panel-header">
+            <span class="demo-panel-dot demo-panel-dot-red"></span>
+            <span class="demo-panel-dot demo-panel-dot-yellow"></span>
+            <span class="demo-panel-dot demo-panel-dot-green"></span>
+            <span class="demo-panel-title">Original Document</span>
+          </div>
+          <div class="demo-panel-content" id="demo-original">
+            <p class="demo-text">
+              <span class="demo-line"><strong>Patient Information</strong></span>
+              <span class="demo-line">Name: <span class="pii pii-name" data-type="NAME">John Michael Smith</span></span>
+              <span class="demo-line">DOB: <span class="pii pii-date" data-type="DATE">March 15, 1985</span></span>
+              <span class="demo-line">SSN: <span class="pii pii-ssn" data-type="SSN">482-55-7891</span></span>
+              <span class="demo-line">Phone: <span class="pii pii-phone" data-type="PHONE">(555) 234-8901</span></span>
+              <span class="demo-line">Email: <span class="pii pii-email" data-type="EMAIL">jsmith@email.com</span></span>
+              <span class="demo-line">MRN: <span class="pii pii-mrn" data-type="MRN">MR-2024-881456</span></span>
+              <span class="demo-line"></span>
+              <span class="demo-line"><strong>Visit Notes</strong></span>
+              <span class="demo-line">Patient presents with recurring headaches for</span>
+              <span class="demo-line">the past 2 weeks. Reports stress from work at</span>
+              <span class="demo-line"><span class="pii pii-org" data-type="ORG">Acme Corporation</span> as contributing factor.</span>
+              <span class="demo-line"></span>
+              <span class="demo-line"><strong>Assessment:</strong> Tension-type headache.</span>
+              <span class="demo-line">Follow-up scheduled for <span class="pii pii-date" data-type="DATE">April 2, 2024</span>.</span>
+              <span class="demo-line"></span>
+              <span class="demo-line">Physician: <span class="pii pii-name" data-type="NAME">Dr. Sarah Johnson</span></span>
+              <span class="demo-line">License: <span class="pii pii-license" data-type="LICENSE">MD-45892</span></span>
+            </p>
+          </div>
+        </div>
+
+        <div class="demo-arrow">
+          <div class="demo-arrow-line"></div>
+          <div class="demo-arrow-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 2v4m0 12v4M2 12h4m12 0h4"/>
+            </svg>
+          </div>
+          <span class="demo-arrow-label">AI Processing</span>
+          <div class="demo-arrow-line"></div>
+        </div>
+
+        <div class="demo-panel demo-panel-redacted">
+          <div class="demo-panel-header">
+            <span class="demo-panel-dot demo-panel-dot-red"></span>
+            <span class="demo-panel-dot demo-panel-dot-yellow"></span>
+            <span class="demo-panel-dot demo-panel-dot-green"></span>
+            <span class="demo-panel-title">Redacted Output</span>
+            <span class="demo-panel-badge">Safe to Share</span>
+          </div>
+          <div class="demo-panel-content" id="demo-redacted">
+            <p class="demo-text">
+              <span class="demo-line"><strong>Patient Information</strong></span>
+              <span class="demo-line">Name: <span class="redacted" data-type="NAME">[PATIENT_NAME]</span></span>
+              <span class="demo-line">DOB: <span class="redacted" data-type="DATE">[DATE_OF_BIRTH]</span></span>
+              <span class="demo-line">SSN: <span class="redacted" data-type="SSN">[SSN]</span></span>
+              <span class="demo-line">Phone: <span class="redacted" data-type="PHONE">[PHONE_NUMBER]</span></span>
+              <span class="demo-line">Email: <span class="redacted" data-type="EMAIL">[EMAIL_ADDRESS]</span></span>
+              <span class="demo-line">MRN: <span class="redacted" data-type="MRN">[MEDICAL_RECORD_NUMBER]</span></span>
+              <span class="demo-line"></span>
+              <span class="demo-line"><strong>Visit Notes</strong></span>
+              <span class="demo-line">Patient presents with recurring headaches for</span>
+              <span class="demo-line">the past 2 weeks. Reports stress from work at</span>
+              <span class="demo-line"><span class="redacted" data-type="ORG">[ORGANIZATION]</span> as contributing factor.</span>
+              <span class="demo-line"></span>
+              <span class="demo-line"><strong>Assessment:</strong> Tension-type headache.</span>
+              <span class="demo-line">Follow-up scheduled for <span class="redacted" data-type="DATE">[DATE]</span>.</span>
+              <span class="demo-line"></span>
+              <span class="demo-line">Physician: <span class="redacted" data-type="NAME">[PHYSICIAN_NAME]</span></span>
+              <span class="demo-line">License: <span class="redacted" data-type="LICENSE">[LICENSE_NUMBER]</span></span>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="demo-controls">
+        <button class="demo-btn demo-btn-replay" id="demo-replay">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 4v6h6M23 20v-6h-6"/>
+            <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/>
+          </svg>
+          <span>Replay Animation</span>
+        </button>
+      </div>
+
+      <div class="demo-pii-legend">
+        <span class="demo-legend-title">HIPAA 18 Protected Health Information Identifiers:</span>
+        <div class="demo-legend-items">
+          <span class="demo-legend-chip" data-type="NAME">1. Names</span>
+          <span class="demo-legend-chip" data-type="GEO">2. Geographic Data</span>
+          <span class="demo-legend-chip" data-type="DATE">3. Dates</span>
+          <span class="demo-legend-chip" data-type="PHONE">4. Phone Numbers</span>
+          <span class="demo-legend-chip" data-type="FAX">5. Fax Numbers</span>
+          <span class="demo-legend-chip" data-type="EMAIL">6. Email Addresses</span>
+          <span class="demo-legend-chip" data-type="SSN">7. SSN</span>
+          <span class="demo-legend-chip" data-type="MRN">8. Medical Record Numbers</span>
+          <span class="demo-legend-chip" data-type="HEALTH_PLAN">9. Health Plan Beneficiary Numbers</span>
+          <span class="demo-legend-chip" data-type="ACCOUNT">10. Account Numbers</span>
+          <span class="demo-legend-chip" data-type="LICENSE">11. Certificate/License Numbers</span>
+          <span class="demo-legend-chip" data-type="VEHICLE">12. Vehicle Identifiers</span>
+          <span class="demo-legend-chip" data-type="DEVICE">13. Device Identifiers</span>
+          <span class="demo-legend-chip" data-type="URL">14. Web URLs</span>
+          <span class="demo-legend-chip" data-type="IP">15. IP Addresses</span>
+          <span class="demo-legend-chip" data-type="BIOMETRIC">16. Biometric Identifiers</span>
+          <span class="demo-legend-chip" data-type="PHOTO">17. Full-face Photos</span>
+          <span class="demo-legend-chip" data-type="OTHER">18. Other Unique Identifiers</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Video Section -->
+    <section id="video" class="video-section">
+      <div class="section-header">
+        <span class="section-tag">Walkthrough</span>
+        <h2 class="section-title">Full Demo Video</h2>
+        <p class="section-description">
+          See the complete workflow from upload to approval in this comprehensive walkthrough.
+        </p>
+      </div>
+
+      <div class="video-container">
+        <div class="video-placeholder">
+          <div class="video-placeholder-icon">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+          </div>
+          <span class="video-placeholder-text">Demo Video Coming Soon</span>
+          <span class="video-placeholder-subtext">Full walkthrough of the de-identification workflow</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+      <div class="section-header">
+        <span class="section-tag">Capabilities</span>
+        <h2 class="section-title">Built for Enterprise</h2>
+        <p class="section-description">
+          Every feature designed with security, scalability, and compliance in mind.
+        </p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card" data-feature="ai">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 2v4m0 12v4M2 12h4m12 0h4"/>
+              <path d="M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">Claude-Powered Detection</h3>
+          <p class="feature-description">
+            Leverages Claude Sonnet via Amazon Bedrock for context-aware PII detection that understands document semantics.
+          </p>
+        </div>
+
+        <div class="feature-card" data-feature="batch">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="3" width="7" height="7" rx="1"/>
+              <rect x="14" y="3" width="7" height="7" rx="1"/>
+              <rect x="3" y="14" width="7" height="7" rx="1"/>
+              <rect x="14" y="14" width="7" height="7" rx="1"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">Batch Processing</h3>
+          <p class="feature-description">
+            Process thousands of documents in parallel with automatic scaling. SQS-based queue with DLQ ensures reliability.
+          </p>
+        </div>
+
+        <div class="feature-card" data-feature="review">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M9 12l2 2 4-4"/>
+              <circle cx="12" cy="12" r="10"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">Human-in-the-Loop</h3>
+          <p class="feature-description">
+            Built-in review dashboard with diff viewer. Edit redactions inline and approve individual notes or entire batches.
+          </p>
+        </div>
+
+        <div class="feature-card" data-feature="secure">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <path d="M9 12l2 2 4-4"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">Enterprise Security</h3>
+          <p class="feature-description">
+            Cognito authentication, IAM least privilege, encrypted storage. All data stays within your AWS account.
+          </p>
+        </div>
+
+        <div class="feature-card" data-feature="iac">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">Infrastructure as Code</h3>
+          <p class="feature-description">
+            Complete AWS CDK stack for one-command deployment. Version controlled, reproducible, and customizable.
+          </p>
+        </div>
+
+        <div class="feature-card" data-feature="types">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M4 6h16M4 12h16M4 18h10"/>
+              <circle cx="19" cy="18" r="3"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">HIPAA 18 Compliant</h3>
+          <p class="feature-description">
+            Detects all 18 HIPAA identifiers: names, SSNs, dates, geographic data, contact info, medical records, device IDs, biometrics, and more.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta">
+      <div class="cta-bg">
+        <div class="cta-gradient"></div>
+      </div>
+      <div class="cta-content">
+        <h2 class="cta-title">Ready to protect sensitive data?</h2>
+        <p class="cta-description">
+          Deploy the full stack to your AWS account in minutes.<br/>Open source and fully customizable.
+        </p>
+        <div class="cta-actions">
+          <a href="https://github.com" class="btn btn-primary btn-large" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+              <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+            </svg>
+            <span>View on GitHub</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <span class="footer-logo-icon">&#9670;</span>
+          <span class="footer-logo-text">PII De-identification Platform</span>
+        </div>
+      </div>
+    </footer>
+
+  </body>
+</html>

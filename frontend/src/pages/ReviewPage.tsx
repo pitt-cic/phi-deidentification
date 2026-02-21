@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react'
+import { useParams, useNavigate, Link, useBeforeUnload } from 'react-router-dom'
 import { useInfiniteQuery, useQuery, useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { listNotes, getNote, approveNote, type Note, type Batch, type PaginatedResponse } from '../api/client'
 import DiffViewer from '../components/DiffViewer'
@@ -7,6 +7,7 @@ import './ReviewPage.css'
 
 const PAGE_SIZE = 50
 type BatchesQueryData = InfiniteData<PaginatedResponse<Batch>, number>
+type ReviewToast = { id: number; message: string }
 
 const normalizeRedactedForComparison = (value: string): string => value.replace(/\r\n/g, '\n')
 
@@ -16,6 +17,9 @@ export default function ReviewPage() {
   const queryClient = useQueryClient()
   const [editableRedactedText, setEditableRedactedText] = useState('')
   const [isEditingRedacted, setIsEditingRedacted] = useState(false)
+  const [reviewToasts, setReviewToasts] = useState<ReviewToast[]>([])
+  const toastTimeoutIdsRef = useRef<Array<ReturnType<typeof window.setTimeout>>>([])
+  const lastToastTimestampRef = useRef(0)
 
   const {
     data: notePages,
@@ -76,7 +80,6 @@ export default function ReviewPage() {
     },
   })
 
-  const goToNote = (id: string) => navigate(`/review/${batchId}/${id}`)
   const currentIdx = notes.findIndex(n => n.note_id === selectedNoteId)
   const hasPrev = currentIdx > 0
   const hasNext = currentIdx < notes.length - 1
@@ -93,6 +96,52 @@ export default function ReviewPage() {
       || noteDetail.redacted_text.length > 0
     )
 
+  const pushUnsavedChangesToast = useCallback(() => {
+    const now = Date.now()
+    if (now - lastToastTimestampRef.current < 1000) return
+    lastToastTimestampRef.current = now
+
+    const id = now + Math.random()
+    setReviewToasts((current) => [...current, {
+      id,
+      message: 'You have unsaved redaction changes. Save first before leaving this note.',
+    }])
+
+    const timeoutId = window.setTimeout(() => {
+      setReviewToasts((current) => current.filter((toast) => toast.id !== id))
+      toastTimeoutIdsRef.current = toastTimeoutIdsRef.current.filter((existingId) => existingId !== timeoutId)
+    }, 3600)
+
+    toastTimeoutIdsRef.current.push(timeoutId)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      toastTimeoutIdsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId))
+      toastTimeoutIdsRef.current = []
+    }
+  }, [])
+
+  useBeforeUnload(useCallback((event) => {
+    if (!hasRedactedEdits) return
+    event.preventDefault()
+    event.returnValue = ''
+  }, [hasRedactedEdits]))
+
+  const goToNote = useCallback((id: string) => {
+    if (hasRedactedEdits) {
+      pushUnsavedChangesToast()
+      return
+    }
+    navigate(`/review/${batchId}/${id}`)
+  }, [batchId, hasRedactedEdits, navigate, pushUnsavedChangesToast])
+
+  const handleBackLinkClick = useCallback((event: MouseEvent<HTMLAnchorElement>) => {
+    if (!hasRedactedEdits) return
+    event.preventDefault()
+    pushUnsavedChangesToast()
+  }, [hasRedactedEdits, pushUnsavedChangesToast])
+
   const handleSaveRedacted = () => {
     if (!noteDetail || !noteDetail.approved || !hasRedactedEdits || approveMutation.isPending) return
     approveMutation.mutate(
@@ -108,15 +157,36 @@ export default function ReviewPage() {
     )
   }
 
+  const handleUndoRedacted = () => {
+    if (!noteDetail || approveMutation.isPending || !hasRedactedEdits) return
+    setEditableRedactedText(noteDetail.redacted_text)
+    setIsEditingRedacted(false)
+  }
+
   if (!batchId) {
     return <div className="review-page"><div className="error-state">No batch selected</div></div>
   }
 
   return (
     <div className="review-page">
+      {reviewToasts.length > 0 && (
+        <div className="review-toast-stack" aria-live="polite" aria-atomic="true">
+          {reviewToasts.map((toast) => (
+            <div key={toast.id} className="review-toast" role="status">
+              {toast.message}
+            </div>
+          ))}
+        </div>
+      )}
       <aside className="review-sidebar">
         <div className="sidebar-header">
-          <Link to={`/?batch=${encodeURIComponent(batchId)}`} className="back-link">&larr; Back to Dashboard</Link>
+          <Link
+            to={`/?batch=${encodeURIComponent(batchId)}`}
+            className="back-link"
+            onClick={handleBackLinkClick}
+          >
+            &larr; Back to Dashboard
+          </Link>
           <h3 className="sidebar-title">{batchId}</h3>
           <span className="note-count">{totalNotes > 0 ? `${totalNotes} notes` : '...'}</span>
         </div>
@@ -179,6 +249,33 @@ export default function ReviewPage() {
               </div>
               <div className="toolbar-right">
                 {noteDetail.needs_review && <span className="review-flag">Needs Review</span>}
+                {canShowDiff && (
+                  <>
+                    <button
+                      className="btn btn-sm btn-edit"
+                      onClick={() => setIsEditingRedacted(true)}
+                      disabled={approveMutation.isPending || isEditingRedacted}
+                    >
+                      Edit Redacted Note
+                    </button>
+                    <button
+                      className="btn btn-sm"
+                      onClick={handleUndoRedacted}
+                      disabled={approveMutation.isPending || !hasRedactedEdits}
+                    >
+                      Undo
+                    </button>
+                    {noteDetail.approved && (
+                      <button
+                        className={`btn btn-sm ${!approveMutation.isPending && hasRedactedEdits ? 'btn-approve' : ''}`}
+                        onClick={handleSaveRedacted}
+                        disabled={approveMutation.isPending || !hasRedactedEdits}
+                      >
+                        {approveMutation.isPending ? 'Saving...' : 'Save'}
+                      </button>
+                    )}
+                  </>
+                )}
                 {noteDetail.approved ? (
                   <button
                     className="btn btn-sm btn-danger"
@@ -212,11 +309,6 @@ export default function ReviewPage() {
                   redacted={editableRedactedText}
                   editableRedacted={isEditingRedacted}
                   onRedactedChange={setEditableRedactedText}
-                  onToggleEditRedacted={() => setIsEditingRedacted(true)}
-                  editToggleDisabled={approveMutation.isPending}
-                  onSaveRedacted={handleSaveRedacted}
-                  saveDisabled={approveMutation.isPending || !hasRedactedEdits || !noteDetail.approved}
-                  saveLabel={approveMutation.isPending ? 'Saving...' : 'Save'}
                 />
               ) : (
                 <div className="empty-state">

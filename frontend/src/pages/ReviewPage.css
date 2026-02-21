@@ -1,9 +1,47 @@
 .review-page {
+  position: relative;
   display: flex;
   height: 100%;
   min-height: 0;
   min-width: 0;
   overflow: hidden;
+}
+
+.review-toast-stack {
+  position: absolute;
+  bottom: var(--space-3);
+  right: var(--space-3);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: min(32rem, calc(100vw - var(--space-6)));
+  pointer-events: none;
+}
+
+.review-toast {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  line-height: 1.35;
+  padding: var(--space-2) var(--space-3);
+  border-radius: calc(var(--panel-radius) * 0.72);
+  border: 1px solid rgba(248, 113, 113, 0.44);
+  background: color-mix(in srgb, var(--bg-secondary) 86%, rgba(248, 113, 113, 0.2));
+  color: #fecaca;
+  box-shadow: var(--shadow-soft);
+  animation: review-toast-in 170ms ease;
+}
+
+@keyframes review-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .review-sidebar {
@@ -246,6 +284,18 @@
   color: #ffffff;
 }
 
+.btn-edit {
+  border-color: var(--color-removed);
+  background: var(--color-removed-bg);
+  color: var(--color-removed);
+}
+
+.btn-edit:hover:not(:disabled) {
+  border-color: var(--color-removed);
+  background: color-mix(in srgb, var(--color-removed-bg) 72%, transparent);
+  color: var(--color-removed);
+}
+
 .btn-danger {
   background: transparent;
   border-color: rgba(248, 113, 113, 0.5);
@@ -271,6 +321,12 @@
 [data-theme="light"] .review-toolbar,
 [data-theme="light"] .review-main {
   background: rgba(255, 255, 255, 0.78);
+}
+
+[data-theme="light"] .review-toast {
+  background: color-mix(in srgb, #ffffff 90%, rgba(220, 38, 38, 0.12));
+  border-color: rgba(220, 38, 38, 0.38);
+  color: #b91c1c;
 }
 
 [data-theme="light"] .btn-approve {

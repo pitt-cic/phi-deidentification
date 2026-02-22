@@ -22,7 +22,7 @@ from redaction_formats import (
 )
 
 DEFAULT_PROMPT = (
-    "Analyze the document text and identify all requested PII strings. "
+    "Given a clinical note, scan it systematically from top to bottom and return every PHI entity you find."
 )
 DEFAULT_MAX_CHARS = 20_000
 
@@ -264,8 +264,7 @@ def build_response_payload(
 
 def build_prompt_with_document(prompt: str, document_text: str) -> str:
     """Build the full prompt with document text delimited."""
-    document_delimiter = "=" * 80
-    return f"{prompt}\n\n{document_delimiter}\nDocument text to analyze:\n{document_delimiter}\n{document_text}\n{document_delimiter}"
+    return f"{prompt}\n\nDocument text to analyze:\n<document>\n{document_text}\n</document>"
 
 async def process_document(
     document_text: str,
@@ -311,20 +310,19 @@ async def process_document(
         
         span.set_attribute('response', response.model_dump())
         span.set_attribute('entities_count', len(response.pii_entities))
-        span.set_attribute('needs_review', response.needs_review)
         span.set_attribute('input_tokens', usage.input_tokens if usage else 0)
         span.set_attribute('output_tokens', usage.output_tokens if usage else 0)
         span.set_attribute('total_tokens', usage.total_tokens if usage else 0)
     
     logger.info(
-        "Processed '%s': %s entities (needs_review=%s) - Tokens: input=%s, output=%s, total=%s",
+        "Processed '%s': %s entities - Tokens: input=%s, output=%s, total=%s",
         source_name,
         len(response.pii_entities),
-        response.needs_review,
         usage.input_tokens if usage else 0,
         usage.output_tokens if usage else 0,
         usage.total_tokens if usage else 0,
     )
+    
     return response
 
 async def process_single_document(

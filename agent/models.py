@@ -43,27 +43,9 @@ class AgentResponse(BaseModel):
 
     Args:
         pii_entities: ordered list of PII strings to redact
-        summary: concise description of the detected sensitive content
-        needs_review: flag to escalate ambiguous cases for human validation
-        review_reason: rationale for the review request when needs_review is true
     """
 
     pii_entities: list[PIIEntity] = Field(default_factory=list)
-    summary: str | None = Field(default=None)
-    needs_review: bool = False
-    review_reason: str | None = Field(default=None)
-
-    @model_validator(mode="after")
-    def _ensure_review_reason(self) -> "AgentResponse":
-        if self.summary is not None:
-            self.summary = self.summary[:SUMMARY_MAX_LENGTH]
-        if self.needs_review and not self.review_reason:
-            raise ValueError("review_reason must be provided when needs_review is true")
-        if self.review_reason is not None:
-            self.review_reason = self.review_reason[:REVIEW_REASON_MAX_LENGTH]
-        if not self.needs_review:
-            self.review_reason = None
-        return self
 
 @dataclass
 class DetectionParameters:

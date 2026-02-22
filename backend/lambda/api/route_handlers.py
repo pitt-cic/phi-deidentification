@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from datetime import datetime, timezone
 
@@ -6,6 +7,7 @@ import boto3
 
 from . import storage
 
+logger = logging.getLogger("pii_deidentification.api")
 lambda_client = boto3.client("lambda")
 INGESTION_FUNCTION_NAME = os.environ["INGESTION_FUNCTION_NAME"]
 MIN_SORT_DATETIME = datetime.min.replace(tzinfo=timezone.utc)
@@ -100,6 +102,28 @@ def update_batch_approval_metadata(
     storage.save_metadata(batch_id, meta)
 
     return approved_required_note_count, all_approved
+
+
+def async_invoke_ingestion(batch_id: str) -> None:
+    response = lambda_client.invoke(
+        FunctionName=INGESTION_FUNCTION_NAME,
+        InvocationType="Event",
+        Payload=json.dumps({"batch_id": batch_id}).encode("utf-8"),
+    )
+
+    status_code = int(response.get("StatusCode", 0))
+    function_error = response.get("FunctionError")
+    if status_code == 202 and not function_error:
+        logger.info("Invoked ingestion lambda asynchronously for batch %s", batch_id)
+        return
+
+    logger.error(
+        "Failed to async invoke ingestion lambda (status_code=%s function_error=%s batch_id=%s)",
+        status_code,
+        function_error,
+        batch_id,
+    )
+    raise RuntimeError("Failed to start ingestion process")
 
 
 def list_batches(params: dict, body: dict, query: dict) -> tuple[int, dict]:
@@ -218,11 +242,7 @@ def start_batch(params: dict, body: dict, query: dict) -> tuple[int, dict]:
     meta["started_at"] = timestamp
     meta["all_approved"] = False
     storage.save_metadata(batch_id, meta)
-    lambda_client.invoke(
-        FunctionName=INGESTION_FUNCTION_NAME,
-        InvocationType="Event",
-        Payload=json.dumps({"batch_id": batch_id}).encode("utf-8"),
-    )
+    async_invoke_ingestion(batch_id)
     return 200, {"status": "started", "batch_id": batch_id}
 
 

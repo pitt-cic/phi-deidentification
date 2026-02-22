@@ -13,20 +13,31 @@ import {
   aws_cognito as cognito,
   aws_apigateway as apigw,
   aws_amplify as amplify,
+  aws_logs as logs,
 } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
 export class PiiDeidentificationStack extends Stack {
+  private readonly backendRoot = path.join(__dirname, '../../backend');
+  private readonly commonEnv: Record<string, string>;
+
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
+    // Common environment variables for all Lambdas
+    this.commonEnv = {
+      ENVIRONMENT: process.env.ENVIRONMENT || 'dev',
+      LOG_LEVEL: process.env.LOG_LEVEL || 'INFO',
+    };
+
+    const INGESTION_TIMEOUT = Duration.minutes(5);
     const WORKER_CONCURRENCY = 10;
     const WORKER_TIMEOUT = Duration.seconds(120);
     const WORKER_MEMORY = 1024;
+    const API_TIMEOUT = Duration.seconds(30);
     const SQS_VISIBILITY_TIMEOUT = Duration.seconds(360);
     const SQS_BATCH_SIZE = 1;
     const BEDROCK_MODEL_ID = 'us.anthropic.claude-sonnet-4-5-20250929-v1:0';
-    const PROJECT_ROOT = path.join(__dirname, '..', '..');
 
     const bucket = new s3.Bucket(this, 'PiiDeidBucket', {
       removalPolicy: RemovalPolicy.RETAIN,
@@ -44,69 +55,33 @@ export class PiiDeidentificationStack extends Stack {
       deadLetterQueue: { maxReceiveCount: 3, queue: dlq },
     });
 
-    const ingestionLambda = new lambda.Function(this, 'IngestionLambda', {
-      runtime: lambda.Runtime.PYTHON_3_12,
-      handler: 'ingestion.handler',
-      code: lambda.Code.fromAsset(path.join(PROJECT_ROOT, 'lambda', 'ingestion')),
-      timeout: Duration.minutes(5),
-      memorySize: 256,
-      environment: {
+    const ingestionLambda = this.createLambdaFunction({
+      functionName: 'ingestion',
+      handler: 'handler.handler',
+      description: 'Lambda function for ingesting files and sending messages to SQS',
+      additionalEnv: {
         QUEUE_URL: queue.queueUrl,
         BUCKET_NAME: bucket.bucketName,
       },
+      timeout: INGESTION_TIMEOUT,
     });
 
     bucket.grantRead(ingestionLambda);
     queue.grantSendMessages(ingestionLambda);
 
-    const workerLambda = new lambda.Function(this, 'WorkerLambda', {
-      runtime: lambda.Runtime.PYTHON_3_12,
-      architecture: lambda.Architecture.ARM_64,
-      handler: 'worker.handler',
-      code: lambda.Code.fromAsset(PROJECT_ROOT, {
-        exclude: [
-          '.venv', '.venv/**',
-          '.git', '.git/**',
-          '.env', '.env.*',
-          'cdk', 'cdk/**',
-          'cdk.out', 'cdk.out/**',
-          'dashboard', 'dashboard/**',
-          'frontend', 'frontend/**',
-          'lambda/api', 'lambda/api/**',
-          'lambda/ingestion', 'lambda/ingestion/**',
-          'synthetic_dataset', 'synthetic_dataset/**',
-          'dataset', 'dataset/**',
-          'output', 'output/**',
-          'output-text', 'output-text/**',
-          'output-json', 'output-json/**',
-          'eval_results', 'eval_results/**',
-          '*.md', '*.sh', '.gitignore', '.DS_Store',
-          '__pycache__', '**/__pycache__', '*.pyc',
-          '.logfire', '.logfire/**',
-          'node_modules', 'node_modules/**',
-          'evaluate.py', 'clean_output.sh',
-          'test_notes', 'test_notes/**',
-          'response.json',
-        ],
-        bundling: {
-          image: lambda.Runtime.PYTHON_3_12.bundlingImage,
-          command: [
-            'bash', '-c',
-            'pip install -r lambda/requirements-lambda.txt -t /asset-output && ' +
-            'cp lambda/worker/worker.py /asset-output/worker.py && ' +
-            'cp main.py redact_pii.py redaction_formats.py /asset-output/ && ' +
-            'cp -r agent /asset-output/',
-          ],
-        },
-      }),
-      timeout: WORKER_TIMEOUT,
-      memorySize: WORKER_MEMORY,
-      reservedConcurrentExecutions: WORKER_CONCURRENCY,
-      environment: {
+    const workerLambda = this.createLambdaFunction({
+      functionName: 'worker',
+      handler: 'handler.handler',
+      description: 'Lambda function for processing SQS messages and performing PII de-identification',
+      additionalDeps: ['./agent', './deidentification'],
+      additionalEnv: {
         BUCKET_NAME: bucket.bucketName,
         BEDROCK_MODEL_ID: BEDROCK_MODEL_ID,
         LOGFIRE_SEND_TO_LOGFIRE: 'false',
       },
+      timeout: WORKER_TIMEOUT,
+      memorySize: WORKER_MEMORY,
+      concurrency: WORKER_CONCURRENCY,
     });
 
     bucket.grantReadWrite(workerLambda);
@@ -177,25 +152,15 @@ export class PiiDeidentificationStack extends Stack {
       refreshTokenValidity: Duration.days(30),
     });
 
-    const apiLambda = new lambda.Function(this, 'ApiLambda', {
-      runtime: lambda.Runtime.PYTHON_3_12,
-      handler: 'api_handler.handler',
-      code: lambda.Code.fromAsset(path.join(PROJECT_ROOT, 'lambda', 'api'), {
-        bundling: {
-          image: lambda.Runtime.PYTHON_3_12.bundlingImage,
-          command: [
-            'bash', '-c',
-            'pip install -r /asset-input/requirements.txt -t /asset-output && ' +
-            'cp /asset-input/*.py /asset-output/',
-          ],
-        },
-      }),
-      timeout: Duration.seconds(30),
-      memorySize: 256,
-      environment: {
+    const apiLambda = this.createLambdaFunction({
+      functionName: 'api',
+      handler: 'handler.handler',
+      description: 'Lambda function for handling API requests from the frontend',
+      additionalEnv: {
         BUCKET_NAME: bucket.bucketName,
         INGESTION_FUNCTION_NAME: ingestionLambda.functionName,
       },
+      timeout: API_TIMEOUT,
     });
 
     bucket.grantReadWrite(apiLambda);
@@ -306,4 +271,82 @@ frontend:
       value: `https://${mainBranch.branchName}.${amplifyApp.attrAppId}.amplifyapp.com`,
     });
   }
+
+  private createLambdaFunction(config: LambdaFunctionConfig): lambda.Function {
+    const pythonRuntime = '3.12';
+    
+    // Create a CloudWatch log group for the Lambda function
+    const logGroup = new logs.LogGroup(this, `${config.functionName}LogGroup`, {
+      logGroupName: `/aws/lambda/pii-deidentification-${config.functionName.toLowerCase()}`,
+      retention: logs.RetentionDays.ONE_MONTH,
+      removalPolicy: RemovalPolicy.DESTROY
+    });
+
+    const lambdaDir = `./lambda/${config.functionName}`;
+
+    // Build bundling command based on whether we need to copy source files
+    const bundlingCommands: string[] = [
+      // Install uv to /tmp (writable location)
+      'pip install --no-cache-dir --target /tmp/pip-packages uv',
+      'export PYTHONPATH=/tmp/pip-packages:$PYTHONPATH',
+      // Navigate to workspace root
+      'cd /asset-input',
+      // Always copy source files
+      `cp -r ${lambdaDir}/* /asset-output/`,
+      'find /asset-output -name "*.sh" -exec chmod +x {} \\;',
+      // Install only deps from pyproject.toml, skip building the local package itself since we copied source files
+      `python -m uv pip install --python ${pythonRuntime} --target /asset-output --no-cache --requirements ${lambdaDir}/pyproject.toml`,
+    ];
+
+    // Install additional packages if specified
+    if (config.additionalDeps?.length) {
+      const additionalDeps = config.additionalDeps.join(' ');
+      bundlingCommands.push(
+        `python -m uv pip install --python 3.12 --target /asset-output --no-cache ${additionalDeps}`
+      );
+    }
+
+    bundlingCommands.push(
+      // Clean up files that shouldn't be included in the deployment package
+      'rm -rf /asset-output/pyproject.toml /asset-output/.lock'
+    );
+
+    const fn = new lambda.Function(this, config.functionName, {
+      functionName: `pii-deidentification-${config.functionName.toLowerCase()}`,
+      description: config.description,
+      handler: config.handler,
+      runtime: lambda.Runtime.PYTHON_3_12,
+      architecture: lambda.Architecture.ARM_64,
+      memorySize: config.memorySize || 256, // Default to 246 MB, can be overridden
+      timeout: config.timeout || Duration.seconds(300), // Default to 5 minutes, can be overridden
+      reservedConcurrentExecutions: config.concurrency, // Optional concurrency limit
+      code: lambda.Code.fromAsset(this.backendRoot, {
+          bundling: {
+              image: lambda.Runtime.PYTHON_3_12.bundlingImage,
+              platform: 'linux/arm64',
+              command: ['bash', '-c', bundlingCommands.join(' && ')],
+          },
+      }),
+      environment: {
+          ...this.commonEnv,
+          ...config.additionalEnv,
+      },
+      tracing: lambda.Tracing.ACTIVE,
+      logGroup: logGroup,
+    });
+
+    return fn;
+  }
+}
+
+// Helper interface for Lambda function configuration
+interface LambdaFunctionConfig {
+  functionName: string;
+  handler: string;
+  description: string;
+  additionalDeps?: string[];
+  additionalEnv?: Record<string, string>;
+  memorySize?: number;
+  timeout?: Duration;
+  concurrency?: number;
 }

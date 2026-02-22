@@ -77,6 +77,7 @@ export class PiiDeidentificationStack extends Stack {
       additionalEnv: {
         QUEUE_URL: queue.queueUrl,
         BUCKET_NAME: bucket.bucketName,
+        STATS_TABLE_NAME: batchStatsTable.tableName,
       },
       timeout: INGESTION_TIMEOUT,
     });
@@ -93,6 +94,7 @@ export class PiiDeidentificationStack extends Stack {
         BUCKET_NAME: bucket.bucketName,
         BEDROCK_MODEL_ID: BEDROCK_MODEL_ID,
         LOGFIRE_SEND_TO_LOGFIRE: 'false',
+        STATS_TABLE_NAME: batchStatsTable.tableName,
       },
       timeout: WORKER_TIMEOUT,
       memorySize: WORKER_MEMORY,
@@ -174,6 +176,7 @@ export class PiiDeidentificationStack extends Stack {
       additionalEnv: {
         BUCKET_NAME: bucket.bucketName,
         INGESTION_FUNCTION_NAME: ingestionLambda.functionName,
+        STATS_TABLE_NAME: batchStatsTable.tableName,
       },
       timeout: API_TIMEOUT,
     });

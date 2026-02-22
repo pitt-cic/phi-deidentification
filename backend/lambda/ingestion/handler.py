@@ -18,6 +18,8 @@ import time
 from aws_lambda_powertools import Metrics
 from aws_lambda_powertools.metrics import MetricUnit
 
+from batch_stats import initialize_batch_stats
+
 s3_client = boto3.client("s3")
 sqs_client = boto3.client("sqs")
 
@@ -49,6 +51,9 @@ def handler(event, context):
         metrics.add_metric(name="IngestionEnqueueTime", unit=MetricUnit.Milliseconds, value=elapsed_ms)
         metrics.add_metric(name="IngestionFileCount", unit=MetricUnit.Count, value=0)
         return {"status": "no_files", "batch_id": batch_id}
+
+    # Initialize stats record in DynamoDB
+    initialize_batch_stats(batch_id, len(keys))
 
     # Enqueue files using SQS batch send (up to 10 per call)
     failed = 0

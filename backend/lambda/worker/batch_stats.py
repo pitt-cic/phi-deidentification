@@ -1,0 +1,73 @@
+"""DynamoDB batch stats increment module for worker."""
+
+import os
+from datetime import datetime, timezone
+
+import boto3
+
+STATS_TABLE_NAME = os.environ.get("STATS_TABLE_NAME", "")
+
+_dynamodb_resource = None
+_stats_table = None
+
+
+def _get_stats_table():
+    """Lazy initialization of DynamoDB table resource."""
+    global _dynamodb_resource, _stats_table
+    if not STATS_TABLE_NAME:
+        return None
+    if _stats_table is None:
+        _dynamodb_resource = boto3.resource("dynamodb")
+        _stats_table = _dynamodb_resource.Table(STATS_TABLE_NAME)
+    return _stats_table
+
+
+def pii_type_to_attribute(pii_type: str) -> str:
+    """Convert PII type to lowercase DynamoDB attribute name."""
+    return f"pii_{pii_type.lower().replace(' ', '_')}"
+
+
+def increment_batch_stats(batch_id: str, pii_entities: list[dict], logger=None) -> None:
+    """Atomically increment batch stats in DynamoDB using ADD."""
+    stats_table = _get_stats_table()
+    if not stats_table:
+        return
+
+    entity_count = len(pii_entities)
+    has_pii = 1 if entity_count > 0 else 0
+
+    # Count entities by type
+    type_counts: dict[str, int] = {}
+    for entity in pii_entities:
+        pii_type = str(entity.get("type", "UNKNOWN")).upper()
+        attr_name = pii_type_to_attribute(pii_type)
+        type_counts[attr_name] = type_counts.get(attr_name, 0) + 1
+
+    # Build ADD expression - simple and atomic
+    add_parts = [
+        "processed_count :one",
+        "total_entities :entities",
+        "notes_with_pii :has_pii",
+    ]
+    expr_values = {
+        ":one": 1,
+        ":entities": entity_count,
+        ":has_pii": has_pii,
+        ":now": datetime.now(timezone.utc).isoformat(),
+    }
+
+    # Add each PII type count
+    for i, (attr_name, count) in enumerate(type_counts.items()):
+        alias = f":t{i}"
+        add_parts.append(f"{attr_name} {alias}")
+        expr_values[alias] = count
+
+    try:
+        stats_table.update_item(
+            Key={"batch_id": batch_id},
+            UpdateExpression=f"ADD {', '.join(add_parts)} SET updated_at = :now",
+            ExpressionAttributeValues=expr_values,
+        )
+    except Exception as exc:
+        if logger:
+            logger.warning("Failed to update batch stats for %s: %s", batch_id, exc)

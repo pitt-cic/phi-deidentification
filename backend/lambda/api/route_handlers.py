@@ -321,12 +321,20 @@ def approve_note(params: dict, body: dict, query: dict) -> tuple[int, dict]:
     except ValueError as error:
         return 400, {"error": str(error)}
 
+    was_previously_approved = existing_saved_text is not None
+
     if approved:
         storage.put_text(approval_txt, redacted_text)
     else:
         storage.delete_key(approval_txt)
     storage.delete_key(prior_approval_txt)
     storage.delete_key(legacy_approval)
+
+    # Update approval count in DynamoDB
+    if approved and not was_previously_approved:
+        increment_approval_count(batch_id, 1)
+    elif not approved and was_previously_approved:
+        increment_approval_count(batch_id, -1)
 
     approval = {
         "note_id": note_id,

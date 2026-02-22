@@ -4,3 +4,6 @@ import { PiiDeidentificationStack } from '../lib/pii-deidentification-stack';
 
 const app = new cdk.App();
 new PiiDeidentificationStack(app, 'PiiDeidentificationStack');
+
+cdk.Tags.of(app).add('Project', 'PII Deidentification');
+cdk.Tags.of(app).add('Owner', process.env.OWNER_NAME || 'CDK');

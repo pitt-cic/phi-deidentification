@@ -5,7 +5,6 @@ import {
   Duration,
   RemovalPolicy,
   CfnOutput,
-  Tags,
   aws_s3 as s3,
   aws_sqs as sqs,
   aws_lambda as lambda,
@@ -20,9 +19,6 @@ import { Construct } from 'constructs';
 export class PiiDeidentificationStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
-
-    Tags.of(this).add('project', 'PiiDeidentification');
-    Tags.of(this).add('managedBy', 'cdk');
 
     const WORKER_CONCURRENCY = 10;
     const WORKER_TIMEOUT = Duration.seconds(120);

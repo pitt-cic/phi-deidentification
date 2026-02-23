@@ -17,6 +17,8 @@ import {
 } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
+const APP_NAME_LOWERCASE = 'pii-deidentification-v3';
+
 export class PiiDeidentificationStack extends Stack {
   private readonly backendRoot = path.join(__dirname, '../../backend');
   private readonly commonEnv: Record<string, string>;
@@ -106,7 +108,7 @@ export class PiiDeidentificationStack extends Stack {
     );
 
     const userPool = new cognito.UserPool(this, 'PiiDeidUserPool', {
-      userPoolName: 'pii-deidentification-users',
+      userPoolName: `${APP_NAME_LOWERCASE}-users`,
       selfSignUpEnabled: false,
       signInAliases: { email: true, username: true },
       standardAttributes: {
@@ -214,7 +216,7 @@ export class PiiDeidentificationStack extends Stack {
     approveResource.addMethod('POST', apiIntegration, authOpts);
 
     const amplifyApp = new amplify.CfnApp(this, 'PiiDeidFrontend', {
-      name: 'pii-deidentification-frontend',
+      name: `${APP_NAME_LOWERCASE}-frontend`,
       platform: 'WEB',
       enableBranchAutoDeletion: true,
       buildSpec: `version: 1
@@ -277,7 +279,7 @@ frontend:
     
     // Create a CloudWatch log group for the Lambda function
     const logGroup = new logs.LogGroup(this, `${config.functionName}LogGroup`, {
-      logGroupName: `/aws/lambda/pii-deidentification-${config.functionName.toLowerCase()}`,
+      logGroupName: `/aws/lambda/${APP_NAME_LOWERCASE}-${config.functionName.toLowerCase()}`,
       retention: logs.RetentionDays.ONE_MONTH,
       removalPolicy: RemovalPolicy.DESTROY
     });
@@ -312,7 +314,7 @@ frontend:
     );
 
     const fn = new lambda.Function(this, config.functionName, {
-      functionName: `pii-deidentification-${config.functionName.toLowerCase()}`,
+      functionName: `${APP_NAME_LOWERCASE}-${config.functionName.toLowerCase()}`,
       description: config.description,
       handler: config.handler,
       runtime: lambda.Runtime.PYTHON_3_12,

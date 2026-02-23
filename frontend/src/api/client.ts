@@ -96,6 +96,7 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
 }
 
 async function fetchApi<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const start = performance.now()
   const headers = await getAuthHeaders()
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
@@ -115,7 +116,10 @@ async function fetchApi<T>(path: string, options: RequestInit = {}): Promise<T> 
     const safeMessage = getSanitizedErrorMessage(status)
     throw new Error(requestId ? `${safeMessage} (ref: ${requestId})` : safeMessage)
   }
-  return response.json()
+  const data = await response.json()
+  const duration = performance.now() - start
+  console.log(`[API] ${options.method || 'GET'} ${path} - ${duration.toFixed(0)}ms`)
+  return data
 }
 
 export async function listBatches(limit = 50, offset = 0): Promise<PaginatedResponse<Batch>> {

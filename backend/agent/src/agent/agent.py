@@ -6,7 +6,6 @@ import os
 from pathlib import Path
 
 import boto3
-from dotenv import load_dotenv
 import logfire
 from pydantic_ai import Agent, RunContext, ToolOutput
 from pydantic_ai.models.bedrock import BedrockConverseModel
@@ -19,9 +18,14 @@ session = boto3.Session(region_name=os.environ["AWS_REGION"])
 bedrock_client = session.client("bedrock-runtime")
 
 # Load environment variables from .env file
-if os.getenv("ENVIRONMENT") == 'local':
-    env_path = Path(__file__).parent.parent.parent.parent / ".env"
-    load_dotenv(env_path)
+try:
+    from dotenv import load_dotenv
+    if os.getenv("ENVIRONMENT") == 'local':
+        env_path = Path(__file__).parent.parent.parent.parent / ".env"
+        load_dotenv(env_path)
+except ImportError:
+    # Skip loading .env if python-dotenv is not installed, assuming environment variables are set in the environment
+    pass
 
 # Disable Logfire scrubbing for prompt and system_instructions attributes
 def scrubbing_callback(m: logfire.ScrubMatch):

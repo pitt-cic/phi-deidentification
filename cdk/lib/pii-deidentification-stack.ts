@@ -347,6 +347,90 @@ frontend:
         height: 4,
       }),
     );
+
+    // Latency metrics - Model Inference
+    const modelInferenceP50 = new cloudwatch.Metric({
+      namespace: metricsNamespace,
+      metricName: 'ModelInferenceTime',
+      dimensionsMap: { service: 'worker' },
+      statistic: 'p50',
+      period: Duration.minutes(5),
+    });
+    const modelInferenceP95 = new cloudwatch.Metric({
+      namespace: metricsNamespace,
+      metricName: 'ModelInferenceTime',
+      dimensionsMap: { service: 'worker' },
+      statistic: 'p95',
+      period: Duration.minutes(5),
+    });
+    const modelInferenceMax = new cloudwatch.Metric({
+      namespace: metricsNamespace,
+      metricName: 'ModelInferenceTime',
+      dimensionsMap: { service: 'worker' },
+      statistic: 'Maximum',
+      period: Duration.minutes(5),
+    });
+
+    // Latency metrics - Document Processing
+    const docProcessingP50 = new cloudwatch.Metric({
+      namespace: metricsNamespace,
+      metricName: 'DocumentProcessingTime',
+      dimensionsMap: { service: 'worker' },
+      statistic: 'p50',
+      period: Duration.minutes(5),
+    });
+    const docProcessingP95 = new cloudwatch.Metric({
+      namespace: metricsNamespace,
+      metricName: 'DocumentProcessingTime',
+      dimensionsMap: { service: 'worker' },
+      statistic: 'p95',
+      period: Duration.minutes(5),
+    });
+    const docProcessingMax = new cloudwatch.Metric({
+      namespace: metricsNamespace,
+      metricName: 'DocumentProcessingTime',
+      dimensionsMap: { service: 'worker' },
+      statistic: 'Maximum',
+      period: Duration.minutes(5),
+    });
+
+    // Latency metrics - Ingestion
+    const ingestionTimeAvg = new cloudwatch.Metric({
+      namespace: metricsNamespace,
+      metricName: 'IngestionEnqueueTime',
+      dimensionsMap: { service: 'ingestion' },
+      statistic: 'Average',
+      period: Duration.minutes(5),
+    });
+    const ingestionTimeMax = new cloudwatch.Metric({
+      namespace: metricsNamespace,
+      metricName: 'IngestionEnqueueTime',
+      dimensionsMap: { service: 'ingestion' },
+      statistic: 'Maximum',
+      period: Duration.minutes(5),
+    });
+
+    // Row 3: Latency
+    dashboard.addWidgets(
+      new cloudwatch.GraphWidget({
+        title: 'Model Inference Time (ms)',
+        left: [modelInferenceP50, modelInferenceP95, modelInferenceMax],
+        width: 8,
+        height: 6,
+      }),
+      new cloudwatch.GraphWidget({
+        title: 'Total Processing Time (ms)',
+        left: [docProcessingP50, docProcessingP95, docProcessingMax],
+        width: 8,
+        height: 6,
+      }),
+      new cloudwatch.GraphWidget({
+        title: 'Ingestion Time (ms)',
+        left: [ingestionTimeAvg, ingestionTimeMax],
+        width: 8,
+        height: 6,
+      }),
+    );
   }
 
   private createLambdaFunction(config: LambdaFunctionConfig): lambda.Function {

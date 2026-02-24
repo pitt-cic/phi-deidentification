@@ -14,6 +14,9 @@ and enqueues each as an SQS message with the S3 reference.
 import os
 import json
 import boto3
+import time
+from aws_lambda_powertools import Metrics
+from aws_lambda_powertools.metrics import MetricUnit
 
 s3_client = boto3.client("s3")
 sqs_client = boto3.client("sqs")
@@ -21,8 +24,12 @@ sqs_client = boto3.client("sqs")
 BUCKET_NAME = os.environ["BUCKET_NAME"]
 QUEUE_URL = os.environ["QUEUE_URL"]
 
+metrics = Metrics(namespace="PIIDeidentification", service="ingestion")
 
+
+@metrics.log_metrics
 def handler(event, context):
+    start = time.perf_counter()
     batch_id = event["batch_id"]
     prefix = f"{batch_id}/input/"
 
@@ -38,6 +45,9 @@ def handler(event, context):
             keys.append(key)
 
     if not keys:
+        elapsed_ms = (time.perf_counter() - start) * 1000
+        metrics.add_metric(name="IngestionEnqueueTime", unit=MetricUnit.Milliseconds, value=elapsed_ms)
+        metrics.add_metric(name="IngestionFileCount", unit=MetricUnit.Count, value=0)
         return {"status": "no_files", "batch_id": batch_id}
 
     # Enqueue files using SQS batch send (up to 10 per call)
@@ -59,6 +69,10 @@ def handler(event, context):
             Entries=entries,
         )
         failed += len(resp.get("Failed", []))
+
+    elapsed_ms = (time.perf_counter() - start) * 1000
+    metrics.add_metric(name="IngestionEnqueueTime", unit=MetricUnit.Milliseconds, value=elapsed_ms)
+    metrics.add_metric(name="IngestionFileCount", unit=MetricUnit.Count, value=len(keys))
 
     return {
         "status": "enqueued",

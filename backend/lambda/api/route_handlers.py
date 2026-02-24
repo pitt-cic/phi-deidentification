@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 import boto3
 
 import storage
+from batch_stats import get_batch_stats, increment_approval_count
 
 logger = logging.getLogger("pii_deidentification.api")
 lambda_client = boto3.client("lambda")
@@ -163,6 +164,13 @@ def list_batches(params: dict, body: dict, query: dict) -> tuple[int, dict]:
 
 def get_batch(params: dict, body: dict, query: dict) -> tuple[int, dict]:
     batch_id = params["batch_id"]
+
+    # Try DynamoDB first (new path)
+    dynamo_stats = get_batch_stats(batch_id)
+    if dynamo_stats:
+        return 200, dynamo_stats
+
+    # Fallback to S3-based computation (legacy batches or no DynamoDB)
     meta = storage.read_json(f"{batch_id}/metadata.json") or {"batch_id": batch_id}
     input_keys = storage.list_keys(f"{batch_id}/input/")
     input_count = len(input_keys)

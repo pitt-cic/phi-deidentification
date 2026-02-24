@@ -431,6 +431,24 @@ frontend:
         height: 6,
       }),
     );
+
+    // Row 4: Skipped Redactions
+    // Note: Using SEARCH to find all pii_type dimension values dynamically
+    dashboard.addWidgets(
+      new cloudwatch.GraphWidget({
+        title: 'Skipped Redactions by PII Type',
+        left: [
+          new cloudwatch.MathExpression({
+            expression: `SEARCH('{PIIDeidentification,pii_type,service} MetricName="SkippedRedaction" service="worker"', 'Sum', 300)`,
+            label: 'Skipped Redactions',
+            period: Duration.minutes(5),
+          }),
+        ],
+        width: 24,
+        height: 6,
+        stacked: true,
+      }),
+    );
   }
 
   private createLambdaFunction(config: LambdaFunctionConfig): lambda.Function {

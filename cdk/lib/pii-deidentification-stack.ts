@@ -278,6 +278,42 @@ frontend:
     const dashboard = new cloudwatch.Dashboard(this, 'PiiDeidDashboard', {
       dashboardName: `${APP_NAME_LOWERCASE}-dashboard`,
     });
+
+    // Metrics namespace
+    const metricsNamespace = 'PIIDeidentification';
+
+    // Health metrics
+    const documentFailureMetric = new cloudwatch.Metric({
+      namespace: metricsNamespace,
+      metricName: 'DocumentFailure',
+      dimensionsMap: { service: 'worker' },
+      statistic: 'Sum',
+      period: Duration.hours(1),
+    });
+
+    const retryCountMetric = new cloudwatch.Metric({
+      namespace: metricsNamespace,
+      metricName: 'RetryCount',
+      dimensionsMap: { service: 'worker' },
+      statistic: 'Sum',
+      period: Duration.hours(1),
+    });
+
+    // Row 1: Health Overview
+    dashboard.addWidgets(
+      new cloudwatch.SingleValueWidget({
+        title: 'Document Failures',
+        metrics: [documentFailureMetric],
+        width: 6,
+        height: 4,
+      }),
+      new cloudwatch.SingleValueWidget({
+        title: 'Total Retries',
+        metrics: [retryCountMetric],
+        width: 6,
+        height: 4,
+      }),
+    );
   }
 
   private createLambdaFunction(config: LambdaFunctionConfig): lambda.Function {

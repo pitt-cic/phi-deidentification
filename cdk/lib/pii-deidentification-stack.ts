@@ -14,6 +14,7 @@ import {
   aws_apigateway as apigw,
   aws_amplify as amplify,
   aws_logs as logs,
+  aws_cloudwatch as cloudwatch,
 } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
@@ -271,6 +272,11 @@ frontend:
     new CfnOutput(this, 'AwsRegion', { value: this.region });
     new CfnOutput(this, 'AmplifyAppUrl', {
       value: `https://${mainBranch.branchName}.${amplifyApp.attrAppId}.amplifyapp.com`,
+    });
+
+    // CloudWatch Dashboard for metrics
+    const dashboard = new cloudwatch.Dashboard(this, 'PiiDeidDashboard', {
+      dashboardName: `${APP_NAME_LOWERCASE}-dashboard`,
     });
   }
 

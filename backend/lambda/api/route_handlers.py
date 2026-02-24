@@ -284,8 +284,6 @@ def get_note(params: dict, body: dict, query: dict) -> tuple[int, dict]:
         "redacted_text": review_redacted_text,
         "output_redacted_text": output_redacted_text,
         "pii_entities": detection.get("pii_entities", []),
-        "summary": detection.get("summary", ""),
-        "needs_review": detection.get("needs_review", False),
         "approved": is_note_approved(batch_id, note_id),
     }
 

@@ -158,8 +158,6 @@ def _process_record(record: SQSRecord) -> None:
             Key=detection_key,
             Body=json.dumps({
                 "pii_entities": occurrence_pii_dicts,
-                "summary": response.summary,
-                "needs_review": response.needs_review,
             }).encode("utf-8"),
         )
 

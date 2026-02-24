@@ -488,6 +488,12 @@ wheels = [
 name = "ingestion"
 version = "0.1.0"
 source = { virtual = "lambda/ingestion" }
+dependencies = [
+    { name = "aws-lambda-powertools" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "aws-lambda-powertools", specifier = ">=3.24.0" }]
 
 [[package]]
 name = "iniconfig"

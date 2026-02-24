@@ -184,6 +184,11 @@ export class PiiDeidentificationStack extends Stack {
     bucket.grantReadWrite(apiLambda);
     ingestionLambda.grantInvoke(apiLambda);
 
+    // DynamoDB permissions
+    batchStatsTable.grantWriteData(ingestionLambda);
+    batchStatsTable.grantReadWriteData(workerLambda);
+    batchStatsTable.grantReadWriteData(apiLambda);
+
     const cognitoAuthorizer = new apigw.CognitoUserPoolsAuthorizer(this, 'CognitoAuthorizer', {
       cognitoUserPools: [userPool],
       authorizerName: 'PiiDeidCognitoAuthorizer',
@@ -288,6 +293,7 @@ frontend:
     new CfnOutput(this, 'AmplifyAppUrl', {
       value: `https://${mainBranch.branchName}.${amplifyApp.attrAppId}.amplifyapp.com`,
     });
+    new CfnOutput(this, 'BatchStatsTableName', { value: batchStatsTable.tableName });
     new CfnOutput(this, 'DashboardUrl', {
       value: `https://${this.region}.console.aws.amazon.com/cloudwatch/home?region=${this.region}#dashboards:name=${APP_NAME_LOWERCASE}-dashboard`,
     });

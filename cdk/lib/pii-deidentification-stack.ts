@@ -273,6 +273,9 @@ frontend:
     new CfnOutput(this, 'AmplifyAppUrl', {
       value: `https://${mainBranch.branchName}.${amplifyApp.attrAppId}.amplifyapp.com`,
     });
+    new CfnOutput(this, 'DashboardUrl', {
+      value: `https://${this.region}.console.aws.amazon.com/cloudwatch/home?region=${this.region}#dashboards:name=${APP_NAME_LOWERCASE}-dashboard`,
+    });
 
     // CloudWatch Dashboard for metrics
     const dashboard = new cloudwatch.Dashboard(this, 'PiiDeidDashboard', {

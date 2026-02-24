@@ -93,16 +93,20 @@ def _compute_backoff_seconds(attempt: int) -> float:
     return min(base_delay + jitter, MODEL_RETRY_MAX_SECONDS)
 
 
-def _process_with_retry(note_text: str, source_name: str, detection: DetectionParameters) -> AgentResponse:
+def _process_with_retry(note_text: str, source_name: str, detection: DetectionParameters) -> tuple[AgentResponse, int]:
+    """Process document with retry logic. Returns (response, retry_count)."""
+    retry_count = 0
     for attempt in range(1, MODEL_RETRY_MAX_ATTEMPTS + 1):
         try:
-            return asyncio.run(
+            response = asyncio.run(
                 process_document(note_text, source_name=source_name, detection=detection, language="en")
             )
+            return response, retry_count
         except Exception as exc:
             if attempt >= MODEL_RETRY_MAX_ATTEMPTS or not _is_retryable_model_error(exc):
                 raise
 
+            retry_count += 1
             sleep_seconds = _compute_backoff_seconds(attempt)
             logger.warning(
                 "Retryable model error for %s (attempt %d/%d): %s. Retrying in %.2fs",

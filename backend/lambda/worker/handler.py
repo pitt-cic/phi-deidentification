@@ -12,7 +12,7 @@ from aws_lambda_powertools.utilities.data_classes.sqs_event import SQSRecord
 
 from agent import AgentResponse, DetectionParameters
 from deidentification import process_document
-from deidentification.redaction import find_pii_positions, redact_text
+from deidentification.redaction import find_pii_positions, redact_text, RedactionResult
 
 logger = Logger(service="pii_deidentification.worker")
 metrics = Metrics(namespace="PIIDeidentification", service="worker")
@@ -139,6 +139,7 @@ def build_occurrence_entities(
 
 def _process_record(record: SQSRecord) -> None:
     try:
+        start = time.perf_counter()
         message = record.json_body
         batch_id = message["batch_id"]
         s3_key = message["s3_key"]
@@ -149,10 +150,13 @@ def _process_record(record: SQSRecord) -> None:
         note_text = resp["Body"].read().decode("utf-8")
 
         detection = DetectionParameters()
-        response: AgentResponse = _process_with_retry(note_text, source_name=s3_key, detection=detection)
+        model_start = time.perf_counter()
+        response, retry_count = _process_with_retry(note_text, source_name=s3_key, detection=detection)
+        model_ms = (time.perf_counter() - model_start) * 1000
 
         pii_dicts = [e.model_dump() for e in response.pii_entities]
-        redacted_text = redact_text(note_text, pii_dicts, source_name=s3_key)
+        redaction_result = redact_text(note_text, pii_dicts, source_name=s3_key)
+        redacted_text = redaction_result.text
         occurrence_pii_dicts = build_occurrence_entities(note_text, pii_dicts, source_name=s3_key)
 
         redacted_key = f"{batch_id}/output/{stem}_redacted.txt"
@@ -167,8 +171,19 @@ def _process_record(record: SQSRecord) -> None:
             }).encode("utf-8"),
         )
 
+        total_ms = (time.perf_counter() - start) * 1000
+
+        metrics.add_metric(name="ModelInferenceTime", unit=MetricUnit.Milliseconds, value=model_ms)
+        metrics.add_metric(name="DocumentProcessingTime", unit=MetricUnit.Milliseconds, value=total_ms)
+        metrics.add_metric(name="RetryCount", unit=MetricUnit.Count, value=retry_count)
+
+        for pii_type, count in redaction_result.skipped_by_type.items():
+            metrics.add_dimension(name="pii_type", value=pii_type)
+            metrics.add_metric(name="SkippedRedaction", unit=MetricUnit.Count, value=count)
+
         logger.info("Processed %s -> %s (%d entities)", s3_key, redacted_key, len(response.pii_entities))
     except Exception:
+        metrics.add_metric(name="DocumentFailure", unit=MetricUnit.Count, value=1)
         logger.exception("Error processing SQS message %s", record.message_id)
         raise
 

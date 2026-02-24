@@ -7,6 +7,7 @@ import json
 import logging
 import re
 from pathlib import Path
+from dataclasses import dataclass
 from typing import Any, Protocol
 
 from .redaction_formats import (
@@ -34,6 +35,13 @@ class FormatterProtocol(Protocol):
     def reset(self) -> None:
         """Reset formatter state."""
         ...
+
+
+@dataclass
+class RedactionResult:
+    """Result of redact_text() with statistics."""
+    text: str
+    skipped_by_type: dict[str, int]
 
 
 def load_document_with_encoding(input_path: Path) -> str:

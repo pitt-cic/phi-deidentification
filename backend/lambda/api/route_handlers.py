@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 import boto3
 
-from . import storage
+import storage
 
 logger = logging.getLogger("pii_deidentification.api")
 lambda_client = boto3.client("lambda")

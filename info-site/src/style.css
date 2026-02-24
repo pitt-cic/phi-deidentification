@@ -780,50 +780,11 @@ body {
   margin: 0 auto;
 }
 
-.video-placeholder {
-  aspect-ratio: 16 / 9;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  background: var(--bg-secondary);
-  border: 2px dashed var(--border-color);
+.demo-video {
+  width: 100%;
   border-radius: 16px;
-  transition: all var(--transition-fast);
-}
-
-.video-placeholder:hover {
-  border-color: var(--accent-primary);
-  background: rgba(42, 167, 214, 0.03);
-}
-
-.video-placeholder-icon {
-  width: 80px;
-  height: 80px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(42, 167, 214, 0.1);
-  border: 2px solid rgba(42, 167, 214, 0.3);
-  border-radius: 50%;
-  color: var(--accent-primary);
-}
-
-.video-placeholder-icon svg {
-  width: 36px;
-  height: 36px;
-}
-
-.video-placeholder-text {
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.video-placeholder-subtext {
-  font-size: 0.9rem;
-  color: var(--text-muted);
+  background: var(--bg-secondary);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
 .features {

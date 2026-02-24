@@ -85,21 +85,21 @@ def redact_text(
     pii_entities: list[dict[str, Any]],
     source_name: str = "",
     formatter: FormatterProtocol | None = None,
-) -> str:
+) -> RedactionResult:
     """Redact PII entities from text by replacing exact string matches with tags.
-    
+
     Args:
         text: The original text to redact.
         pii_entities: List of PII entity dictionaries with 'type' and 'value' keys.
         source_name: Optional identifier for logging purposes.
         formatter: Optional formatter for custom redaction tags. If None, uses
                    the default [PII_TYPE] format.
-    
+
     Returns:
-        The redacted text with PII values replaced by tags.
+        RedactionResult containing the redacted text and skipped redaction stats.
     """
     if not pii_entities or not text:
-        return text
+        return RedactionResult(text=text, skipped_by_type={})
     
     # Use default formatter if none provided
     if formatter is None:
@@ -107,7 +107,8 @@ def redact_text(
     
     redacted_text = text
     total_replacements = 0
-    
+    skipped_by_type: dict[str, int] = {}
+
     # Sort by value length (longest first) to avoid partial replacements
     sorted_entities = sorted(pii_entities, key=lambda e: len(e.get("value", "")), reverse=True)
     
@@ -143,6 +144,7 @@ def redact_text(
                 pii_type,
                 source_name,
             )
+            skipped_by_type[pii_type] = skipped_by_type.get(pii_type, 0) + 1
             continue
         
         redacted_text = pattern.sub(tag, redacted_text)
@@ -163,8 +165,8 @@ def redact_text(
             total_replacements,
             source_name or "document",
         )
-    
-    return redacted_text
+
+    return RedactionResult(text=redacted_text, skipped_by_type=skipped_by_type)
 
 
 def find_pii_positions(text: str, pii_entities: list[dict[str, Any]], source_name: str = "") -> list[dict[str, Any]]:
@@ -245,12 +247,13 @@ def process_json_file(
         if formatter is not None:
             formatter.reset()
         
-        redacted_text = redact_text(
+        redaction_result = redact_text(
             original_text,
             pii_entities,
             source_name=str(json_path),
             formatter=formatter,
         )
+        redacted_text = redaction_result.text
         pii_positions = find_pii_positions(original_text, pii_entities, source_name=str(json_path))
         
         json_stem = json_path.stem

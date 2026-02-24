@@ -37,10 +37,6 @@ Step 4 — DEDUPLICATE: Remove exact duplicate strings, keeping one instance of 
 Step 5 — FINAL SWEEP: Re-read the document one more time specifically looking for anything you missed — especially names buried in narrative text, partial addresses, and dates embedded in sentences.
 </thinking_steps>
 
-<output_format>
-Return ONLY a valid JSON object matching the AgentResponse schema. No commentary, no explanation, no markdown fencing.
-</output_format>
-
 <edge_cases>
 - Partial names e.g., "John Smith" is the full name; flag "John Smith", "John" and "Smith" as person_name
 - Nicknames and informal references ("the patient's wife, Linda"): flag "Linda" as person_name

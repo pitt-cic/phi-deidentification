@@ -5,7 +5,8 @@ import random
 import time
 
 import boto3
-from aws_lambda_powertools import Logger
+from aws_lambda_powertools import Logger, Metrics
+from aws_lambda_powertools.metrics import MetricUnit
 from aws_lambda_powertools.utilities.batch import BatchProcessor, EventType, process_partial_response
 from aws_lambda_powertools.utilities.data_classes.sqs_event import SQSRecord
 
@@ -14,6 +15,7 @@ from deidentification import process_document
 from deidentification.redaction import find_pii_positions, redact_text
 
 logger = Logger(service="pii_deidentification.worker")
+metrics = Metrics(namespace="PIIDeidentification", service="worker")
 processor = BatchProcessor(event_type=EventType.SQS)
 
 s3_client = boto3.client("s3")

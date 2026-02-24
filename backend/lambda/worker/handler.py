@@ -188,6 +188,7 @@ def _process_record(record: SQSRecord) -> None:
         raise
 
 
+@metrics.log_metrics
 @logger.inject_lambda_context(clear_state=True)
 def handler(event, context):
     return process_partial_response(

@@ -314,6 +314,39 @@ frontend:
         height: 4,
       }),
     );
+
+    // Throughput metrics
+    const fileCountMetric = new cloudwatch.Metric({
+      namespace: metricsNamespace,
+      metricName: 'IngestionFileCount',
+      dimensionsMap: { service: 'ingestion' },
+      statistic: 'Sum',
+      period: Duration.hours(1),
+    });
+
+    const fileCountTimeSeriesMetric = new cloudwatch.Metric({
+      namespace: metricsNamespace,
+      metricName: 'IngestionFileCount',
+      dimensionsMap: { service: 'ingestion' },
+      statistic: 'Sum',
+      period: Duration.minutes(5),
+    });
+
+    // Row 2: Throughput
+    dashboard.addWidgets(
+      new cloudwatch.SingleValueWidget({
+        title: 'Files Enqueued (1h)',
+        metrics: [fileCountMetric],
+        width: 6,
+        height: 4,
+      }),
+      new cloudwatch.GraphWidget({
+        title: 'Files Over Time',
+        left: [fileCountTimeSeriesMetric],
+        width: 18,
+        height: 4,
+      }),
+    );
   }
 
   private createLambdaFunction(config: LambdaFunctionConfig): lambda.Function {

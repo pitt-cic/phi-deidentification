@@ -15,6 +15,7 @@ import {
   aws_amplify as amplify,
   aws_logs as logs,
   aws_cloudwatch as cloudwatch,
+  aws_dynamodb as dynamodb,
 } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
@@ -56,6 +57,17 @@ export class PiiDeidentificationStack extends Stack {
       visibilityTimeout: SQS_VISIBILITY_TIMEOUT,
       retentionPeriod: Duration.days(4),
       deadLetterQueue: { maxReceiveCount: 3, queue: dlq },
+    });
+
+    const batchStatsTable = new dynamodb.Table(this, 'BatchStatsTable', {
+      tableName: 'pii-deidentification-batch-stats',
+      partitionKey: {
+        name: 'batch_id',
+        type: dynamodb.AttributeType.STRING,
+      },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: RemovalPolicy.RETAIN,
+      pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true },
     });
 
     const ingestionLambda = this.createLambdaFunction({

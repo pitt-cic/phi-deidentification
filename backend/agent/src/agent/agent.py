@@ -28,10 +28,10 @@ except ImportError:
     pass
 
 # Disable Logfire scrubbing for prompt and system_instructions attributes
-def scrubbing_callback(m: logfire.ScrubMatch):
+def _scrubbing_callback(m: logfire.ScrubMatch):
     return m.value
 
-_scrubbing_options = logfire.ScrubbingOptions(callback=scrubbing_callback)
+_scrubbing_options = logfire.ScrubbingOptions(callback=_scrubbing_callback)
 
 # Requires `LOGFIRE_TOKEN` env variable to be set in dev or prod environment
 # For local development, you can run `uv run logfire auth` and `uv run logfire projects use <project_name>`

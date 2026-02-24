@@ -6,7 +6,7 @@ import time
 
 import boto3
 from aws_lambda_powertools import Logger, Metrics
-from aws_lambda_powertools.metrics import MetricUnit
+from aws_lambda_powertools.metrics import MetricUnit, single_metric
 from aws_lambda_powertools.utilities.batch import BatchProcessor, EventType, process_partial_response
 from aws_lambda_powertools.utilities.data_classes.sqs_event import SQSRecord
 
@@ -178,8 +178,9 @@ def _process_record(record: SQSRecord) -> None:
         metrics.add_metric(name="RetryCount", unit=MetricUnit.Count, value=retry_count)
 
         for pii_type, count in redaction_result.skipped_by_type.items():
-            metrics.add_dimension(name="pii_type", value=pii_type)
-            metrics.add_metric(name="SkippedRedaction", unit=MetricUnit.Count, value=count)
+            with single_metric(name="SkippedRedaction", unit=MetricUnit.Count, value=count, namespace="PIIDeidentification") as metric:
+                metric.add_dimension(name="service", value="worker")
+                metric.add_dimension(name="pii_type", value=pii_type)
 
         logger.info("Processed %s -> %s (%d entities)", s3_key, redacted_key, len(response.pii_entities))
     except Exception:

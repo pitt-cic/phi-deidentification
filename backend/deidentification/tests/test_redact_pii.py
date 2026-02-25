@@ -172,3 +172,22 @@ class TestRedactTextFormatter:
         assert "**NAME[A]" in result.text
         assert "**NAME[B]" in result.text
         assert result.skipped_by_type == {}
+
+
+class TestRedactTextTypeOrdering:
+    """Tests for deterministic PII type ordering."""
+
+    def test_type_order_prevents_substring_corruption(self):
+        """Ensure longer values in specific types are not corrupted by shorter values in generic types."""
+        text = "Patient insurance: AETNA-681277021 Provider: AETNA"
+        entities = [
+            {"type": "other", "value": "AETNA"},
+            {"type": "health_plan_beneficiary_number", "value": "AETNA-681277021"},
+        ]
+        result = redact_text(text, entities)
+        # health_plan_beneficiary_number (index 8) should process before other (index 17)
+        assert "[HEALTH_PLAN_BENEFICIARY_NUMBER]" in result.text
+        assert "AETNA-681277021" not in result.text
+        # "AETNA" alone should also be replaced (appears separately as "Provider: AETNA")
+        assert "[OTHER]" in result.text
+        assert result.text == "Patient insurance: [HEALTH_PLAN_BENEFICIARY_NUMBER] Provider: [OTHER]"

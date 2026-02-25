@@ -191,3 +191,17 @@ class TestRedactTextTypeOrdering:
         # "AETNA" alone should also be replaced (appears separately as "Provider: AETNA")
         assert "[OTHER]" in result.text
         assert result.text == "Patient insurance: [HEALTH_PLAN_BENEFICIARY_NUMBER] Provider: [OTHER]"
+
+    def test_unknown_type_processed_after_other(self):
+        """Unknown types should be processed after 'other'."""
+        text = "Custom: SECRET123 Other: INFO"
+        entities = [
+            {"type": "custom_field", "value": "SECRET123"},  # unknown type
+            {"type": "other", "value": "INFO"},
+        ]
+        result = redact_text(text, entities)
+        # Both should be replaced
+        assert "SECRET123" not in result.text
+        assert "INFO" not in result.text
+        assert "[CUSTOM_FIELD]" in result.text
+        assert "[OTHER]" in result.text

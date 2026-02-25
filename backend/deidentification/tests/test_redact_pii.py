@@ -3,6 +3,7 @@
 import pytest
 
 from deidentification.redaction.redact_pii import redact_text, RedactionResult
+from deidentification.redaction.redaction_formats import RedactionFormat, RedactionFormatter
 
 
 class TestRedactTextBasic:
@@ -151,3 +152,23 @@ class TestRedactTextSkipTracking:
         result = redact_text(text, entities)
         assert result.text == "Hello world"
         assert result.skipped_by_type == {"person_name": 1, "email": 1}
+
+
+class TestRedactTextFormatter:
+    """Tests for custom formatter integration."""
+
+    def test_custom_formatter_used(self):
+        """Verify custom formatter produces expected tags."""
+        text = "John called Jane"
+        entities = [
+            {"type": "person_name", "value": "John"},
+            {"type": "person_name", "value": "Jane"},
+        ]
+        fmt = RedactionFormat(template="**{TYPE}[{ID}]", id_scheme="alpha")
+        formatter = RedactionFormatter(fmt)
+
+        result = redact_text(text, entities, formatter=formatter)
+
+        assert "**NAME[A]" in result.text
+        assert "**NAME[B]" in result.text
+        assert result.skipped_by_type == {}

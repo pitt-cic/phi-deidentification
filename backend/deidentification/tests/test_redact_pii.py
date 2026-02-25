@@ -205,3 +205,27 @@ class TestRedactTextTypeOrdering:
         assert "INFO" not in result.text
         assert "[CUSTOM_FIELD]" in result.text
         assert "[OTHER]" in result.text
+
+    def test_deterministic_order_regardless_of_input_order(self):
+        """Same entities in different input orders should produce identical output."""
+        text = "Name: John Email: john@example.com SSN: 123-45-6789"
+
+        # Entities in one order
+        entities_order_1 = [
+            {"type": "email", "value": "john@example.com"},
+            {"type": "person_name", "value": "John"},
+            {"type": "ssn", "value": "123-45-6789"},
+        ]
+
+        # Same entities in different order
+        entities_order_2 = [
+            {"type": "ssn", "value": "123-45-6789"},
+            {"type": "email", "value": "john@example.com"},
+            {"type": "person_name", "value": "John"},
+        ]
+
+        result_1 = redact_text(text, entities_order_1)
+        result_2 = redact_text(text, entities_order_2)
+
+        assert result_1.text == result_2.text
+        assert result_1.skipped_by_type == result_2.skipped_by_type

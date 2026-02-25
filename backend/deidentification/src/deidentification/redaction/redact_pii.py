@@ -166,7 +166,8 @@ def redact_text(
     processed_values: set[str] = set()
 
     # Process each group
-    for pii_type, entities in groups.items():
+    for pii_type in sorted(groups.keys(), key=_type_sort_key):
+        entities = groups[pii_type]
         successful_in_group = 0
         skipped_in_group = 0
 

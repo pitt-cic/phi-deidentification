@@ -86,4 +86,68 @@ class TestRedactTextGrouping:
 
 class TestRedactTextSkipTracking:
     """Tests for skip tracking behavior."""
-    pass
+
+    def test_all_skipped_in_type_tracked(self):
+        """When ALL entities of a type are not found, track it."""
+        text = "Hello world"
+        entities = [{"type": "person_name", "value": "John"}]
+        result = redact_text(text, entities)
+        assert result.text == "Hello world"
+        assert result.skipped_by_type == {"person_name": 1}
+
+    def test_partial_skip_silent(self):
+        """When SOME entities of a type match, don't track skips."""
+        text = "Hi John"
+        entities = [
+            {"type": "person_name", "value": "John"},
+            {"type": "person_name", "value": "Jane"},  # not in text
+        ]
+        result = redact_text(text, entities)
+        assert result.text == "Hi [PERSON_NAME]"
+        # Jane not found, but John was - so no skip tracked
+        assert result.skipped_by_type == {}
+
+    def test_substring_consumed_silent(self):
+        """When shorter value consumed by longer, don't track as skip."""
+        text = "John Smith is here"
+        entities = [
+            {"type": "person_name", "value": "John Smith"},
+            {"type": "person_name", "value": "John"},  # consumed by John Smith
+        ]
+        result = redact_text(text, entities)
+        assert result.text == "[PERSON_NAME] is here"
+        # "John" not found separately, but "John Smith" matched - no skip
+        assert result.skipped_by_type == {}
+
+    def test_mixed_types_one_fully_skipped(self):
+        """Mixed types where one type is fully skipped."""
+        text = "Hi John"
+        entities = [
+            {"type": "person_name", "value": "John"},
+            {"type": "email", "value": "test@example.com"},  # not in text
+        ]
+        result = redact_text(text, entities)
+        assert result.text == "Hi [PERSON_NAME]"
+        assert result.skipped_by_type == {"email": 1}
+
+    def test_multiple_skipped_same_type(self):
+        """Multiple entities of same type all skipped."""
+        text = "Hello world"
+        entities = [
+            {"type": "person_name", "value": "John"},
+            {"type": "person_name", "value": "Jane"},
+        ]
+        result = redact_text(text, entities)
+        assert result.text == "Hello world"
+        assert result.skipped_by_type == {"person_name": 2}
+
+    def test_all_types_fully_skipped(self):
+        """All types fully skipped."""
+        text = "Hello world"
+        entities = [
+            {"type": "person_name", "value": "John"},
+            {"type": "email", "value": "test@example.com"},
+        ]
+        result = redact_text(text, entities)
+        assert result.text == "Hello world"
+        assert result.skipped_by_type == {"person_name": 1, "email": 1}

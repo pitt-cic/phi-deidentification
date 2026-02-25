@@ -6,6 +6,7 @@ import argparse
 import json
 import logging
 import re
+from collections import defaultdict
 from pathlib import Path
 from dataclasses import dataclass
 from typing import Any, Protocol
@@ -88,6 +89,10 @@ def redact_text(
 ) -> RedactionResult:
     """Redact PII entities from text by replacing exact string matches with tags.
 
+    Entities are grouped by PII type, then sorted by value length (longest first)
+    within each group. This prevents partial replacement issues and reduces false
+    positive skip warnings.
+
     Args:
         text: The original text to redact.
         pii_entities: List of PII entity dictionaries with 'type' and 'value' keys.
@@ -97,68 +102,92 @@ def redact_text(
 
     Returns:
         RedactionResult containing the redacted text and skipped redaction stats.
+        skipped_by_type only includes types where ALL entities were not found.
     """
     if not pii_entities or not text:
         return RedactionResult(text=text, skipped_by_type={})
-    
+
     # Use default formatter if none provided
     if formatter is None:
         formatter = DefaultFormatter()
-    
+
+    # Group entities by PII type
+    groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for entity in pii_entities:
+        pii_type = entity.get("type", "")
+        if pii_type:
+            groups[pii_type].append(entity)
+
+    # Sort each group by value length (longest first)
+    for pii_type in groups:
+        groups[pii_type].sort(key=lambda e: len(e.get("value", "")), reverse=True)
+
     redacted_text = text
     total_replacements = 0
     skipped_by_type: dict[str, int] = {}
 
-    # Sort by value length (longest first) to avoid partial replacements
-    sorted_entities = sorted(pii_entities, key=lambda e: len(e.get("value", "")), reverse=True)
-    
-    # Track which values we've already processed to avoid double-replacement
+    # Track which values we've already processed globally to avoid double-replacement
     processed_values: set[str] = set()
-    
-    for entity in sorted_entities:
-        pii_type = entity.get("type", "")
-        value = entity.get("value", "")
-        
-        if not value:
-            logger.warning(
-                "Empty value for %s entity in %s, skipping",
-                pii_type,
-                source_name,
-            )
-            continue
-        
-        # Skip if we've already processed this exact value
-        if value in processed_values:
-            continue
-        processed_values.add(value)
-        
-        tag = formatter.get_tag(pii_type, value)
-        
-        pattern = make_word_boundary_pattern(value)
-        occurrences = len(pattern.findall(redacted_text))
-        
-        if occurrences == 0:
-            logger.warning(
-                "PII string %r (type=%s) not found in %s, skipping",
+
+    # Process each group
+    for pii_type, entities in groups.items():
+        successful_in_group = 0
+        skipped_in_group = 0
+
+        for entity in entities:
+            value = entity.get("value", "")
+
+            if not value:
+                logger.warning(
+                    "Empty value for %s entity in %s, skipping",
+                    pii_type,
+                    source_name,
+                )
+                continue
+
+            # Skip if we've already processed this exact value
+            if value in processed_values:
+                continue
+            processed_values.add(value)
+
+            tag = formatter.get_tag(pii_type, value)
+
+            pattern = make_word_boundary_pattern(value)
+            occurrences = len(pattern.findall(redacted_text))
+
+            if occurrences == 0:
+                skipped_in_group += 1
+                logger.debug(
+                    "PII string %r (type=%s) not found in %s",
+                    value,
+                    pii_type,
+                    source_name,
+                )
+                continue
+
+            redacted_text = pattern.sub(tag, redacted_text)
+            total_replacements += occurrences
+            successful_in_group += 1
+
+            logger.debug(
+                "Redacted %s occurrence(s) of %r (type=%s) -> %s in %s",
+                occurrences,
                 value,
                 pii_type,
+                tag,
                 source_name,
             )
-            skipped_by_type[pii_type] = skipped_by_type.get(pii_type, 0) + 1
-            continue
-        
-        redacted_text = pattern.sub(tag, redacted_text)
-        total_replacements += occurrences
-        
-        logger.debug(
-            "Redacted %s occurrence(s) of %r (type=%s) -> %s in %s",
-            occurrences,
-            value,
-            pii_type,
-            tag,
-            source_name,
-        )
-    
+
+        # Only track as skipped if ALL entities in the group failed
+        if successful_in_group == 0 and skipped_in_group > 0:
+            skipped_by_type[pii_type] = skipped_in_group
+            logger.warning(
+                "All %s %s entities not found in %s",
+                skipped_in_group,
+                pii_type,
+                source_name or "document",
+            )
+
     if total_replacements > 0:
         logger.info(
             "Redacted %s total PII occurrence(s) from %s",

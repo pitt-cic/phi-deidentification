@@ -25,6 +25,29 @@ if not logger.handlers:
         format="%(asctime)s %(levelname)s %(name)s - %(message)s",
     )
 
+# HIPAA 18 identifiers - order determines processing priority
+# More specific types processed before generic ones
+PII_TYPE_ORDER: list[str] = [
+    "person_name",
+    "address",
+    "date",
+    "phone_number",
+    "fax_number",
+    "email",
+    "ssn",
+    "medical_record_number",
+    "health_plan_beneficiary_number",
+    "account_number",
+    "certificate_or_license_number",
+    "vehicle_identifier",
+    "device_identifier",
+    "url",
+    "ip_address",
+    "biometric_identifier",
+    "photographic_image",
+    "other",  # catch-all, always last
+]
+
 
 class FormatterProtocol(Protocol):
     """Protocol for redaction formatters."""

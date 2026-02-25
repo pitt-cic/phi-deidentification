@@ -49,6 +49,19 @@ PII_TYPE_ORDER: list[str] = [
 ]
 
 
+def _type_sort_key(pii_type: str) -> tuple[int, str]:
+    """Return sort key for deterministic PII type ordering.
+
+    Types in PII_TYPE_ORDER are sorted by their index.
+    Unknown types are sorted after 'other', alphabetically.
+    """
+    try:
+        return (PII_TYPE_ORDER.index(pii_type), pii_type)
+    except ValueError:
+        # Unknown type: after 'other' (index len), then alphabetically
+        return (len(PII_TYPE_ORDER), pii_type)
+
+
 class FormatterProtocol(Protocol):
     """Protocol for redaction formatters."""
     

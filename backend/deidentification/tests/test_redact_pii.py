@@ -242,3 +242,19 @@ class TestRedactTextTypeOrdering:
         assert "[PHONE_NUMBER]" in result.text
         assert "555-268-[DATE]" not in result.text
         assert result.text == "Call [PHONE_NUMBER] for assistance"
+
+    def test_email_not_corrupted_by_person_name(self):
+        """Email containing a person's name should not be corrupted."""
+        # Using matching case to ensure the bug is exposed
+        text = "Contact john.smith@example.com or john directly"
+        entities = [
+            {"type": "person_name", "value": "john"},
+            {"type": "email", "value": "john.smith@example.com"},
+        ]
+        result = redact_text(text, entities)
+        # email should be processed before person_name
+        assert "[EMAIL]" in result.text
+        assert "[PERSON_NAME]" in result.text
+        # Email should be fully replaced, not corrupted
+        assert "john.smith@example.com" not in result.text
+        assert "[PERSON_NAME].smith@example.com" not in result.text

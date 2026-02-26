@@ -1,4 +1,5 @@
 import * as path from 'path';
+import * as os from 'os';
 import {
   Stack,
   StackProps,
@@ -19,7 +20,7 @@ import {
 } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
-const APP_NAME_LOWERCASE = 'pii-deidentification-v3';
+const APP_NAME_LOWERCASE = 'pii-deidentification-v4';
 
 export class PiiDeidentificationStack extends Stack {
   private readonly backendRoot = path.join(__dirname, '../../backend');
@@ -60,7 +61,7 @@ export class PiiDeidentificationStack extends Stack {
     });
 
     const batchStatsTable = new dynamodb.Table(this, 'BatchStatsTable', {
-      tableName: 'pii-deidentification-batch-stats',
+      tableName: `${APP_NAME_LOWERCASE}-stats`,
       partitionKey: {
         name: 'batch_id',
         type: dynamodb.AttributeType.STRING,
@@ -177,6 +178,8 @@ export class PiiDeidentificationStack extends Stack {
         BUCKET_NAME: bucket.bucketName,
         INGESTION_FUNCTION_NAME: ingestionLambda.functionName,
         STATS_TABLE_NAME: batchStatsTable.tableName,
+        DLQ_URL: dlq.queueUrl,
+        QUEUE_URL: queue.queueUrl,
       },
       timeout: API_TIMEOUT,
     });
@@ -188,6 +191,10 @@ export class PiiDeidentificationStack extends Stack {
     batchStatsTable.grantWriteData(ingestionLambda);
     batchStatsTable.grantReadWriteData(workerLambda);
     batchStatsTable.grantReadWriteData(apiLambda);
+
+    // DLQ redrive permissions for API Lambda
+    dlq.grantConsumeMessages(apiLambda);
+    queue.grantSendMessages(apiLambda);
 
     const cognitoAuthorizer = new apigw.CognitoUserPoolsAuthorizer(this, 'CognitoAuthorizer', {
       cognitoUserPools: [userPool],
@@ -226,6 +233,9 @@ export class PiiDeidentificationStack extends Stack {
 
     const approveAllResource = batchResource.addResource('approve-all');
     approveAllResource.addMethod('POST', apiIntegration, authOpts);
+
+    const redriveResource = batchResource.addResource('redrive');
+    redriveResource.addMethod('POST', apiIntegration, authOpts);
 
     const notesResource = batchResource.addResource('notes');
     notesResource.addMethod('GET', apiIntegration, authOpts);
@@ -498,14 +508,14 @@ frontend:
       `cp -r ${lambdaDir}/* /asset-output/`,
       'find /asset-output -name "*.sh" -exec chmod +x {} \\;',
       // Install only deps from pyproject.toml, skip building the local package itself since we copied source files
-      `python -m uv pip install --python ${pythonRuntime} --target /asset-output --no-cache --requirements ${lambdaDir}/pyproject.toml`,
+      `python -m uv pip install --python ${pythonRuntime} --target /asset-output --requirements ${lambdaDir}/pyproject.toml`,
     ];
 
     // Install additional packages if specified
     if (config.additionalDeps?.length) {
       const additionalDeps = config.additionalDeps.join(' ');
       bundlingCommands.push(
-        `python -m uv pip install --python 3.12 --target /asset-output --no-cache ${additionalDeps}`
+        `python -m uv pip install --python 3.12 --target /asset-output ${additionalDeps}`
       );
     }
 
@@ -528,6 +538,15 @@ frontend:
               image: lambda.Runtime.PYTHON_3_12.bundlingImage,
               platform: 'linux/arm64',
               command: ['bash', '-c', bundlingCommands.join(' && ')],
+              volumes: [
+                {
+                  hostPath: path.join(os.homedir(), '.cache', 'pii-deid-lambda-cache'),
+                  containerPath: '/.cache/uv',
+                },
+              ],
+              environment: {
+                UV_LINK_MODE: 'copy'
+              },
           },
       }),
       environment: {

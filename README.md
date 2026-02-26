@@ -30,15 +30,12 @@ Key capabilities include:
 - **Automated PII Detection**: Uses Claude via Amazon Bedrock to identify sensitive entities in clinical or operational notes.
 - **Redacted Output Generation**: Produces redacted text and entity metadata for each input note.
 - **Human-in-the-Loop Review**: Provides a dashboard to compare original vs redacted text, edit, and approve.
-- **Batch Processing at Scale**: Uses S3 + SQS + Lambda for asynchronous, serverless processing.
+- **Batch Processing at Scale**: Uses S3, SQS, and Lambda for asynchronous, serverless processing.
 - **Operational Visibility**: Tracks batch stats and emits CloudWatch metrics for throughput, latency, retries, and failures.
 
 # Demo
 
-<video controls width="1000">
-  <source src="docs/pii-deid-demo.mp4" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
+https://github.com/user-attachments/assets/1f35119a-5b6a-4158-8f5e-0d6de21e8fe0
 
 Info site: [info-site](info-site)
 

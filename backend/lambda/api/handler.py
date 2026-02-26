@@ -79,6 +79,11 @@ def approve_all_notes_route(batch_id: str) -> Response:
     return _invoke(handlers.approve_all_notes, {"batch_id": batch_id})
 
 
+@app.post("/batches/<batch_id>/redrive")
+def redrive_dlq_route(batch_id: str) -> Response:
+    return _invoke(handlers.redrive_dlq, {"batch_id": batch_id})
+
+
 @app.get("/batches/<batch_id>/notes/<note_id>")
 def get_note_route(batch_id: str, note_id: str) -> Response:
     return _invoke(handlers.get_note, {"batch_id": batch_id, "note_id": note_id})

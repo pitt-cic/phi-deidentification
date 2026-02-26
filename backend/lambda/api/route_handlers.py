@@ -6,11 +6,14 @@ from datetime import datetime, timezone
 import boto3
 
 import storage
-from batch_stats import get_batch_stats, increment_approval_count
+from batch_stats import get_batch_stats, increment_approval_count, reset_failed_count_and_set_redrive_timestamp
 
 logger = logging.getLogger("pii_deidentification.api")
 lambda_client = boto3.client("lambda")
+sqs_client = boto3.client("sqs")
 INGESTION_FUNCTION_NAME = os.environ["INGESTION_FUNCTION_NAME"]
+DLQ_URL = os.environ.get("DLQ_URL", "")
+QUEUE_URL = os.environ.get("QUEUE_URL", "")
 MIN_SORT_DATETIME = datetime.min.replace(tzinfo=timezone.utc)
 
 
@@ -388,4 +391,60 @@ def approve_all_notes(params: dict, body: dict, query: dict) -> tuple[int, dict]
         "required_note_count": len(required_note_id_set),
         "approved_note_count": approved_required_note_count,
         "all_approved": all_approved,
+    }
+
+
+def redrive_dlq(params: dict, body: dict, query: dict) -> tuple[int, dict]:
+    """Move failed messages for a batch from DLQ back to main queue."""
+    batch_id = params["batch_id"]
+
+    if not DLQ_URL or not QUEUE_URL:
+        return 500, {"error": "DLQ redrive not configured"}
+
+    redriven_count = 0
+    max_iterations = 100  # Safety limit
+
+    for _ in range(max_iterations):
+        # Receive up to 10 messages from DLQ
+        response = sqs_client.receive_message(
+            QueueUrl=DLQ_URL,
+            MaxNumberOfMessages=10,
+            WaitTimeSeconds=1,
+            VisibilityTimeout=30,
+        )
+
+        messages = response.get("Messages", [])
+        if not messages:
+            break
+
+        for message in messages:
+            try:
+                msg_body = json.loads(message["Body"])
+                if msg_body.get("batch_id") != batch_id:
+                    continue  # Skip messages from other batches
+
+                # Re-send to main queue
+                sqs_client.send_message(
+                    QueueUrl=QUEUE_URL,
+                    MessageBody=message["Body"],
+                )
+
+                # Delete from DLQ
+                sqs_client.delete_message(
+                    QueueUrl=DLQ_URL,
+                    ReceiptHandle=message["ReceiptHandle"],
+                )
+
+                redriven_count += 1
+            except Exception as exc:
+                logger.warning("Failed to redrive message: %s", exc)
+
+    # Update batch stats
+    if redriven_count > 0:
+        reset_failed_count_and_set_redrive_timestamp(batch_id)
+
+    return 200, {
+        "batch_id": batch_id,
+        "redriven_count": redriven_count,
+        "status": "processing" if redriven_count > 0 else "partially-completed",
     }

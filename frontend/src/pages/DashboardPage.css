@@ -929,3 +929,44 @@
     margin-top: 0;
   }
 }
+
+/* Timeline styles */
+.batch-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-color);
+}
+
+.timeline-item {
+  display: flex;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.timeline-label {
+  color: var(--text-muted);
+  min-width: 5.5rem;
+}
+
+.timeline-value {
+  color: var(--text-secondary);
+}
+
+.timeline-item-warning .timeline-value {
+  color: #fb923c;
+}
+
+.timeline-item-success .timeline-value {
+  color: #4ade80;
+}
+
+[data-theme="light"] .timeline-item-warning .timeline-value {
+  color: #c2410c;
+}
+
+[data-theme="light"] .timeline-item-success .timeline-value {
+  color: #16a34a;
+}

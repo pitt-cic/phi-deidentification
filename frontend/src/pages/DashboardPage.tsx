@@ -17,6 +17,7 @@ type BatchStatusKey =
   | 'created'
   | 'ready-to-process'
   | 'processing'
+  | 'partially-completed'
   | 'needs-review'
   | 'approved'
   | 'unknown'
@@ -33,6 +34,10 @@ const getBatchStatusDisplay = (status: Batch['status'], allApproved: boolean, in
     return allApproved
       ? { key: 'approved', label: 'Approved' }
       : { key: 'needs-review', label: 'Needs Review' }
+  }
+
+  if (status === 'partially-completed') {
+    return { key: 'partially-completed', label: 'Partially Completed' }
   }
 
   if (status === 'processing') {
@@ -88,7 +93,13 @@ export default function DashboardPage() {
       return next < lastPage.total ? next : undefined
     },
     initialPageParam: 0,
-    refetchInterval: 10_000,
+    refetchInterval: (query) => {
+      const pages = query.state.data?.pages
+      const anyProcessing = pages?.some(page =>
+        page.items.some(batch => batch.status === 'processing')
+      )
+      return anyProcessing ? 10_000 : false
+    },
   })
 
   const batches = batchPages?.pages.flatMap(p => p.items) ?? []
@@ -98,7 +109,10 @@ export default function DashboardPage() {
     queryKey: ['batch', selectedBatchId],
     queryFn: () => getBatch(selectedBatchId!),
     enabled: !!selectedBatchId,
-    refetchInterval: 5_000,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status
+      return status === 'processing' ? 5_000 : false
+    },
   })
 
   const createAndUploadCommand = `./scripts/create_batch.sh --notes-dir /PATH/TO/YOUR-NOTES`

@@ -121,3 +121,15 @@ class TestInitializeBatchStats:
 
         mock_table.delete_item.assert_called_once_with(Key={"batch_id": "test-batch"})
         assert mock_table.put_item.call_count == 2
+
+
+class TestBuildInitialStatsItemFailedCount:
+    """Tests for failed_count in build_initial_stats_item function."""
+
+    def test_build_initial_stats_item_includes_failed_count(self):
+        """Test that initial stats include failed_count set to 0."""
+        item = batch_stats.build_initial_stats_item("batch-001", 10)
+
+        assert item["failed_count"] == 0
+        assert "completed_at" not in item  # Should not be set initially
+        assert "failed_at" not in item  # Should not be set initially

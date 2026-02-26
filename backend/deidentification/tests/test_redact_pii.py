@@ -229,3 +229,16 @@ class TestRedactTextTypeOrdering:
 
         assert result_1.text == result_2.text
         assert result_1.skipped_by_type == result_2.skipped_by_type
+
+    def test_phone_number_not_corrupted_by_date(self):
+        """Phone number containing a year should not be corrupted by date redaction."""
+        text = "Call 555-268-1985 for assistance"
+        entities = [
+            {"type": "date", "value": "1985"},
+            {"type": "phone_number", "value": "555-268-1985"},
+        ]
+        result = redact_text(text, entities)
+        # phone_number should be processed before date
+        assert "[PHONE_NUMBER]" in result.text
+        assert "555-268-[DATE]" not in result.text
+        assert result.text == "Call [PHONE_NUMBER] for assistance"

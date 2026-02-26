@@ -11,7 +11,7 @@ from aws_lambda_powertools.utilities.batch import BatchProcessor, EventType, pro
 from aws_lambda_powertools.utilities.data_classes.sqs_event import SQSRecord
 
 from agent import AgentResponse, DetectionParameters
-from batch_stats import increment_batch_stats, increment_failed_count
+from batch_stats import increment_batch_stats, increment_failed_count, set_completed_at_if_done
 from deidentification import process_document
 from deidentification.redaction import find_pii_positions, redact_text, RedactionResult
 
@@ -187,6 +187,7 @@ def _process_record(record: SQSRecord) -> None:
 
         # Increment stats in DynamoDB
         increment_batch_stats(batch_id, pii_dicts, logger=logger)
+        set_completed_at_if_done(batch_id, logger=logger)
     except Exception:
         metrics.add_metric(name="DocumentFailure", unit=MetricUnit.Count, value=1)
         logger.exception("Error processing SQS message %s", record.message_id)

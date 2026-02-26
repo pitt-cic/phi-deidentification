@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 import boto3
 
 import storage
-from batch_stats import get_batch_stats, increment_approval_count, reset_failed_count_and_set_redrive_timestamp
+from batch_stats import get_batch_stats, increment_approval_count, reset_failed_count_and_set_redrive_timestamp, set_approved_at
 
 logger = logging.getLogger("pii_deidentification.api")
 lambda_client = boto3.client("lambda")
@@ -104,6 +104,10 @@ def update_batch_approval_metadata(
     )
     meta["all_approved"] = all_approved
     storage.save_metadata(batch_id, meta)
+
+    # Set approved_at timestamp in DynamoDB when all notes are approved
+    if all_approved:
+        set_approved_at(batch_id)
 
     return approved_required_note_count, all_approved
 

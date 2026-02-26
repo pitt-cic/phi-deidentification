@@ -94,3 +94,26 @@ def increment_failed_count(batch_id: str, logger=None) -> None:
     except Exception as exc:
         if logger:
             logger.warning("Failed to increment failed_count for %s: %s", batch_id, exc)
+
+
+def set_completed_at_if_done(batch_id: str, logger=None) -> None:
+    """Set completed_at timestamp if all notes are processed."""
+    stats_table = _get_stats_table()
+    if not stats_table:
+        return
+
+    now = datetime.now(timezone.utc).isoformat()
+
+    try:
+        # Conditional update: only set completed_at if processed_count >= input_count
+        # and completed_at is not already set
+        stats_table.update_item(
+            Key={"batch_id": batch_id},
+            UpdateExpression="SET completed_at = :now, updated_at = :now",
+            ConditionExpression="processed_count >= input_count AND attribute_not_exists(completed_at)",
+            ExpressionAttributeValues={":now": now},
+        )
+    except Exception as exc:
+        # Condition failed or other error - this is expected if not done yet
+        if logger:
+            logger.debug("set_completed_at_if_done condition not met for %s: %s", batch_id, exc)

@@ -145,3 +145,17 @@ def reset_failed_count_and_set_redrive_timestamp(batch_id: str) -> None:
             ":status": "processing",
         },
     )
+
+
+def set_approved_at(batch_id: str) -> None:
+    """Set approved_at timestamp when all notes are approved."""
+    stats_table = _get_stats_table()
+    if not stats_table:
+        return
+
+    now = datetime.now(timezone.utc).isoformat()
+    stats_table.update_item(
+        Key={"batch_id": batch_id},
+        UpdateExpression="SET approved_at = :now, updated_at = :now",
+        ExpressionAttributeValues={":now": now},
+    )

@@ -25,27 +25,32 @@ if not logger.handlers:
         format="%(asctime)s %(levelname)s %(name)s - %(message)s",
     )
 
-# HIPAA 18 identifiers - order determines processing priority
-# More specific types processed before generic ones
+# PII type processing order - containers first, substrings last
+# Types whose values contain other types as substrings are processed first
 PII_TYPE_ORDER: list[str] = [
-    "person_name",
-    "address",
-    "date",
-    "phone_number",
-    "fax_number",
-    "email",
-    "ssn",
-    "medical_record_number",
-    "health_plan_beneficiary_number",
-    "account_number",
-    "certificate_or_license_number",
-    "vehicle_identifier",
-    "device_identifier",
-    "url",
-    "ip_address",
-    "biometric_identifier",
-    "photographic_image",
-    "other",  # catch-all, always last
+    # Tier 1: Long, structured identifiers (contain substrings, never are substrings)
+    "medical_record_number",           # UUIDs, very long
+    "ssn",                             # 9 digits, structured
+    "device_identifier",               # 14+ digits
+    "vehicle_identifier",              # VINs (17 chars), plates
+    "health_plan_beneficiary_number",  # AETNA-681277021 contains company name
+    "account_number",                  # ACCT-12345 format
+    "certificate_or_license_number",   # S99960000 format
+    # Tier 2: Structured with special characters
+    "email",                           # contains @ and person names
+    "url",                             # contains http(s)://
+    "ip_address",                      # dotted notation
+    # Tier 3: Phone numbers (contain years as substrings)
+    "phone_number",                    # 555-268-1985 contains "1985"
+    "fax_number",                      # same pattern
+    # Tier 4: Variable length (within-type length sort handles it)
+    "person_name",                     # full names before partial
+    "address",                         # full addresses before partial
+    # Tier 5: Short/generic (likely to BE substrings of others)
+    "biometric_identifier",            # unclear content
+    "photographic_image",              # unclear content
+    "date",                            # years like "1985" are substrings
+    "other",                           # catch-all, always last
 ]
 
 

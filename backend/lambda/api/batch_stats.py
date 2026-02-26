@@ -122,3 +122,26 @@ def increment_approval_count(batch_id: str, delta: int) -> None:
         UpdateExpression="ADD approved_count :delta SET updated_at = :now",
         ExpressionAttributeValues={":delta": delta, ":now": now},
     )
+
+
+def reset_failed_count_and_set_redrive_timestamp(batch_id: str) -> None:
+    """Reset failed_count to 0 and set last_redrive_at timestamp for redrive."""
+    stats_table = _get_stats_table()
+    if not stats_table:
+        return
+
+    now = datetime.now(timezone.utc).isoformat()
+    stats_table.update_item(
+        Key={"batch_id": batch_id},
+        UpdateExpression="""
+            SET failed_count = :zero,
+                last_redrive_at = :now,
+                status = :status,
+                updated_at = :now
+        """,
+        ExpressionAttributeValues={
+            ":zero": 0,
+            ":now": now,
+            ":status": "processing",
+        },
+    )

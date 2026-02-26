@@ -215,3 +215,93 @@ class TestIncrementApprovalCount:
 
         call_kwargs = mock_table.update_item.call_args[1]
         assert call_kwargs["ExpressionAttributeValues"][":delta"] == -1
+
+
+class TestGetBatchStatsPartiallyCompleted:
+    """Tests for partially-completed status computation."""
+
+    @patch.object(batch_stats, "STATS_TABLE_NAME", "test-table")
+    @patch.object(batch_stats, "boto3")
+    def test_returns_partially_completed_when_failures_exist(self, mock_boto3):
+        """Test status is partially-completed when processed + failed >= input and failed > 0."""
+        batch_stats._stats_table = None
+
+        mock_table = MagicMock()
+        mock_table.get_item.return_value = {
+            "Item": {
+                "batch_id": "batch-001",
+                "input_count": Decimal("10"),
+                "processed_count": Decimal("7"),
+                "failed_count": Decimal("3"),
+                "approved_count": Decimal("0"),
+                "total_entities": Decimal("50"),
+                "notes_with_pii": Decimal("5"),
+                "created_at": "2026-02-26T10:00:00+00:00",
+                "started_at": "2026-02-26T10:00:05+00:00",
+                "failed_at": "2026-02-26T10:02:00+00:00",
+            }
+        }
+        mock_boto3.resource.return_value.Table.return_value = mock_table
+
+        result = batch_stats.get_batch_stats("batch-001")
+
+        assert result is not None
+        assert result["status"] == "partially-completed"
+        assert result["failed_count"] == 3
+        assert result["failed_at"] == "2026-02-26T10:02:00+00:00"
+
+    @patch.object(batch_stats, "STATS_TABLE_NAME", "test-table")
+    @patch.object(batch_stats, "boto3")
+    def test_returns_completed_when_no_failures(self, mock_boto3):
+        """Test status is completed when all notes processed successfully."""
+        batch_stats._stats_table = None
+
+        mock_table = MagicMock()
+        mock_table.get_item.return_value = {
+            "Item": {
+                "batch_id": "batch-001",
+                "input_count": Decimal("10"),
+                "processed_count": Decimal("10"),
+                "failed_count": Decimal("0"),
+                "approved_count": Decimal("0"),
+                "total_entities": Decimal("50"),
+                "notes_with_pii": Decimal("5"),
+                "created_at": "2026-02-26T10:00:00+00:00",
+                "started_at": "2026-02-26T10:00:05+00:00",
+                "completed_at": "2026-02-26T10:05:00+00:00",
+            }
+        }
+        mock_boto3.resource.return_value.Table.return_value = mock_table
+
+        result = batch_stats.get_batch_stats("batch-001")
+
+        assert result is not None
+        assert result["status"] == "completed"
+        assert result["failed_count"] == 0
+
+    @patch.object(batch_stats, "STATS_TABLE_NAME", "test-table")
+    @patch.object(batch_stats, "boto3")
+    def test_returns_processing_when_in_progress(self, mock_boto3):
+        """Test status is processing when not all notes handled yet."""
+        batch_stats._stats_table = None
+
+        mock_table = MagicMock()
+        mock_table.get_item.return_value = {
+            "Item": {
+                "batch_id": "batch-001",
+                "input_count": Decimal("10"),
+                "processed_count": Decimal("5"),
+                "failed_count": Decimal("1"),
+                "approved_count": Decimal("0"),
+                "total_entities": Decimal("30"),
+                "notes_with_pii": Decimal("3"),
+                "created_at": "2026-02-26T10:00:00+00:00",
+                "started_at": "2026-02-26T10:00:05+00:00",
+            }
+        }
+        mock_boto3.resource.return_value.Table.return_value = mock_table
+
+        result = batch_stats.get_batch_stats("batch-001")
+
+        assert result is not None
+        assert result["status"] == "processing"

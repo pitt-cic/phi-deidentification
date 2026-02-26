@@ -41,12 +41,17 @@ def get_batch_stats(batch_id: str) -> dict | None:
 
     input_count = int(stats.get("input_count", 0))
     processed_count = int(stats.get("processed_count", 0))
+    failed_count = int(stats.get("failed_count", 0))
     approved_count = int(stats.get("approved_count", 0))
 
     # Compute derived status
-    if processed_count >= input_count and input_count > 0:
-        status = "completed"
-    elif processed_count > 0:
+    total_handled = processed_count + failed_count
+    if total_handled >= input_count and input_count > 0:
+        if failed_count > 0:
+            status = "partially-completed"
+        else:
+            status = "completed"
+    elif processed_count > 0 or failed_count > 0:
         status = "processing"
     else:
         status = stats.get("status", "created")
@@ -78,9 +83,14 @@ def get_batch_stats(batch_id: str) -> dict | None:
         "status": status,
         "input_count": input_count,
         "output_count": processed_count,
+        "failed_count": failed_count,
         "all_approved": all_approved,
         "created_at": stats.get("created_at", ""),
         "started_at": stats.get("started_at", ""),
+        "completed_at": stats.get("completed_at", ""),
+        "failed_at": stats.get("failed_at", ""),
+        "last_redrive_at": stats.get("last_redrive_at", ""),
+        "approved_at": stats.get("approved_at", ""),
         "pii_stats": {
             "entity_file_count": processed_count,
             "notes_with_pii": int(stats.get("notes_with_pii", 0)),

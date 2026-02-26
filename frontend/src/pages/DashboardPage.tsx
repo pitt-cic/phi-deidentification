@@ -6,6 +6,7 @@ import {
   getBatch,
   startBatch,
   approveAllNotes,
+  redriveBatch,
   type Batch,
   type PaginatedResponse,
 } from '../api/client'
@@ -61,6 +62,7 @@ export default function DashboardPage() {
   const [startingBatchId, setStartingBatchId] = useState<string | null>(null)
   const [startError, setStartError] = useState('')
   const [approvingAll, setApprovingAll] = useState(false)
+  const [retrying, setRetrying] = useState(false)
 
   useEffect(() => {
     const currentBatchParam = searchParams.get('batch')
@@ -171,6 +173,19 @@ export default function DashboardPage() {
       alert(`Approve all error: ${err instanceof Error ? err.message : 'Unknown error'}`)
     } finally {
       setApprovingAll(false)
+    }
+  }
+
+  const handleRetryFailedNotes = async (batchId: string) => {
+    setRetrying(true)
+    try {
+      await redriveBatch(batchId)
+      queryClient.invalidateQueries({ queryKey: ['batch', batchId] })
+      queryClient.invalidateQueries({ queryKey: ['batches'] })
+    } catch (err) {
+      alert(`Retry failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
+    } finally {
+      setRetrying(false)
     }
   }
 
@@ -287,6 +302,10 @@ export default function DashboardPage() {
                   <p className="directions-status-description">The worker Lambda is actively processing notes.</p>
                 </div>
                 <div className="directions-status-item">
+                  <span className="detail-status-badge detail-status-partially-completed">Partially Completed</span>
+                  <p className="directions-status-description">Some notes processed successfully, but others failed. Click "Retry Failed Notes" to reprocess.</p>
+                </div>
+                <div className="directions-status-item">
                   <span className="detail-status-badge detail-status-needs-review">Needs Review</span>
                   <p className="directions-status-description">Processing finished, but not all notes are approved.</p>
                 </div>
@@ -372,6 +391,20 @@ export default function DashboardPage() {
                               <span className="action-btn-subline">Notes</span>
                             </span>
                           </button>
+                        )}
+                        {batchDetail.status === 'partially-completed' && (
+                          <>
+                            <div className="failed-notes-message">
+                              {batchDetail.failed_count} of {batchDetail.input_count} notes failed
+                            </div>
+                            <button
+                              className="btn btn-warning action-btn"
+                              onClick={() => handleRetryFailedNotes(selectedBatchId)}
+                              disabled={retrying}
+                            >
+                              {retrying ? 'Retrying...' : 'Retry Failed Notes'}
+                            </button>
+                          </>
                         )}
                       </div>
 

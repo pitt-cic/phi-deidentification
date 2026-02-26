@@ -3,15 +3,22 @@ import { fetchAuthSession } from 'aws-amplify/auth'
 export interface Batch {
   batch_id: string
   created_at: string
-  status: 'created' | 'processing' | 'completed' | 'unknown'
+  status: 'created' | 'processing' | 'completed' | 'partially-completed' | 'unknown'
   all_approved?: boolean
   has_input?: boolean
+  failed_count?: number
 }
 
 export interface BatchDetail extends Batch {
   input_count: number
   output_count: number
+  failed_count: number
   pii_stats?: BatchPIIStats
+  started_at?: string
+  completed_at?: string
+  failed_at?: string
+  last_redrive_at?: string
+  approved_at?: string
 }
 
 export interface BatchPIIStats {
@@ -157,4 +164,8 @@ export async function approveAllNotes(batchId: string): Promise<ApproveAllRespon
   return fetchApi(`/batches/${batchId}/approve-all`, {
     method: 'POST',
   })
+}
+
+export async function redriveBatch(batchId: string): Promise<{ batch_id: string; redriven_count: number; status: string }> {
+  return fetchApi(`/batches/${batchId}/redrive`, { method: 'POST' })
 }

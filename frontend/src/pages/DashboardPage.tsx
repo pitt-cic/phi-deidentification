@@ -208,6 +208,11 @@ export default function DashboardPage() {
       .replace(/_/g, ' ')
       .replace(/\b\w/g, c => c.toUpperCase())
 
+  const formatTimestamp = (iso: string | undefined) => {
+    if (!iso) return null
+    return new Date(iso).toLocaleString()
+  }
+
   return (
     <div className="dashboard-layout">
       <aside className="dashboard-sidebar">
@@ -408,11 +413,46 @@ export default function DashboardPage() {
                         )}
                       </div>
 
-                      {batchDetail.created_at && (
-                        <div className="detail-meta">
-                          Created: {new Date(batchDetail.created_at).toLocaleString()}
-                        </div>
-                      )}
+                      <div className="batch-timeline">
+                        {batchDetail.created_at && (
+                          <div className="timeline-item">
+                            <span className="timeline-label">Created:</span>
+                            <span className="timeline-value">{formatTimestamp(batchDetail.created_at)}</span>
+                          </div>
+                        )}
+                        {batchDetail.started_at && (
+                          <div className="timeline-item">
+                            <span className="timeline-label">Started:</span>
+                            <span className="timeline-value">{formatTimestamp(batchDetail.started_at)}</span>
+                          </div>
+                        )}
+                        {batchDetail.failed_at && (
+                          <div className="timeline-item timeline-item-warning">
+                            <span className="timeline-label">Failed:</span>
+                            <span className="timeline-value">
+                              {formatTimestamp(batchDetail.failed_at)} ({batchDetail.failed_count} notes)
+                            </span>
+                          </div>
+                        )}
+                        {batchDetail.last_redrive_at && (
+                          <div className="timeline-item">
+                            <span className="timeline-label">Retried:</span>
+                            <span className="timeline-value">{formatTimestamp(batchDetail.last_redrive_at)}</span>
+                          </div>
+                        )}
+                        {batchDetail.completed_at && (
+                          <div className="timeline-item timeline-item-success">
+                            <span className="timeline-label">Completed:</span>
+                            <span className="timeline-value">{formatTimestamp(batchDetail.completed_at)}</span>
+                          </div>
+                        )}
+                        {batchDetail.approved_at && (
+                          <div className="timeline-item timeline-item-success">
+                            <span className="timeline-label">Approved:</span>
+                            <span className="timeline-value">{formatTimestamp(batchDetail.approved_at)}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 

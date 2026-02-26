@@ -306,14 +306,14 @@ The following costs are estimated based on AWS pricing as of Feburary 2026, and 
 | Service            | Estimated Cost | Notes                                                     |
 |:-------------------|:-----------------------------|:----------------------------------------------------------|
 | AWS Amplify        | ~$0     | Free tier covers most small deployments            |
-| Amazon Cognito     | `~$0     | Free tier covers first 10,000 MAUs                           |
-| Amazon S3          | `<MONTHLY_S3_COST>`          | Input/output storage and request volume                   |
-| Amazon SQS         | `<MONTHLY_SQS_COST>`         | Queue request volume                                      |
-| AWS Lambda         | `<MONTHLY_LAMBDA_COST>`      | Ingestion/worker/API invocations and duration             |
+| Amazon Cognito     | ~$0     | Free tier covers first 10,000 MAUs                           |
+| Amazon S3          | <$1          | $0.023/GB a month                   |
+| Amazon SQS         | ~$0         | First 1 million requests free                                      |
+| AWS Lambda         | <$1     | Ingestion/worker/API invocations and duration             |
 | API Gateway        | <$1       | Based on request volume                   |
 | Amazon DynamoDB    | <$1    | Minimal to track read/write activity                           |
-| Amazon CloudWatch  | `<MONTHLY_CLOUDWATCH_COST>`  | Logs, metrics, and dashboard usage                        |
-| **Total Baseline** | **`<MONTHLY_BASELINE_TOTAL>`** | Excludes variable Bedrock inference spend               |
+| Amazon CloudWatch  | ~$0  | Free tier includes logging and metrics                        |
+| **Total Baseline** | **$0-$5/month** | Excludes variable Bedrock inference spend               |
 
 ## Per-Run / Per-Query Model Costs (Amazon Bedrock)
 

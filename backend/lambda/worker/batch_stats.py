@@ -117,3 +117,12 @@ def set_completed_at_if_done(batch_id: str, logger=None) -> None:
         # Condition failed or other error - this is expected if not done yet
         if logger:
             logger.debug("set_completed_at_if_done condition not met for %s: %s", batch_id, exc)
+
+
+def should_increment_failed_count(receive_count: int, max_receive_count: int) -> bool:
+    """
+    Determine if failed_count should be incremented based on SQS receive count.
+
+    Only returns True on the final attempt (when message will go to DLQ next).
+    """
+    return receive_count >= max_receive_count

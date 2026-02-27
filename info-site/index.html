@@ -20,10 +20,11 @@
         <span class="nav-logo-text">PII De-Identification</span>
       </a>
       <div class="nav-links">
-        <a href="#tech-stack">Tech Stack</a>
-        <a href="#architecture">Architecture</a>
-        <a href="#video">Demo</a>
+        <a href="#preview">Preview</a>
         <a href="#features">Features</a>
+        <a href="#video">Demo Video</a>
+        <a href="#architecture">Architecture</a>
+        <a href="#tech-stack">Tech Stack</a>
         <a href="https://github.com/pitt-cic/pii-deidentification-project" class="nav-cta" target="_blank" rel="noopener">GitHub</a>
       </div>
     </nav>
@@ -50,7 +51,7 @@
           using advanced AI. Built for healthcare and enterprise compliance workflows.
         </p>
         <div class="hero-actions">
-          <a href="#demo" class="btn btn-primary">
+          <a href="#preview" class="btn btn-primary">
             <span>See it in action</span>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -62,7 +63,7 @@
     </section>
 
     <!-- Demo Section -->
-    <section id="demo" class="demo">
+    <section id="preview" class="demo">
       <div class="section-header">
         <span class="section-tag">Live Preview</span>
         <h2 class="section-title">See Redaction in Action</h2>
@@ -121,7 +122,7 @@
             <span class="demo-panel-dot demo-panel-dot-yellow"></span>
             <span class="demo-panel-dot demo-panel-dot-green"></span>
             <span class="demo-panel-title">Redacted Output</span>
-            <span class="demo-panel-badge">Safe to Share</span>
+            <button class="demo-approve-btn" id="demo-approve" disabled>Approve</button>
           </div>
           <div class="demo-panel-content" id="demo-redacted">
             <p class="demo-text">
@@ -179,6 +180,143 @@
           <span class="demo-legend-chip" data-type="BIOMETRIC">16. Biometric Identifiers</span>
           <span class="demo-legend-chip" data-type="PHOTO">17. Full-face Photos</span>
           <span class="demo-legend-chip" data-type="OTHER">18. Other Unique Identifiers</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+      <div class="section-header">
+        <span class="section-tag">Capabilities</span>
+        <h2 class="section-title">Built for Enterprise</h2>
+        <p class="section-description">
+          Every feature designed with security, scalability, and compliance in mind.
+        </p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card" data-feature="ai">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 2v4m0 12v4M2 12h4m12 0h4"/>
+              <path d="M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">Claude-Powered Detection</h3>
+          <p class="feature-description">
+            Leverages Claude Sonnet via Amazon Bedrock for context-aware PII detection that understands document semantics.
+          </p>
+        </div>
+
+        <div class="feature-card" data-feature="batch">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="3" width="7" height="7" rx="1"/>
+              <rect x="14" y="3" width="7" height="7" rx="1"/>
+              <rect x="3" y="14" width="7" height="7" rx="1"/>
+              <rect x="14" y="14" width="7" height="7" rx="1"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">Async Processing</h3>
+          <p class="feature-description">
+            Process multiple documents concurrently with automatic scaling. SQS-based queue ensures reliable delivery.
+          </p>
+        </div>
+
+        <div class="feature-card" data-feature="review">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M9 12l2 2 4-4"/>
+              <circle cx="12" cy="12" r="10"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">Human-in-the-Loop</h3>
+          <p class="feature-description">
+            Built-in review dashboard with diff viewer. Edit redactions inline and approve individual notes or entire batches.
+          </p>
+        </div>
+
+        <div class="feature-card" data-feature="secure">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <path d="M9 12l2 2 4-4"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">Enterprise Security</h3>
+          <p class="feature-description">
+            Cognito authentication with secure access controls. All data stays within your AWS account.
+          </p>
+        </div>
+
+        <div class="feature-card" data-feature="iac">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">Infrastructure as Code</h3>
+          <p class="feature-description">
+            Complete AWS CDK stack for one-command deployment. Version controlled, reproducible, and customizable.
+          </p>
+        </div>
+
+        <div class="feature-card" data-feature="types">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M4 6h16M4 12h16M4 18h10"/>
+              <circle cx="19" cy="18" r="3"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">HIPAA 18 Detection</h3>
+          <p class="feature-description">
+            Detects all 18 HIPAA identifiers: names, SSNs, dates, geographic data, contact info, medical records, device IDs, biometrics, and more.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Video Section -->
+    <section id="video" class="video-section">
+      <div class="section-header">
+        <span class="section-tag">Walkthrough</span>
+        <h2 class="section-title">Full Demo Video</h2>
+        <p class="section-description">
+          See the complete workflow from upload to approval.
+        </p>
+      </div>
+
+      <div class="video-container">
+        <video class="demo-video" controls preload="metadata">
+          <source src="/pii-deid-demo.mp4" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
+      </div>
+    </section>
+
+    <!-- Architecture Section -->
+    <section id="architecture" class="architecture">
+      <div class="section-header">
+        <span class="section-tag">System Design</span>
+        <h2 class="section-title">Architecture</h2>
+        <p class="section-description">
+          Infrastructure defined as code with AWS CDK. One-command deployment to your AWS account.
+        </p>
+      </div>
+
+      <div class="architecture-placeholder">
+        <img
+          class="architecture-diagram"
+          src="/architecture-diagram.svg"
+          alt="Architecture diagram for the PII de-identification platform"
+          loading="lazy"
+        />
+        <div class="architecture-tags">
+          <span class="architecture-tag">Serverless</span>
+          <span class="architecture-tag">Event-Driven</span>
+          <span class="architecture-tag">Cloud-Native</span>
+          <span class="architecture-tag">Secure Authentication</span>
         </div>
       </div>
     </section>
@@ -338,138 +476,6 @@
           </div>
           <span class="tech-node-label">CloudWatch</span>
           <span class="tech-node-sublabel">Metrics & Logs</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- Architecture Section -->
-    <section id="architecture" class="architecture">
-      <div class="section-header">
-        <span class="section-tag">System Design</span>
-        <h2 class="section-title">Architecture</h2>
-        <p class="section-description">
-          Infrastructure defined as code with AWS CDK. One-command deployment to your AWS account.
-        </p>
-      </div>
-
-      <div class="architecture-placeholder">
-        <img
-          class="architecture-diagram"
-          src="/architecture-diagram.png"
-          alt="Placeholder architecture diagram for the PII de-identification platform"
-          loading="lazy"
-        />
-        <span class="placeholder-subtext">Architecture diagram placeholder. Replace this image with the final system diagram when ready.</span>
-      </div>
-    </section>
-
-    <!-- Video Section -->
-    <section id="video" class="video-section">
-      <div class="section-header">
-        <span class="section-tag">Walkthrough</span>
-        <h2 class="section-title">Full Demo Video</h2>
-        <p class="section-description">
-          See the complete workflow from upload to approval.
-        </p>
-      </div>
-
-      <div class="video-container">
-        <video class="demo-video" controls preload="metadata">
-          <source src="/pii-deid-demo.mp4" type="video/mp4">
-          Your browser does not support the video tag.
-        </video>
-      </div>
-    </section>
-
-    <!-- Features Section -->
-    <section id="features" class="features">
-      <div class="section-header">
-        <span class="section-tag">Capabilities</span>
-        <h2 class="section-title">Built for Enterprise</h2>
-        <p class="section-description">
-          Every feature designed with security, scalability, and compliance in mind.
-        </p>
-      </div>
-
-      <div class="features-grid">
-        <div class="feature-card" data-feature="ai">
-          <div class="feature-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <circle cx="12" cy="12" r="3"/>
-              <path d="M12 2v4m0 12v4M2 12h4m12 0h4"/>
-              <path d="M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/>
-            </svg>
-          </div>
-          <h3 class="feature-title">Claude-Powered Detection</h3>
-          <p class="feature-description">
-            Leverages Claude Sonnet via Amazon Bedrock for context-aware PII detection that understands document semantics.
-          </p>
-        </div>
-
-        <div class="feature-card" data-feature="batch">
-          <div class="feature-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <rect x="3" y="3" width="7" height="7" rx="1"/>
-              <rect x="14" y="3" width="7" height="7" rx="1"/>
-              <rect x="3" y="14" width="7" height="7" rx="1"/>
-              <rect x="14" y="14" width="7" height="7" rx="1"/>
-            </svg>
-          </div>
-          <h3 class="feature-title">Batch Processing</h3>
-          <p class="feature-description">
-            Process documents in parallel with automatic scaling. SQS-based queue ensures reliable asynchronous processing.
-          </p>
-        </div>
-
-        <div class="feature-card" data-feature="review">
-          <div class="feature-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M9 12l2 2 4-4"/>
-              <circle cx="12" cy="12" r="10"/>
-            </svg>
-          </div>
-          <h3 class="feature-title">Human-in-the-Loop</h3>
-          <p class="feature-description">
-            Built-in review dashboard with diff viewer. Edit redactions inline and approve individual notes or entire batches.
-          </p>
-        </div>
-
-        <div class="feature-card" data-feature="secure">
-          <div class="feature-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              <path d="M9 12l2 2 4-4"/>
-            </svg>
-          </div>
-          <h3 class="feature-title">Enterprise Security</h3>
-          <p class="feature-description">
-            Cognito authentication with secure access controls. All data stays within your AWS account.
-          </p>
-        </div>
-
-        <div class="feature-card" data-feature="iac">
-          <div class="feature-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/>
-            </svg>
-          </div>
-          <h3 class="feature-title">Infrastructure as Code</h3>
-          <p class="feature-description">
-            Complete AWS CDK stack for one-command deployment. Version controlled, reproducible, and customizable.
-          </p>
-        </div>
-
-        <div class="feature-card" data-feature="types">
-          <div class="feature-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M4 6h16M4 12h16M4 18h10"/>
-              <circle cx="19" cy="18" r="3"/>
-            </svg>
-          </div>
-          <h3 class="feature-title">HIPAA 18 Detection</h3>
-          <p class="feature-description">
-            Detects all 18 HIPAA identifiers: names, SSNs, dates, geographic data, contact info, medical records, device IDs, biometrics, and more.
-          </p>
         </div>
       </div>
     </section>

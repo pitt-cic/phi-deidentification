@@ -33,13 +33,22 @@ function initDemoAnimation() {
   const piiElements = document.querySelectorAll('.pii')
   const redactedElements = document.querySelectorAll('.redacted')
   const replayBtn = document.getElementById('demo-replay')
+  const approveBtn = document.getElementById('demo-approve') as HTMLButtonElement
   let animationTimeout: number | null = null
 
   function runDemoAnimation() {
     piiElements.forEach(el => el.classList.remove('highlighted'))
     redactedElements.forEach(el => el.classList.remove('visible'))
 
+    if (approveBtn) {
+      approveBtn.disabled = true
+      approveBtn.classList.remove('approved')
+      approveBtn.textContent = 'Approve'
+    }
+
     let delay = 500
+    const totalDuration = delay + (piiElements.length * 300) + 500
+
     piiElements.forEach((pii) => {
       const piiEl = pii as HTMLElement
       const type = piiEl.dataset.type
@@ -53,6 +62,20 @@ function initDemoAnimation() {
       }, delay)
 
       delay += 300
+    })
+
+    setTimeout(() => {
+      if (approveBtn) {
+        approveBtn.disabled = false
+      }
+    }, totalDuration)
+  }
+
+  if (approveBtn) {
+    approveBtn.addEventListener('click', () => {
+      approveBtn.classList.add('approved')
+      approveBtn.textContent = 'Approved ✓'
+      approveBtn.disabled = true
     })
   }
 

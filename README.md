@@ -166,8 +166,6 @@ Prepare the following tools and accounts before deploying:
    VITE_API_URL=<ApiUrl>
    VITE_USER_POOL_ID=<UserPoolId>
    VITE_USER_POOL_CLIENT_ID=<UserPoolClientId>
-   VITE_AWS_REGION=<AwsRegion>
-   VITE_UPLOAD_BUCKET=<BucketName>
    ```
 
 3. **Start development server**:
@@ -178,6 +176,11 @@ Prepare the following tools and accounts before deploying:
 ## Local Testing
 
 In addition to the deployed app flow, this repository has local evaluation tooling and a synthetic data generation pipeline for offline testing and evaluation with ground truth data.
+
+### Local Testing Prerequisites
+
+- Python 3.12+ and `pip`
+- Node.js 18+ and `npm`
 
 ### Evaluation Dashboard
 
@@ -296,7 +299,7 @@ python scripts/evaluate.py \
 
 # Costs
 
-The following costs are estimated based on AWS pricing as of Feburary 2026, and assuming each medical note is around 1000 tokens. Actual costs will vary based on AWS region, note volume, note length, and model usage.
+The following costs are estimated based on AWS pricing as of February 2026. Actual costs will vary based on AWS region, note volume, note length, and model usage.
 
 ## Estimated Monthly Recurring Costs
 
@@ -314,19 +317,14 @@ The following costs are estimated based on AWS pricing as of Feburary 2026, and 
 
 ## Per-Run / Per-Query Model Costs (Amazon Bedrock)
 
-Each processing run incurs Bedrock charges based on token usage.
+Each processing run incurs Bedrock charges based on token usage. This is estimating that each note is around 1,000 input and output tokens.
 
-| Model                      | Estimated Usage (Placeholder) | Estimated Cost (Placeholder) |
+| Model                      | Estimated Usage | Estimated Cost |
 |:---------------------------|:-------------------------------|:-----------------------------|
-| Claude Sonnet 4.5 (input)  | `<INPUT_TOKENS_PER_RUN>`       | `<INPUT_COST_PER_RUN>`       |
-| Claude Sonnet 4.5 (output) | `<OUTPUT_TOKENS_PER_RUN>`      | `<OUTPUT_COST_PER_RUN>`      |
-| **Total per run**          | `<TOTAL_TOKENS_PER_RUN>`       | **`<TOTAL_COST_PER_RUN>`**   |
-
-Example monthly variable model spend:
-
-- `<RUNS_PER_MONTH_A>` runs/month: `<MONTHLY_BEDROCK_COST_A>`
-- `<RUNS_PER_MONTH_B>` runs/month: `<MONTHLY_BEDROCK_COST_B>`
-- `<RUNS_PER_MONTH_C>` runs/month: `<MONTHLY_BEDROCK_COST_C>`
+| Claude Sonnet 4.5 (input)  | ~1,000 tokens       | ~$0.003      |
+| Claude Sonnet 4.5 (output) | ~1,000 tokens      | ~$0.015      |
+| **Total per Note**          | **~2,000 tokens**       | **~$0.018**   |
+| **Total per 1,000 Notes**          | **~2,000,000 tokens**       | **~$18.00**   |
 
 # Credits
 
@@ -381,7 +379,7 @@ SOFTWARE.
 
 
 For questions, issues, or contributions, please visit
-our [GitHub repository](https://github.com/pitt-cic/) (placeholder: for now) or contact the development team.
+our [GitHub repository](https://github.com/pitt-cic/pii-deidentification-project) or contact the development team.
 
 
 ## Disclaimers

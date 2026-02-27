@@ -42,6 +42,7 @@ export class PiiDeidentificationStack extends Stack {
     const API_TIMEOUT = Duration.seconds(30);
     const SQS_VISIBILITY_TIMEOUT = Duration.seconds(360);
     const SQS_BATCH_SIZE = 1;
+    const SQS_MAX_RECEIVE_COUNT = 3;
     const BEDROCK_MODEL_ID = 'us.anthropic.claude-sonnet-4-5-20250929-v1:0';
 
     const bucket = new s3.Bucket(this, 'PiiDeidBucket', {
@@ -57,7 +58,7 @@ export class PiiDeidentificationStack extends Stack {
     const queue = new sqs.Queue(this, 'PiiDeidQueue', {
       visibilityTimeout: SQS_VISIBILITY_TIMEOUT,
       retentionPeriod: Duration.days(4),
-      deadLetterQueue: { maxReceiveCount: 3, queue: dlq },
+      deadLetterQueue: { maxReceiveCount: SQS_MAX_RECEIVE_COUNT, queue: dlq },
     });
 
     const batchStatsTable = new dynamodb.Table(this, 'BatchStatsTable', {

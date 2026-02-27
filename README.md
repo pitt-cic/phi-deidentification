@@ -17,10 +17,10 @@
 # Overview
 
 PII De-identification Platform is an AI-driven system for detecting and redacting sensitive information in clinical and
-operational text documents. The solution uses large language models (LLMs) through AWS services to identify PHI/PII
+operational text documents. The solution uses large language models (LLMs) through AWS services to identify PHI and PII
 with context awareness, generate redacted outputs, and support human review before release.
 
-This project was created in response to a request by a research team at the University of Pittsburgh and the longstanding need for an effective and efficient de-identification system. Prior solutions for redaction were slow, inconsistent, and difficult to scale across large note volumes. The team that approached us relied on a static list of known PII, which often failed to catch context-specific or unique information, and a system that took an entire week to process, often failing halfway through. 
+This project was created in response to a request by a research team at the University of Pittsburgh and the longstanding need for an effective and efficient de-identification system. Prior solutions for redaction were slow, inconsistent, and difficult to scale across large note volumes. The team that approached us relied on a static list of known PII, which failed to catch context-specific or unique information, and a system that took an entire week to process and often malfunctioned halfway through. 
 
 The platform provides end-to-end capabilities including batch ingestion, asynchronous processing, LLM-based detection,
 redacted artifact generation, reviewer approval workflows, and operational metrics for monitoring system health.
@@ -155,7 +155,7 @@ Prepare the following tools and accounts before deploying:
    ./deploy-frontend.sh
    ```
 
-### Local Frontend Setup
+## Local Frontend Setup
 
 1. **Install dependencies** (from `frontend/`):
    ```bash
@@ -176,7 +176,7 @@ Prepare the following tools and accounts before deploying:
 
 ## Local Testing
 
-In addition to the deployed app flow, this repository has local evaluation tooling and a synthetic data generation pipeline for offline testing and evaluation with ground truth data.
+In addition to the deployed app, this repository has local evaluation tooling and a synthetic data generation pipeline for offline testing and evaluation with ground truth data.
 
 ### Local Testing Prerequisites
 
@@ -206,17 +206,15 @@ This dashboard reads local evaluation artifacts from `eval_results/`, `synthetic
 
 ### Synthetic Data Generator
 
-Use the synthetic generator package under `backend/synthetic-data-generator/src`:
+Generate synthetic clinical notes with embedded PII for testing and evaluation:
 
 ```bash
-# From repo root: generator CLI help
+# Generate 1 note per type (5 note types = 5 notes total)
 PYTHONPATH=backend/synthetic-data-generator/src \
-python backend/cli/src/cli/generate_notes.py --help
-
-# From repo root: evaluator import check
-PYTHONPATH=backend/synthetic-data-generator/src \
-python -c "from synthetic_data_generator.evaluator import Evaluator; print('Evaluator ready')"
+python backend/cli/src/cli/generate_notes.py --type all --count 1
 ```
+
+Generated notes are saved to `data/input/` with corresponding manifests containing ground-truth PII labels for evaluation.
 
 # Usage
 
@@ -256,10 +254,14 @@ python -c "from synthetic_data_generator.evaluator import Evaluator; print('Eval
    ./scripts/create_batch.sh --batch-id "<batch-id>" --notes-dir /PATH/TO/NOTES
    ```
 
-   If needed, pass additional options:
+   <details>
+   <summary><strong>Additional Options</strong></summary>
+
    - `--stack-name <name>` when stack name differs from `PiiDeidentificationStack`
    - `--profile <profile>` and `--region <region>` for non-default AWS CLI contexts
    - `--bucket <bucket-name>` to bypass stack output lookup
+
+   </details>
 
    <details>
    <summary><strong>Manual CLI Method (No Helper Script)</strong></summary>
@@ -287,11 +289,6 @@ python -c "from synthetic_data_generator.evaluator import Evaluator; print('Eval
 
    Open the review page, compare original vs redacted text, edit if needed, and approve note-by-note or use
    **Approve All** after processing completes.
-
-7. **Monitor processing health**:
-
-   - Dashboard shows batch/note status (`Created`, `Processing`, `Needs Review`, `Approved`)
-   - CloudWatch dashboard (from `DashboardUrl` output) shows latency, retries, failures, and throughput
 
 # Costs
 
@@ -340,7 +337,7 @@ Each processing run incurs Bedrock charges based on token usage. This is estimat
 
 **Special Thanks:**
 
-- [Dr. Gilles Clermont](https://www.linkedin.com/in/gilles-clermont/) - Professor of Critical Care Medicine, Mathematics and Engineering at Pitt
+- [Dr. Gilles Clermont](https://www.linkedin.com/in/gilles-clermont/) - Professor of Critical Care Medicine and Vice Chair for Research Operations at the University of Pittsburgh
 
 This project is designed and developed with guidance and support from
 the [Health Sciences and Sports Analytics Cloud Innovation Center, powered by AWS](https://digital.pitt.edu/cic).
@@ -373,12 +370,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-
-For questions, issues, or contributions, please visit
-our [GitHub repository](https://github.com/pitt-cic/pii-deidentification-project) or contact the development team.
-
-
-## Disclaimers
+# Disclaimers
 
 **Customers are responsible for making their own independent assessment of the information in this document.**
 
@@ -406,3 +398,7 @@ all such code and assets should be considered:**
 authorization and a lack of strict adherence to security best practices.
 
 **All work produced is open source. More information can be found in the GitHub repo.**
+
+---
+
+For questions, issues, or contributions, please visit our [GitHub repository](https://github.com/pitt-cic/pii-deidentification-project) or contact the development team.

@@ -11,7 +11,7 @@ from aws_lambda_powertools.utilities.batch import BatchProcessor, EventType, pro
 from aws_lambda_powertools.utilities.data_classes.sqs_event import SQSRecord
 
 from agent import AgentResponse, DetectionParameters
-from batch_stats import increment_batch_stats, increment_failed_count, set_completed_at_if_done
+from batch_stats import increment_batch_stats, increment_failed_count, set_completed_at_if_done, should_increment_failed_count
 from deidentification import process_document
 from deidentification.redaction import find_pii_positions, redact_text, RedactionResult
 
@@ -192,12 +192,20 @@ def _process_record(record: SQSRecord) -> None:
         metrics.add_metric(name="DocumentFailure", unit=MetricUnit.Count, value=1)
         logger.exception("Error processing SQS message %s", record.message_id)
 
-        # Track failure in DynamoDB
+        # Track failure in DynamoDB only on final attempt
         try:
             message = record.json_body
             batch_id = message.get("batch_id")
             if batch_id:
-                increment_failed_count(batch_id, logger=logger)
+                receive_count = int(record.attributes.get("ApproximateReceiveCount", 1))
+                max_receive_count = int(os.environ.get("MAX_RECEIVE_COUNT", "3"))
+                if should_increment_failed_count(receive_count, max_receive_count):
+                    increment_failed_count(batch_id, logger=logger)
+                else:
+                    logger.info(
+                        "Skipping failed_count increment for %s (attempt %d/%d)",
+                        batch_id, receive_count, max_receive_count
+                    )
         except Exception:
             logger.exception("Failed to track failure count for message %s", record.message_id)
 

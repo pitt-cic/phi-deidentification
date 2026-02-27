@@ -97,6 +97,7 @@ export class PiiDeidentificationStack extends Stack {
         BEDROCK_MODEL_ID: BEDROCK_MODEL_ID,
         LOGFIRE_SEND_TO_LOGFIRE: 'false',
         STATS_TABLE_NAME: batchStatsTable.tableName,
+        MAX_RECEIVE_COUNT: String(SQS_MAX_RECEIVE_COUNT),
       },
       timeout: WORKER_TIMEOUT,
       memorySize: WORKER_MEMORY,

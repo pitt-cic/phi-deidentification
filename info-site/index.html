@@ -61,6 +61,128 @@
       </div>
     </section>
 
+    <!-- Demo Section -->
+    <section id="demo" class="demo">
+      <div class="section-header">
+        <span class="section-tag">Live Preview</span>
+        <h2 class="section-title">See Redaction in Action</h2>
+        <p class="section-description">
+          Watch how the AI identifies and redacts sensitive information while preserving document context.
+        </p>
+      </div>
+
+      <div class="demo-container">
+        <div class="demo-panel demo-panel-original">
+          <div class="demo-panel-header">
+            <span class="demo-panel-dot demo-panel-dot-red"></span>
+            <span class="demo-panel-dot demo-panel-dot-yellow"></span>
+            <span class="demo-panel-dot demo-panel-dot-green"></span>
+            <span class="demo-panel-title">Original Document</span>
+          </div>
+          <div class="demo-panel-content" id="demo-original">
+            <p class="demo-text">
+              <span class="demo-line"><strong>Patient Information</strong></span>
+              <span class="demo-line">Name: <span class="pii pii-name" data-type="NAME">John Michael Smith</span></span>
+              <span class="demo-line">DOB: <span class="pii pii-date" data-type="DATE">March 15, 1985</span></span>
+              <span class="demo-line">SSN: <span class="pii pii-ssn" data-type="SSN">482-55-7891</span></span>
+              <span class="demo-line">Phone: <span class="pii pii-phone" data-type="PHONE">(555) 234-8901</span></span>
+              <span class="demo-line">Email: <span class="pii pii-email" data-type="EMAIL">jsmith@email.com</span></span>
+              <span class="demo-line">MRN: <span class="pii pii-mrn" data-type="MRN">MR-2024-881456</span></span>
+              <span class="demo-line"></span>
+              <span class="demo-line"><strong>Visit Notes</strong></span>
+              <span class="demo-line">Patient presents with recurring headaches for</span>
+              <span class="demo-line">the past 2 weeks. Reports stress from work at</span>
+              <span class="demo-line"><span class="pii pii-org" data-type="ORG">Acme Corporation</span> as contributing factor.</span>
+              <span class="demo-line"></span>
+              <span class="demo-line"><strong>Assessment:</strong> Tension-type headache.</span>
+              <span class="demo-line">Follow-up scheduled for <span class="pii pii-date" data-type="DATE">April 2, 2024</span>.</span>
+              <span class="demo-line"></span>
+              <span class="demo-line">Physician: <span class="pii pii-name" data-type="NAME">Dr. Sarah Johnson</span></span>
+              <span class="demo-line">License: <span class="pii pii-license" data-type="LICENSE">MD-45892</span></span>
+            </p>
+          </div>
+        </div>
+
+        <div class="demo-arrow">
+          <div class="demo-arrow-line"></div>
+          <div class="demo-arrow-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 2v4m0 12v4M2 12h4m12 0h4"/>
+            </svg>
+          </div>
+          <span class="demo-arrow-label">AI Processing</span>
+          <div class="demo-arrow-line"></div>
+        </div>
+
+        <div class="demo-panel demo-panel-redacted">
+          <div class="demo-panel-header">
+            <span class="demo-panel-dot demo-panel-dot-red"></span>
+            <span class="demo-panel-dot demo-panel-dot-yellow"></span>
+            <span class="demo-panel-dot demo-panel-dot-green"></span>
+            <span class="demo-panel-title">Redacted Output</span>
+            <span class="demo-panel-badge">Safe to Share</span>
+          </div>
+          <div class="demo-panel-content" id="demo-redacted">
+            <p class="demo-text">
+              <span class="demo-line"><strong>Patient Information</strong></span>
+              <span class="demo-line">Name: <span class="redacted" data-type="NAME">[PATIENT_NAME]</span></span>
+              <span class="demo-line">DOB: <span class="redacted" data-type="DATE">[DATE_OF_BIRTH]</span></span>
+              <span class="demo-line">SSN: <span class="redacted" data-type="SSN">[SSN]</span></span>
+              <span class="demo-line">Phone: <span class="redacted" data-type="PHONE">[PHONE_NUMBER]</span></span>
+              <span class="demo-line">Email: <span class="redacted" data-type="EMAIL">[EMAIL_ADDRESS]</span></span>
+              <span class="demo-line">MRN: <span class="redacted" data-type="MRN">[MEDICAL_RECORD_NUMBER]</span></span>
+              <span class="demo-line"></span>
+              <span class="demo-line"><strong>Visit Notes</strong></span>
+              <span class="demo-line">Patient presents with recurring headaches for</span>
+              <span class="demo-line">the past 2 weeks. Reports stress from work at</span>
+              <span class="demo-line"><span class="redacted" data-type="ORG">[ORGANIZATION]</span> as contributing factor.</span>
+              <span class="demo-line"></span>
+              <span class="demo-line"><strong>Assessment:</strong> Tension-type headache.</span>
+              <span class="demo-line">Follow-up scheduled for <span class="redacted" data-type="DATE">[DATE]</span>.</span>
+              <span class="demo-line"></span>
+              <span class="demo-line">Physician: <span class="redacted" data-type="NAME">[PHYSICIAN_NAME]</span></span>
+              <span class="demo-line">License: <span class="redacted" data-type="LICENSE">[LICENSE_NUMBER]</span></span>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="demo-controls">
+        <button class="demo-btn demo-btn-replay" id="demo-replay">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 4v6h6M23 20v-6h-6"/>
+            <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/>
+          </svg>
+          <span>Replay Animation</span>
+        </button>
+      </div>
+
+      <div class="demo-pii-legend">
+        <span class="demo-legend-title">HIPAA 18 Protected Health Information Identifiers:</span>
+        <div class="demo-legend-items">
+          <span class="demo-legend-chip" data-type="NAME">1. Names</span>
+          <span class="demo-legend-chip" data-type="GEO">2. Geographic Data</span>
+          <span class="demo-legend-chip" data-type="DATE">3. Dates</span>
+          <span class="demo-legend-chip" data-type="PHONE">4. Phone Numbers</span>
+          <span class="demo-legend-chip" data-type="FAX">5. Fax Numbers</span>
+          <span class="demo-legend-chip" data-type="EMAIL">6. Email Addresses</span>
+          <span class="demo-legend-chip" data-type="SSN">7. SSN</span>
+          <span class="demo-legend-chip" data-type="MRN">8. Medical Record Numbers</span>
+          <span class="demo-legend-chip" data-type="HEALTH_PLAN">9. Health Plan Beneficiary Numbers</span>
+          <span class="demo-legend-chip" data-type="ACCOUNT">10. Account Numbers</span>
+          <span class="demo-legend-chip" data-type="LICENSE">11. Certificate/License Numbers</span>
+          <span class="demo-legend-chip" data-type="VEHICLE">12. Vehicle Identifiers</span>
+          <span class="demo-legend-chip" data-type="DEVICE">13. Device Identifiers</span>
+          <span class="demo-legend-chip" data-type="URL">14. Web URLs</span>
+          <span class="demo-legend-chip" data-type="IP">15. IP Addresses</span>
+          <span class="demo-legend-chip" data-type="BIOMETRIC">16. Biometric Identifiers</span>
+          <span class="demo-legend-chip" data-type="PHOTO">17. Full-face Photos</span>
+          <span class="demo-legend-chip" data-type="OTHER">18. Other Unique Identifiers</span>
+        </div>
+      </div>
+    </section>
+
     <!-- Tech Stack Section -->
     <section id="tech-stack" class="tech-section">
       <div class="section-header">
@@ -238,128 +360,6 @@
           loading="lazy"
         />
         <span class="placeholder-subtext">Architecture diagram placeholder. Replace this image with the final system diagram when ready.</span>
-      </div>
-    </section>
-
-    <!-- Demo Section -->
-    <section id="demo" class="demo">
-      <div class="section-header">
-        <span class="section-tag">Live Preview</span>
-        <h2 class="section-title">See Redaction in Action</h2>
-        <p class="section-description">
-          Watch how the AI identifies and redacts sensitive information while preserving document context.
-        </p>
-      </div>
-
-      <div class="demo-container">
-        <div class="demo-panel demo-panel-original">
-          <div class="demo-panel-header">
-            <span class="demo-panel-dot demo-panel-dot-red"></span>
-            <span class="demo-panel-dot demo-panel-dot-yellow"></span>
-            <span class="demo-panel-dot demo-panel-dot-green"></span>
-            <span class="demo-panel-title">Original Document</span>
-          </div>
-          <div class="demo-panel-content" id="demo-original">
-            <p class="demo-text">
-              <span class="demo-line"><strong>Patient Information</strong></span>
-              <span class="demo-line">Name: <span class="pii pii-name" data-type="NAME">John Michael Smith</span></span>
-              <span class="demo-line">DOB: <span class="pii pii-date" data-type="DATE">March 15, 1985</span></span>
-              <span class="demo-line">SSN: <span class="pii pii-ssn" data-type="SSN">482-55-7891</span></span>
-              <span class="demo-line">Phone: <span class="pii pii-phone" data-type="PHONE">(555) 234-8901</span></span>
-              <span class="demo-line">Email: <span class="pii pii-email" data-type="EMAIL">jsmith@email.com</span></span>
-              <span class="demo-line">MRN: <span class="pii pii-mrn" data-type="MRN">MR-2024-881456</span></span>
-              <span class="demo-line"></span>
-              <span class="demo-line"><strong>Visit Notes</strong></span>
-              <span class="demo-line">Patient presents with recurring headaches for</span>
-              <span class="demo-line">the past 2 weeks. Reports stress from work at</span>
-              <span class="demo-line"><span class="pii pii-org" data-type="ORG">Acme Corporation</span> as contributing factor.</span>
-              <span class="demo-line"></span>
-              <span class="demo-line"><strong>Assessment:</strong> Tension-type headache.</span>
-              <span class="demo-line">Follow-up scheduled for <span class="pii pii-date" data-type="DATE">April 2, 2024</span>.</span>
-              <span class="demo-line"></span>
-              <span class="demo-line">Physician: <span class="pii pii-name" data-type="NAME">Dr. Sarah Johnson</span></span>
-              <span class="demo-line">License: <span class="pii pii-license" data-type="LICENSE">MD-45892</span></span>
-            </p>
-          </div>
-        </div>
-
-        <div class="demo-arrow">
-          <div class="demo-arrow-line"></div>
-          <div class="demo-arrow-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="3"/>
-              <path d="M12 2v4m0 12v4M2 12h4m12 0h4"/>
-            </svg>
-          </div>
-          <span class="demo-arrow-label">AI Processing</span>
-          <div class="demo-arrow-line"></div>
-        </div>
-
-        <div class="demo-panel demo-panel-redacted">
-          <div class="demo-panel-header">
-            <span class="demo-panel-dot demo-panel-dot-red"></span>
-            <span class="demo-panel-dot demo-panel-dot-yellow"></span>
-            <span class="demo-panel-dot demo-panel-dot-green"></span>
-            <span class="demo-panel-title">Redacted Output</span>
-            <span class="demo-panel-badge">Safe to Share</span>
-          </div>
-          <div class="demo-panel-content" id="demo-redacted">
-            <p class="demo-text">
-              <span class="demo-line"><strong>Patient Information</strong></span>
-              <span class="demo-line">Name: <span class="redacted" data-type="NAME">[PATIENT_NAME]</span></span>
-              <span class="demo-line">DOB: <span class="redacted" data-type="DATE">[DATE_OF_BIRTH]</span></span>
-              <span class="demo-line">SSN: <span class="redacted" data-type="SSN">[SSN]</span></span>
-              <span class="demo-line">Phone: <span class="redacted" data-type="PHONE">[PHONE_NUMBER]</span></span>
-              <span class="demo-line">Email: <span class="redacted" data-type="EMAIL">[EMAIL_ADDRESS]</span></span>
-              <span class="demo-line">MRN: <span class="redacted" data-type="MRN">[MEDICAL_RECORD_NUMBER]</span></span>
-              <span class="demo-line"></span>
-              <span class="demo-line"><strong>Visit Notes</strong></span>
-              <span class="demo-line">Patient presents with recurring headaches for</span>
-              <span class="demo-line">the past 2 weeks. Reports stress from work at</span>
-              <span class="demo-line"><span class="redacted" data-type="ORG">[ORGANIZATION]</span> as contributing factor.</span>
-              <span class="demo-line"></span>
-              <span class="demo-line"><strong>Assessment:</strong> Tension-type headache.</span>
-              <span class="demo-line">Follow-up scheduled for <span class="redacted" data-type="DATE">[DATE]</span>.</span>
-              <span class="demo-line"></span>
-              <span class="demo-line">Physician: <span class="redacted" data-type="NAME">[PHYSICIAN_NAME]</span></span>
-              <span class="demo-line">License: <span class="redacted" data-type="LICENSE">[LICENSE_NUMBER]</span></span>
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div class="demo-controls">
-        <button class="demo-btn demo-btn-replay" id="demo-replay">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M1 4v6h6M23 20v-6h-6"/>
-            <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/>
-          </svg>
-          <span>Replay Animation</span>
-        </button>
-      </div>
-
-      <div class="demo-pii-legend">
-        <span class="demo-legend-title">HIPAA 18 Protected Health Information Identifiers:</span>
-        <div class="demo-legend-items">
-          <span class="demo-legend-chip" data-type="NAME">1. Names</span>
-          <span class="demo-legend-chip" data-type="GEO">2. Geographic Data</span>
-          <span class="demo-legend-chip" data-type="DATE">3. Dates</span>
-          <span class="demo-legend-chip" data-type="PHONE">4. Phone Numbers</span>
-          <span class="demo-legend-chip" data-type="FAX">5. Fax Numbers</span>
-          <span class="demo-legend-chip" data-type="EMAIL">6. Email Addresses</span>
-          <span class="demo-legend-chip" data-type="SSN">7. SSN</span>
-          <span class="demo-legend-chip" data-type="MRN">8. Medical Record Numbers</span>
-          <span class="demo-legend-chip" data-type="HEALTH_PLAN">9. Health Plan Beneficiary Numbers</span>
-          <span class="demo-legend-chip" data-type="ACCOUNT">10. Account Numbers</span>
-          <span class="demo-legend-chip" data-type="LICENSE">11. Certificate/License Numbers</span>
-          <span class="demo-legend-chip" data-type="VEHICLE">12. Vehicle Identifiers</span>
-          <span class="demo-legend-chip" data-type="DEVICE">13. Device Identifiers</span>
-          <span class="demo-legend-chip" data-type="URL">14. Web URLs</span>
-          <span class="demo-legend-chip" data-type="IP">15. IP Addresses</span>
-          <span class="demo-legend-chip" data-type="BIOMETRIC">16. Biometric Identifiers</span>
-          <span class="demo-legend-chip" data-type="PHOTO">17. Full-face Photos</span>
-          <span class="demo-legend-chip" data-type="OTHER">18. Other Unique Identifiers</span>
-        </div>
       </div>
     </section>
 

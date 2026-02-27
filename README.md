@@ -37,7 +37,7 @@ Key capabilities include:
 
 https://github.com/user-attachments/assets/1f35119a-5b6a-4158-8f5e-0d6de21e8fe0
 
-Info site: [info-site](info-site)
+You can also find out info site here: [info-site](info-site)
 
 # Description
 

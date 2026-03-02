@@ -71,11 +71,9 @@ async def add_detection_scope(ctx: RunContext[AgentContext]) -> str:
     detection = context.detection
     pii_types = ", ".join(detection.pii_types)
     limit = detection.max_entities or "no-limit"
-    source_name = context.source_name or "unspecified document"
 
     return (
         "<detection_scope>"
-        f"source={source_name}; "
         f"pii_types={pii_types}; "
         f"max_entities={limit}"
         "</detection_scope>"

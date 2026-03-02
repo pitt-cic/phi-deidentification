@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 import boto3
 
 import storage
-from batch_stats import get_batch_stats, increment_approval_count, reset_failed_count_and_set_redrive_timestamp, set_approved_at
+from batch_stats import get_batch_stats, increment_approval_count, set_processing_status_for_redrive, set_approved_at
 
 logger = logging.getLogger("pii_deidentification.api")
 lambda_client = boto3.client("lambda")
@@ -443,12 +443,37 @@ def redrive_dlq(params: dict, body: dict, query: dict) -> tuple[int, dict]:
             except Exception as exc:
                 logger.warning("Failed to redrive message: %s", exc)
 
-    # Update batch stats
+    # Update batch status
     if redriven_count > 0:
-        reset_failed_count_and_set_redrive_timestamp(batch_id)
+        set_processing_status_for_redrive(batch_id)
+        return 200, {
+            "batch_id": batch_id,
+            "redriven_count": redriven_count,
+            "status": "processing",
+        }
+
+    # Edge case: DLQ empty but status stuck - check if all notes processed
+    stats = get_batch_stats(batch_id)
+    if stats and stats.get("output_count", 0) >= stats.get("input_count", 0):
+        # All notes processed, DLQ empty - fix stale status
+        from batch_stats import _get_stats_table
+        from datetime import datetime, timezone
+        stats_table = _get_stats_table()
+        if stats_table:
+            now = datetime.now(timezone.utc).isoformat()
+            stats_table.update_item(
+                Key={"batch_id": batch_id},
+                UpdateExpression="SET status = :status, completed_at = if_not_exists(completed_at, :now), updated_at = :now",
+                ExpressionAttributeValues={":status": "completed", ":now": now},
+            )
+        return 200, {
+            "batch_id": batch_id,
+            "redriven_count": 0,
+            "status": "completed",
+        }
 
     return 200, {
         "batch_id": batch_id,
-        "redriven_count": redriven_count,
-        "status": "processing" if redriven_count > 0 else "partially-completed",
+        "redriven_count": 0,
+        "status": "partially-completed",
     }

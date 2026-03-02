@@ -122,10 +122,10 @@ def set_completed_at_if_done(batch_id: str, logger=None) -> None:
             logger.debug("set_completed_at_if_done condition not met for %s: %s", batch_id, exc)
 
 
-def should_increment_failed_count(receive_count: int, max_receive_count: int) -> bool:
+def is_final_failure_attempt(receive_count: int, max_receive_count: int) -> bool:
     """
-    Determine if failed_count should be incremented based on SQS receive count.
+    Determine if this is the final SQS delivery attempt before DLQ.
 
-    Only returns True on the final attempt (when message will go to DLQ next).
+    Returns True on the final attempt (when message will go to DLQ next).
     """
     return receive_count >= max_receive_count

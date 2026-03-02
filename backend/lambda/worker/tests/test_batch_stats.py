@@ -161,32 +161,22 @@ class TestIncrementFailedCount:
         batch_stats.increment_failed_count("batch-001")
 
 
-class TestIncrementFailedCountWithReceiveCount:
-    """Tests for increment_failed_count with ApproximateReceiveCount check."""
+class TestIsFinalFailureAttempt:
+    """Tests for is_final_failure_attempt function."""
 
-    def test_skips_increment_when_not_final_attempt(self, monkeypatch):
-        """Should NOT increment failed_count when receiveCount < maxReceiveCount."""
-        monkeypatch.setenv("STATS_TABLE_NAME", "test-table")
-        monkeypatch.setenv("MAX_RECEIVE_COUNT", "3")
+    def test_returns_false_when_not_final_attempt(self):
+        """Should return False when receiveCount < maxReceiveCount."""
+        # Attempt 1 of 3 - not final
+        assert batch_stats.is_final_failure_attempt(receive_count=1, max_receive_count=3) is False
+        # Attempt 2 of 3 - not final
+        assert batch_stats.is_final_failure_attempt(receive_count=2, max_receive_count=3) is False
 
-        from batch_stats import should_increment_failed_count
-
-        # Attempt 1 of 3 - should skip
-        assert should_increment_failed_count(receive_count=1, max_receive_count=3) is False
-        # Attempt 2 of 3 - should skip
-        assert should_increment_failed_count(receive_count=2, max_receive_count=3) is False
-
-    def test_increments_on_final_attempt(self, monkeypatch):
-        """Should increment failed_count when receiveCount >= maxReceiveCount."""
-        monkeypatch.setenv("STATS_TABLE_NAME", "test-table")
-        monkeypatch.setenv("MAX_RECEIVE_COUNT", "3")
-
-        from batch_stats import should_increment_failed_count
-
-        # Attempt 3 of 3 - should increment
-        assert should_increment_failed_count(receive_count=3, max_receive_count=3) is True
-        # Beyond max (edge case) - should increment
-        assert should_increment_failed_count(receive_count=4, max_receive_count=3) is True
+    def test_returns_true_on_final_attempt(self):
+        """Should return True when receiveCount >= maxReceiveCount."""
+        # Attempt 3 of 3 - final
+        assert batch_stats.is_final_failure_attempt(receive_count=3, max_receive_count=3) is True
+        # Beyond max (edge case) - still final
+        assert batch_stats.is_final_failure_attempt(receive_count=4, max_receive_count=3) is True
 
 
 class TestSetPartiallyCompletedStatus:

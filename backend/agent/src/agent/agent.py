@@ -7,15 +7,19 @@ from pathlib import Path
 
 import boto3
 import logfire
+from botocore.config import Config
 from pydantic_ai import Agent, RunContext, ToolOutput
 from pydantic_ai.models.bedrock import BedrockConverseModel
+from pydantic_ai.providers.bedrock import BedrockProvider
 
 from agent.models import AgentContext, AgentResponse
 from agent.prompt import SYSTEM_PROMPT
 
 # Initialize boto3 session and Bedrock client
+# Disable boto3 retries - let worker-level retry handle throttling with proper backoff
 session = boto3.Session(region_name=os.environ["AWS_REGION"])
-bedrock_client = session.client("bedrock-runtime")
+bedrock_config = Config(retries={"max_attempts": 0})
+bedrock_client = session.client("bedrock-runtime", config=bedrock_config)
 
 # Load environment variables from .env file
 try:
@@ -44,7 +48,10 @@ DEFAULT_MODEL_ID = os.getenv(
 )
 
 # Initialize BedrockConverseModel
-bedrock_model = BedrockConverseModel(DEFAULT_MODEL_ID)
+bedrock_model = BedrockConverseModel(
+    DEFAULT_MODEL_ID,
+    provider=BedrockProvider(bedrock_client=bedrock_client),
+)
 
 pii_agent = Agent[AgentContext, AgentResponse](
     model=bedrock_model,

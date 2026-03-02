@@ -6,13 +6,11 @@ export interface Batch {
   status: 'created' | 'processing' | 'completed' | 'partially-completed' | 'unknown'
   all_approved?: boolean
   has_input?: boolean
-  failed_count?: number
 }
 
 export interface BatchDetail extends Batch {
   input_count: number
   output_count: number
-  failed_count: number
   pii_stats?: BatchPIIStats
   started_at?: string
   completed_at?: string

@@ -400,7 +400,7 @@ export default function DashboardPage() {
                         {batchDetail.status === 'partially-completed' && (
                           <>
                             <div className="failed-notes-message">
-                              {batchDetail.failed_count} of {batchDetail.input_count} notes failed
+                              Some notes failed to process
                             </div>
                             <button
                               className="btn btn-warning action-btn"
@@ -429,9 +429,7 @@ export default function DashboardPage() {
                         {batchDetail.failed_at && (
                           <div className="timeline-item timeline-item-warning">
                             <span className="timeline-label">Failed:</span>
-                            <span className="timeline-value">
-                              {formatTimestamp(batchDetail.failed_at)} ({batchDetail.failed_count} notes)
-                            </span>
+                            <span className="timeline-value">{formatTimestamp(batchDetail.failed_at)}</span>
                           </div>
                         )}
                         {batchDetail.last_redrive_at && (

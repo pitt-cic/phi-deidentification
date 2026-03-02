@@ -97,13 +97,6 @@ export default function DashboardPage() {
       return next < lastPage.total ? next : undefined
     },
     initialPageParam: 0,
-    refetchInterval: (query) => {
-      const pages = query.state.data?.pages
-      const anyProcessing = pages?.some(page =>
-        page.items.some(batch => batch.status === 'processing')
-      )
-      return anyProcessing ? 10_000 : false
-    },
   })
 
   const batches = batchPages?.pages.flatMap(p => p.items) ?? []

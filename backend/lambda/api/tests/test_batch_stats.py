@@ -369,33 +369,33 @@ class TestGetBatchStatsReadsStatusDirectly:
         assert result["failed_at"] == "2026-03-01T10:02:00+00:00"
 
 
-class TestResetFailedCountAndSetRedriveTimestamp:
-    """Tests for reset_failed_count_and_set_redrive_timestamp function."""
+class TestSetProcessingStatusForRedrive:
+    """Tests for set_processing_status_for_redrive function."""
 
     @patch.object(batch_stats, "STATS_TABLE_NAME", "test-table")
     @patch.object(batch_stats, "boto3")
-    def test_reset_failed_count_and_set_redrive_timestamp(self, mock_boto3):
-        """Test that reset function sets failed_count=0, status=processing, and last_redrive_at."""
+    def test_sets_processing_status_and_redrive_timestamp(self, mock_boto3):
+        """Test that function sets status=processing and last_redrive_at."""
         batch_stats._stats_table = None
 
         mock_table = MagicMock()
         mock_boto3.resource.return_value.Table.return_value = mock_table
 
-        batch_stats.reset_failed_count_and_set_redrive_timestamp("batch-001")
+        batch_stats.set_processing_status_for_redrive("batch-001")
 
         mock_table.update_item.assert_called_once()
         call_kwargs = mock_table.update_item.call_args.kwargs
         assert call_kwargs["Key"] == {"batch_id": "batch-001"}
-        assert "failed_count = :zero" in call_kwargs["UpdateExpression"]
         assert "last_redrive_at = :now" in call_kwargs["UpdateExpression"]
         assert "status = :status" in call_kwargs["UpdateExpression"]
-        assert call_kwargs["ExpressionAttributeValues"][":zero"] == 0
         assert call_kwargs["ExpressionAttributeValues"][":status"] == "processing"
+        # No failed_count reset
+        assert "failed_count" not in call_kwargs["UpdateExpression"]
 
     def test_does_nothing_when_table_not_configured(self):
-        """Test that reset function does nothing when table not configured."""
+        """Test that function does nothing when table not configured."""
         batch_stats.STATS_TABLE_NAME = ""
         batch_stats._stats_table = None
 
         # Should not raise
-        batch_stats.reset_failed_count_and_set_redrive_timestamp("batch-001")
+        batch_stats.set_processing_status_for_redrive("batch-001")

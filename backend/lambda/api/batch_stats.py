@@ -114,8 +114,8 @@ def increment_approval_count(batch_id: str, delta: int) -> None:
     )
 
 
-def reset_failed_count_and_set_redrive_timestamp(batch_id: str) -> None:
-    """Reset failed_count to 0 and set last_redrive_at timestamp for redrive."""
+def set_processing_status_for_redrive(batch_id: str) -> None:
+    """Set status to processing and update last_redrive_at timestamp for redrive."""
     stats_table = _get_stats_table()
     if not stats_table:
         return
@@ -124,13 +124,11 @@ def reset_failed_count_and_set_redrive_timestamp(batch_id: str) -> None:
     stats_table.update_item(
         Key={"batch_id": batch_id},
         UpdateExpression="""
-            SET failed_count = :zero,
-                last_redrive_at = :now,
+            SET last_redrive_at = :now,
                 status = :status,
                 updated_at = :now
         """,
         ExpressionAttributeValues={
-            ":zero": 0,
             ":now": now,
             ":status": "processing",
         },

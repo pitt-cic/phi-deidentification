@@ -31,7 +31,6 @@ def build_initial_stats_item(batch_id: str, input_count: int) -> dict:
         "batch_id": batch_id,
         "input_count": input_count,
         "processed_count": 0,
-        "failed_count": 0,
         "total_entities": 0,
         "notes_with_pii": 0,
         "approved_count": 0,

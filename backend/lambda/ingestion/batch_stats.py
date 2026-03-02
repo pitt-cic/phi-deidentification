@@ -29,6 +29,7 @@ def build_initial_stats_item(batch_id: str, input_count: int) -> dict:
     return {
         # Core attributes
         "batch_id": batch_id,
+        "gsi_pk": "BATCH",
         "input_count": input_count,
         "processed_count": 0,
         "total_entities": 0,

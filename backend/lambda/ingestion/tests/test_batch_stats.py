@@ -123,6 +123,12 @@ class TestInitializeBatchStats:
         assert mock_table.put_item.call_count == 2
 
 
+def test_build_initial_stats_item_includes_gsi_pk():
+    """Test that gsi_pk is included for GSI."""
+    item = batch_stats.build_initial_stats_item("batch-001", 10)
+    assert item["gsi_pk"] == "BATCH"
+
+
 class TestBuildInitialStatsItemNoFailedCount:
     """Tests for build_initial_stats_item without failed_count."""
 

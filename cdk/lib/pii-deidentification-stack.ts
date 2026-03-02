@@ -36,13 +36,14 @@ export class PiiDeidentificationStack extends Stack {
     };
 
     const INGESTION_TIMEOUT = Duration.minutes(5);
-    const WORKER_CONCURRENCY = 10;
     const WORKER_TIMEOUT = Duration.seconds(120);
     const WORKER_MEMORY = 1024;
     const API_TIMEOUT = Duration.seconds(30);
     const SQS_VISIBILITY_TIMEOUT = Duration.seconds(360);
     const SQS_BATCH_SIZE = 1;
     const SQS_MAX_RECEIVE_COUNT = 3;
+    const SQS_BATCHING_WINDOW = Duration.seconds(0);
+    const SQS_CONCURRENCY = 4; // Control the number of concurrent Lambda executions processing SQS messages
     const BEDROCK_MODEL_ID = 'us.anthropic.claude-sonnet-4-5-20250929-v1:0';
 
     const bucket = new s3.Bucket(this, 'PiiDeidBucket', {
@@ -95,13 +96,13 @@ export class PiiDeidentificationStack extends Stack {
       additionalEnv: {
         BUCKET_NAME: bucket.bucketName,
         BEDROCK_MODEL_ID: BEDROCK_MODEL_ID,
-        LOGFIRE_SEND_TO_LOGFIRE: 'false',
+        LOGFIRE_SEND_TO_LOGFIRE: process.env.LOGFIRE_TOKEN ? 'true' : 'false', // Enable Logfire integration
+        LOGFIRE_TOKEN: process.env.LOGFIRE_TOKEN || '',
         STATS_TABLE_NAME: batchStatsTable.tableName,
         MAX_RECEIVE_COUNT: String(SQS_MAX_RECEIVE_COUNT),
       },
       timeout: WORKER_TIMEOUT,
       memorySize: WORKER_MEMORY,
-      concurrency: WORKER_CONCURRENCY,
     });
 
     bucket.grantReadWrite(workerLambda);
@@ -120,8 +121,9 @@ export class PiiDeidentificationStack extends Stack {
     workerLambda.addEventSource(
       new lambdaEventSources.SqsEventSource(queue, {
         batchSize: SQS_BATCH_SIZE,
-        maxBatchingWindow: Duration.seconds(0),
+        maxBatchingWindow: SQS_BATCHING_WINDOW,
         reportBatchItemFailures: true,
+        maxConcurrency: SQS_CONCURRENCY,
       }),
     );
 

@@ -1,9 +1,12 @@
 """DynamoDB batch stats read module for API."""
 
+import base64
+import json
 import os
 from datetime import datetime, timezone
 
 import boto3
+from boto3.dynamodb.conditions import Key
 
 STATS_TABLE_NAME = os.environ.get("STATS_TABLE_NAME", "")
 PII_ATTR_PREFIX = "pii_"
@@ -148,3 +151,46 @@ def set_approved_at(batch_id: str) -> None:
         UpdateExpression="SET approved_at = :now, updated_at = :now",
         ExpressionAttributeValues={":now": now},
     )
+
+
+def list_all_batches(limit: int, cursor: str | None) -> dict:
+    """
+    List batches using GSI, sorted by created_at descending.
+
+    Args:
+        limit: Maximum number of items to return
+        cursor: Base64-encoded LastEvaluatedKey for pagination
+
+    Returns:
+        dict with 'items' (list of batch dicts) and 'next_cursor' (str or None)
+    """
+    stats_table = _get_stats_table()
+    if not stats_table:
+        return {"items": [], "next_cursor": None}
+
+    query_params = {
+        "IndexName": "BatchesByCreatedAt",
+        "KeyConditionExpression": Key("gsi_pk").eq("BATCH"),
+        "ScanIndexForward": False,  # newest first
+        "Limit": limit,
+    }
+
+    if cursor:
+        try:
+            query_params["ExclusiveStartKey"] = json.loads(
+                base64.b64decode(cursor).decode()
+            )
+        except Exception:
+            pass  # Invalid cursor, ignore
+
+    response = stats_table.query(**query_params)
+
+    items = response.get("Items", [])
+    next_cursor = None
+
+    if "LastEvaluatedKey" in response:
+        next_cursor = base64.b64encode(
+            json.dumps(response["LastEvaluatedKey"]).encode()
+        ).decode()
+
+    return {"items": items, "next_cursor": next_cursor}

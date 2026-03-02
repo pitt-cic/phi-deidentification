@@ -400,3 +400,67 @@ class TestSetProcessingStatusForRedrive:
 
         # Should not raise
         batch_stats.set_processing_status_for_redrive("batch-001")
+
+
+class TestListAllBatches:
+    """Tests for list_all_batches function."""
+
+    def test_returns_empty_when_table_not_configured(self):
+        batch_stats.STATS_TABLE_NAME = ""
+        batch_stats._stats_table = None
+
+        result = batch_stats.list_all_batches(limit=50, cursor=None)
+
+        assert result == {"items": [], "next_cursor": None}
+
+    @patch.object(batch_stats, "STATS_TABLE_NAME", "test-table")
+    @patch.object(batch_stats, "boto3")
+    def test_queries_gsi_with_correct_params(self, mock_boto3):
+        batch_stats._stats_table = None
+
+        mock_table = MagicMock()
+        mock_table.query.return_value = {"Items": []}
+        mock_boto3.resource.return_value.Table.return_value = mock_table
+
+        batch_stats.list_all_batches(limit=50, cursor=None)
+
+        mock_table.query.assert_called_once()
+        call_kwargs = mock_table.query.call_args.kwargs
+        assert call_kwargs["IndexName"] == "BatchesByCreatedAt"
+        assert call_kwargs["ScanIndexForward"] is False
+        assert call_kwargs["Limit"] == 50
+
+    @patch.object(batch_stats, "STATS_TABLE_NAME", "test-table")
+    @patch.object(batch_stats, "boto3")
+    def test_returns_items_from_query(self, mock_boto3):
+        batch_stats._stats_table = None
+
+        mock_table = MagicMock()
+        mock_table.query.return_value = {
+            "Items": [
+                {"batch_id": "batch-001", "status": "completed"},
+                {"batch_id": "batch-002", "status": "processing"},
+            ]
+        }
+        mock_boto3.resource.return_value.Table.return_value = mock_table
+
+        result = batch_stats.list_all_batches(limit=50, cursor=None)
+
+        assert len(result["items"]) == 2
+        assert result["next_cursor"] is None
+
+    @patch.object(batch_stats, "STATS_TABLE_NAME", "test-table")
+    @patch.object(batch_stats, "boto3")
+    def test_returns_next_cursor_when_more_items(self, mock_boto3):
+        batch_stats._stats_table = None
+
+        mock_table = MagicMock()
+        mock_table.query.return_value = {
+            "Items": [{"batch_id": "batch-001"}],
+            "LastEvaluatedKey": {"batch_id": "batch-001", "gsi_pk": "BATCH"},
+        }
+        mock_boto3.resource.return_value.Table.return_value = mock_table
+
+        result = batch_stats.list_all_batches(limit=50, cursor=None)
+
+        assert result["next_cursor"] is not None

@@ -3,3 +3,6 @@
 
 # Claude plans
 docs/plans
+
+# Playwright MCP
+.playwright-mcp

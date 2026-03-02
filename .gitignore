@@ -4,5 +4,8 @@
 # Claude plans
 docs/plans
 
+# Claude MCPs
+.mcp.json
+
 # Playwright MCP
 .playwright-mcp

@@ -166,74 +166,11 @@ def list_batches(params: dict, body: dict, query: dict) -> tuple[int, dict]:
 def get_batch(params: dict, body: dict, query: dict) -> tuple[int, dict]:
     batch_id = params["batch_id"]
 
-    # Try DynamoDB first (new path)
     dynamo_stats = get_batch_stats(batch_id)
     if dynamo_stats:
         return 200, dynamo_stats
 
-    # Fallback to S3-based computation (legacy batches or no DynamoDB)
-    meta = storage.read_json(f"{batch_id}/metadata.json") or {"batch_id": batch_id}
-    input_keys = storage.list_keys(f"{batch_id}/input/")
-    input_count = len(input_keys)
-    required_note_ids = {storage.stem(key) for key in input_keys}
-    batch_object_count = len(storage.list_keys(f"{batch_id}/"))
-    output_count = len(storage.list_keys(f"{batch_id}/output/", suffix="_redacted.txt"))
-    entity_objects = storage.list_objects(f"{batch_id}/output/", suffix="_entities.json")
-    entity_keys = [obj["key"] for obj in entity_objects]
-    entity_file_count = len(entity_keys)
-    entity_signature = storage.objects_signature(entity_objects)
-    if input_count == 0 and output_count == 0 and not meta.get("created_at") and batch_object_count == 0:
-        return 404, {"error": f"Batch '{batch_id}' not found"}
-
-    metadata_changed = False
-    status = storage.compute_status(input_count, output_count, meta.get("status", "created"))
-    if status != meta.get("status"):
-        meta["status"] = status
-        metadata_changed = True
-
-    pii_stats = meta.get("pii_stats")
-    if not isinstance(pii_stats, dict) or meta.get("pii_stats_signature") != entity_signature:
-        pii_stats = storage.compute_pii_stats(batch_id, entity_keys)
-        meta["pii_stats"] = pii_stats
-        meta["pii_stats_entity_file_count"] = entity_file_count
-        meta["pii_stats_signature"] = entity_signature
-        metadata_changed = True
-
-    approval_objects = list_approval_objects_for_signature(batch_id)
-    approval_signature = storage.objects_signature(approval_objects)
-    approved_note_ids = storage.list_approved_note_ids(batch_id)
-    approval_stats = meta.get("approval_stats")
-    if (
-        not isinstance(approval_stats, dict)
-        or meta.get("approval_stats_signature") != approval_signature
-        or "approved_required_note_count" not in approval_stats
-    ):
-        approval_stats = storage.compute_approval_stats(batch_id, approved_note_ids, required_note_ids)
-        meta["approval_stats"] = approval_stats
-        meta["approval_stats_signature"] = approval_signature
-        metadata_changed = True
-
-    approved_required_note_count = int(approval_stats.get("approved_required_note_count", 0))
-    all_approved = (
-        status == "completed"
-        and len(required_note_ids) > 0
-        and approved_required_note_count == len(required_note_ids)
-    )
-    if bool(meta.get("all_approved", False)) != all_approved:
-        meta["all_approved"] = all_approved
-        metadata_changed = True
-
-    if metadata_changed:
-        storage.save_metadata(batch_id, meta)
-
-    return 200, {
-        **meta,
-        "status": status,
-        "input_count": input_count,
-        "output_count": output_count,
-        "pii_stats": pii_stats,
-        "all_approved": all_approved,
-    }
+    return 404, {"error": f"Batch '{batch_id}' not found"}
 
 
 def start_batch(params: dict, body: dict, query: dict) -> tuple[int, dict]:

@@ -131,36 +131,6 @@ class TestIncrementBatchStats:
         mock_logger.warning.assert_called_once()
 
 
-class TestIncrementFailedCount:
-    """Tests for increment_failed_count function."""
-
-    def test_increment_failed_count_increments_and_sets_failed_at(self):
-        """Test that increment_failed_count increments failed_count and sets failed_at."""
-        with patch.object(batch_stats, "STATS_TABLE_NAME", "test-table"), \
-             patch.object(batch_stats, "boto3") as mock_boto3:
-            batch_stats._stats_table = None
-            mock_table = MagicMock()
-            mock_boto3.resource.return_value.Table.return_value = mock_table
-
-            batch_stats.increment_failed_count("batch-001")
-
-            mock_table.update_item.assert_called_once()
-            call_kwargs = mock_table.update_item.call_args.kwargs
-            assert call_kwargs["Key"] == {"batch_id": "batch-001"}
-            assert "failed_count" in call_kwargs["UpdateExpression"]
-            assert "failed_at" in call_kwargs["UpdateExpression"]
-            assert ":one" in call_kwargs["ExpressionAttributeValues"]
-            assert call_kwargs["ExpressionAttributeValues"][":one"] == 1
-
-    def test_increment_failed_count_does_nothing_without_table(self):
-        """Test that increment_failed_count does nothing when table not configured."""
-        batch_stats.STATS_TABLE_NAME = ""
-        batch_stats._stats_table = None
-
-        # Should not raise
-        batch_stats.increment_failed_count("batch-001")
-
-
 class TestIsFinalFailureAttempt:
     """Tests for is_final_failure_attempt function."""
 

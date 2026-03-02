@@ -73,8 +73,8 @@ def increment_batch_stats(batch_id: str, pii_entities: list[dict], logger=None) 
             logger.warning("Failed to update batch stats for %s: %s", batch_id, exc)
 
 
-def increment_failed_count(batch_id: str, logger=None) -> None:
-    """Atomically increment failed_count and set failed_at if first failure."""
+def set_partially_completed_status(batch_id: str, logger=None) -> None:
+    """Set status to partially-completed and failed_at timestamp on first failure."""
     stats_table = _get_stats_table()
     if not stats_table:
         return
@@ -85,15 +85,18 @@ def increment_failed_count(batch_id: str, logger=None) -> None:
         stats_table.update_item(
             Key={"batch_id": batch_id},
             UpdateExpression="""
-                ADD failed_count :one
-                SET updated_at = :now,
+                SET status = :status,
+                    updated_at = :now,
                     failed_at = if_not_exists(failed_at, :now)
             """,
-            ExpressionAttributeValues={":one": 1, ":now": now},
+            ExpressionAttributeValues={
+                ":status": "partially-completed",
+                ":now": now,
+            },
         )
     except Exception as exc:
         if logger:
-            logger.warning("Failed to increment failed_count for %s: %s", batch_id, exc)
+            logger.warning("Failed to set partially_completed status for %s: %s", batch_id, exc)
 
 
 def set_completed_at_if_done(batch_id: str, logger=None) -> None:

@@ -3,9 +3,8 @@ import { fetchAuthSession } from 'aws-amplify/auth'
 export interface Batch {
   batch_id: string
   created_at: string
-  status: 'created' | 'processing' | 'completed' | 'partially-completed' | 'unknown'
+  status: 'created' | 'ready' | 'processing' | 'completed' | 'partially-completed' | 'unknown'
   all_approved?: boolean
-  has_input?: boolean
 }
 
 export interface BatchDetail extends Batch {

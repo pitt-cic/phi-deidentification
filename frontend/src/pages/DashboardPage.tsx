@@ -30,7 +30,7 @@ type BatchStatusDisplay = {
 
 type BatchesQueryData = InfiniteData<PaginatedResponse<Batch>, number>
 
-const getBatchStatusDisplay = (status: Batch['status'], allApproved: boolean, inputCount?: number): BatchStatusDisplay => {
+const getBatchStatusDisplay = (status: Batch['status'], allApproved: boolean): BatchStatusDisplay => {
   if (status === 'completed') {
     return allApproved
       ? { key: 'approved', label: 'Approved' }
@@ -45,10 +45,12 @@ const getBatchStatusDisplay = (status: Batch['status'], allApproved: boolean, in
     return { key: 'processing', label: 'Processing' }
   }
 
+  if (status === 'ready') {
+    return { key: 'ready-to-process', label: 'Ready to Process' }
+  }
+
   if (status === 'created') {
-    return (inputCount ?? 0) > 0
-      ? { key: 'ready-to-process', label: 'Ready to Process' }
-      : { key: 'created', label: 'Created' }
+    return { key: 'created', label: 'Created' }
   }
 
   return { key: 'unknown', label: 'Unknown' }
@@ -190,7 +192,7 @@ export default function DashboardPage() {
   }
 
   const selectedBatchStatus = batchDetail
-    ? getBatchStatusDisplay(batchDetail.status, !!batchDetail.all_approved, batchDetail.input_count)
+    ? getBatchStatusDisplay(batchDetail.status, !!batchDetail.all_approved)
     : null
   const canStartSelectedBatch = selectedBatchStatus?.key === 'ready-to-process' && !!selectedBatchId
   const isStartingSelectedBatch = !!selectedBatchId && startingBatchId === selectedBatchId
@@ -235,10 +237,7 @@ export default function DashboardPage() {
             ) : (
               <>
                 {batches.map((batch: Batch) => {
-                  const inputCount = batch.batch_id === selectedBatchId
-                    ? (batchDetail?.input_count ?? (batch.has_input ? 1 : 0))
-                    : (batch.has_input ? 1 : 0)
-                  const sidebarStatus = getBatchStatusDisplay(batch.status, !!batch.all_approved, inputCount)
+                  const sidebarStatus = getBatchStatusDisplay(batch.status, !!batch.all_approved)
 
                   return (
                     <button

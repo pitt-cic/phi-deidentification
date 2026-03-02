@@ -73,6 +73,20 @@ export class PiiDeidentificationStack extends Stack {
       pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true },
     });
 
+    // Add GSI for listing batches sorted by created_at
+    batchStatsTable.addGlobalSecondaryIndex({
+      indexName: 'BatchesByCreatedAt',
+      partitionKey: {
+        name: 'gsi_pk',
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: 'created_at',
+        type: dynamodb.AttributeType.STRING,
+      },
+      projectionType: dynamodb.ProjectionType.ALL,
+    });
+
     const ingestionLambda = this.createLambdaFunction({
       functionName: 'ingestion',
       handler: 'handler.handler',

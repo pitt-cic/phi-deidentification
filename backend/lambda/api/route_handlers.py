@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 import boto3
 
 import storage
-from batch_stats import get_batch_stats, increment_approval_count, set_processing_status_for_redrive, set_approved_at
+from batch_stats import get_batch_stats, increment_approval_count, set_processing_status_for_redrive, set_approved_at, list_all_batches
 
 logger = logging.getLogger("pii_deidentification.api")
 lambda_client = boto3.client("lambda")
@@ -135,38 +135,32 @@ def async_invoke_ingestion(batch_id: str) -> None:
 
 
 def list_batches(params: dict, body: dict, query: dict) -> tuple[int, dict]:
-    limit, offset = storage.parse_pagination(query)
-    batch_ids = storage.list_batch_ids()
-    no_metadata_batches = []
-    metadata_batches = []
-    for bid in batch_ids:
-        meta = storage.read_json(f"{bid}/metadata.json") or {}
-        created_at = str(meta.get("created_at", "")).strip()
-        has_input = storage.prefix_has_non_folder_object(f"{bid}/input/")
-        batch = {
-            "batch_id": bid,
-            "created_at": created_at,
-            "status": meta.get("status", "created"),
-            "all_approved": bool(meta.get("all_approved", False)),
-            "has_input": has_input,
+    limit, _ = storage.parse_pagination(query)
+    cursor = query.get("cursor")
+
+    result = list_all_batches(limit, cursor)
+
+    batches = [
+        {
+            "batch_id": item["batch_id"],
+            "status": item.get("status", "created"),
+            "created_at": item.get("created_at", ""),
+            "all_approved": (
+                item.get("status") == "completed"
+                and int(item.get("approved_count", 0)) >= int(item.get("input_count", 0))
+                and int(item.get("input_count", 0)) > 0
+            ),
         }
-        if created_at:
-            batch["_created_sort_value"] = parse_sort_datetime(created_at)
-            metadata_batches.append(batch)
-        else:
-            no_metadata_batches.append(batch)
+        for item in result["items"]
+    ]
 
-    no_metadata_batches.sort(key=lambda b: b.get("batch_id", ""), reverse=True)
-    metadata_batches.sort(
-        key=lambda b: (b.get("_created_sort_value", MIN_SORT_DATETIME), b.get("batch_id", "")),
-        reverse=True,
-    )
-
-    for batch in metadata_batches:
-        batch.pop("_created_sort_value", None)
-
-    all_batches = no_metadata_batches + metadata_batches
-    return 200, storage.paginate(all_batches, limit, offset)
+    return 200, {
+        "items": batches,
+        "total": len(batches),
+        "limit": limit,
+        "offset": 0,
+        "next_cursor": result["next_cursor"],
+    }
 
 
 def get_batch(params: dict, body: dict, query: dict) -> tuple[int, dict]:

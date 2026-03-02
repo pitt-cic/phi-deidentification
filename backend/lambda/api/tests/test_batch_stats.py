@@ -387,7 +387,8 @@ class TestSetProcessingStatusForRedrive:
         call_kwargs = mock_table.update_item.call_args.kwargs
         assert call_kwargs["Key"] == {"batch_id": "batch-001"}
         assert "last_redrive_at = :now" in call_kwargs["UpdateExpression"]
-        assert "status = :status" in call_kwargs["UpdateExpression"]
+        assert "#status = :status" in call_kwargs["UpdateExpression"]
+        assert call_kwargs["ExpressionAttributeNames"]["#status"] == "status"
         assert call_kwargs["ExpressionAttributeValues"][":status"] == "processing"
         # No failed_count reset
         assert "failed_count" not in call_kwargs["UpdateExpression"]

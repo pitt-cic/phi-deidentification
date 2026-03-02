@@ -125,9 +125,10 @@ def set_processing_status_for_redrive(batch_id: str) -> None:
         Key={"batch_id": batch_id},
         UpdateExpression="""
             SET last_redrive_at = :now,
-                status = :status,
+                #status = :status,
                 updated_at = :now
         """,
+        ExpressionAttributeNames={"#status": "status"},
         ExpressionAttributeValues={
             ":now": now,
             ":status": "processing",

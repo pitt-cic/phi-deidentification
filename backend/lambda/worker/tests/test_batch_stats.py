@@ -165,8 +165,9 @@ class TestSetPartiallyCompletedStatus:
             mock_table.update_item.assert_called_once()
             call_kwargs = mock_table.update_item.call_args.kwargs
             assert call_kwargs["Key"] == {"batch_id": "batch-001"}
-            assert "status = :status" in call_kwargs["UpdateExpression"]
+            assert "#status = :status" in call_kwargs["UpdateExpression"]
             assert "failed_at = if_not_exists(failed_at, :now)" in call_kwargs["UpdateExpression"]
+            assert call_kwargs["ExpressionAttributeNames"]["#status"] == "status"
             assert call_kwargs["ExpressionAttributeValues"][":status"] == "partially-completed"
 
     def test_does_nothing_without_table(self):
@@ -193,5 +194,6 @@ class TestSetCompletedAtIfDoneWithStatus:
 
             mock_table.update_item.assert_called_once()
             call_kwargs = mock_table.update_item.call_args.kwargs
-            assert "status = :status" in call_kwargs["UpdateExpression"]
+            assert "#status = :status" in call_kwargs["UpdateExpression"]
+            assert call_kwargs["ExpressionAttributeNames"]["#status"] == "status"
             assert call_kwargs["ExpressionAttributeValues"][":status"] == "completed"

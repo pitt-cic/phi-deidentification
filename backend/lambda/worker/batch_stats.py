@@ -85,10 +85,11 @@ def set_partially_completed_status(batch_id: str, logger=None) -> None:
         stats_table.update_item(
             Key={"batch_id": batch_id},
             UpdateExpression="""
-                SET status = :status,
+                SET #status = :status,
                     updated_at = :now,
                     failed_at = if_not_exists(failed_at, :now)
             """,
+            ExpressionAttributeNames={"#status": "status"},
             ExpressionAttributeValues={
                 ":status": "partially-completed",
                 ":now": now,
@@ -112,8 +113,9 @@ def set_completed_at_if_done(batch_id: str, logger=None) -> None:
         # and completed_at is not already set
         stats_table.update_item(
             Key={"batch_id": batch_id},
-            UpdateExpression="SET completed_at = :now, updated_at = :now, status = :status",
+            UpdateExpression="SET completed_at = :now, updated_at = :now, #status = :status",
             ConditionExpression="processed_count >= input_count AND attribute_not_exists(completed_at)",
+            ExpressionAttributeNames={"#status": "status"},
             ExpressionAttributeValues={":now": now, ":status": "completed"},
         )
     except Exception as exc:

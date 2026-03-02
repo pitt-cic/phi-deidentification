@@ -463,7 +463,8 @@ def redrive_dlq(params: dict, body: dict, query: dict) -> tuple[int, dict]:
             now = datetime.now(timezone.utc).isoformat()
             stats_table.update_item(
                 Key={"batch_id": batch_id},
-                UpdateExpression="SET status = :status, completed_at = if_not_exists(completed_at, :now), updated_at = :now",
+                UpdateExpression="SET #status = :status, completed_at = if_not_exists(completed_at, :now), updated_at = :now",
+                ExpressionAttributeNames={"#status": "status"},
                 ExpressionAttributeValues={":status": "completed", ":now": now},
             )
         return 200, {

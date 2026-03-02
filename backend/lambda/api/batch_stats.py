@@ -28,6 +28,7 @@ def get_batch_stats(batch_id: str) -> dict | None:
     Read batch stats from DynamoDB.
 
     Returns None if DynamoDB is not configured or item not found.
+    Status is read directly from DB (no computation).
     """
     stats_table = _get_stats_table()
     if not stats_table:
@@ -41,20 +42,10 @@ def get_batch_stats(batch_id: str) -> dict | None:
 
     input_count = int(stats.get("input_count", 0))
     processed_count = int(stats.get("processed_count", 0))
-    failed_count = int(stats.get("failed_count", 0))
     approved_count = int(stats.get("approved_count", 0))
 
-    # Compute derived status
-    total_handled = processed_count + failed_count
-    if total_handled >= input_count and input_count > 0:
-        if failed_count > 0:
-            status = "partially-completed"
-        else:
-            status = "completed"
-    elif processed_count > 0 or failed_count > 0:
-        status = "processing"
-    else:
-        status = stats.get("status", "created")
+    # Read status directly from DB (set by workers)
+    status = stats.get("status", "created")
 
     all_approved = (
         status == "completed"
@@ -83,7 +74,6 @@ def get_batch_stats(batch_id: str) -> dict | None:
         "status": status,
         "input_count": input_count,
         "output_count": processed_count,
-        "failed_count": failed_count,
         "all_approved": all_approved,
         "created_at": stats.get("created_at", ""),
         "started_at": stats.get("started_at", ""),

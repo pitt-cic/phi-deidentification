@@ -66,7 +66,7 @@ class TestGetBatchStats:
                 "pii_person_name": Decimal("200"),
                 "pii_address": Decimal("100"),
                 "pii_date": Decimal("0"),
-                "status": "processing",
+                "status": "completed",  # Status is read from DB
                 "created_at": "2026-02-21T10:00:00Z",
                 "started_at": "2026-02-21T10:00:00Z",
             }
@@ -76,9 +76,10 @@ class TestGetBatchStats:
         result = batch_stats.get_batch_stats("test-batch")
 
         assert result["batch_id"] == "test-batch"
-        assert result["status"] == "completed"  # processed >= input
+        assert result["status"] == "completed"  # Status read directly from DB
         assert result["input_count"] == 100
         assert result["output_count"] == 100
+        assert "failed_count" not in result  # No longer included in response
 
     @patch.object(batch_stats, "STATS_TABLE_NAME", "test-table")
     @patch.object(batch_stats, "boto3")
@@ -136,7 +137,8 @@ class TestGetBatchStats:
 
     @patch.object(batch_stats, "STATS_TABLE_NAME", "test-table")
     @patch.object(batch_stats, "boto3")
-    def test_computes_status_processing(self, mock_boto3):
+    def test_reads_status_from_db(self, mock_boto3):
+        """Test that status is read directly from DB, not computed."""
         batch_stats._stats_table = None
 
         mock_table = MagicMock()
@@ -144,17 +146,18 @@ class TestGetBatchStats:
             "Item": {
                 "batch_id": "test-batch",
                 "input_count": Decimal("100"),
-                "processed_count": Decimal("50"),  # < input
+                "processed_count": Decimal("50"),
                 "approved_count": Decimal("0"),
                 "total_entities": Decimal("0"),
                 "notes_with_pii": Decimal("0"),
+                "status": "processing",  # Status is stored in DB
             }
         }
         mock_boto3.resource.return_value.Table.return_value = mock_table
 
         result = batch_stats.get_batch_stats("test-batch")
 
-        assert result["status"] == "processing"
+        assert result["status"] == "processing"  # Read from DB, not computed
 
     @patch.object(batch_stats, "STATS_TABLE_NAME", "test-table")
     @patch.object(batch_stats, "boto3")
@@ -170,6 +173,7 @@ class TestGetBatchStats:
                 "approved_count": Decimal("100"),  # All approved
                 "total_entities": Decimal("0"),
                 "notes_with_pii": Decimal("0"),
+                "status": "completed",  # Status is read from DB
             }
         }
         mock_boto3.resource.return_value.Table.return_value = mock_table
@@ -218,12 +222,12 @@ class TestIncrementApprovalCount:
 
 
 class TestGetBatchStatsPartiallyCompleted:
-    """Tests for partially-completed status computation."""
+    """Tests for status being read from DB (not computed)."""
 
     @patch.object(batch_stats, "STATS_TABLE_NAME", "test-table")
     @patch.object(batch_stats, "boto3")
-    def test_returns_partially_completed_when_failures_exist(self, mock_boto3):
-        """Test status is partially-completed when processed + failed >= input and failed > 0."""
+    def test_returns_partially_completed_from_db(self, mock_boto3):
+        """Test status is read directly from DB as partially-completed."""
         batch_stats._stats_table = None
 
         mock_table = MagicMock()
@@ -232,10 +236,10 @@ class TestGetBatchStatsPartiallyCompleted:
                 "batch_id": "batch-001",
                 "input_count": Decimal("10"),
                 "processed_count": Decimal("7"),
-                "failed_count": Decimal("3"),
                 "approved_count": Decimal("0"),
                 "total_entities": Decimal("50"),
                 "notes_with_pii": Decimal("5"),
+                "status": "partially-completed",  # Status stored in DB
                 "created_at": "2026-02-26T10:00:00+00:00",
                 "started_at": "2026-02-26T10:00:05+00:00",
                 "failed_at": "2026-02-26T10:02:00+00:00",
@@ -247,13 +251,13 @@ class TestGetBatchStatsPartiallyCompleted:
 
         assert result is not None
         assert result["status"] == "partially-completed"
-        assert result["failed_count"] == 3
+        assert "failed_count" not in result  # No longer included in response
         assert result["failed_at"] == "2026-02-26T10:02:00+00:00"
 
     @patch.object(batch_stats, "STATS_TABLE_NAME", "test-table")
     @patch.object(batch_stats, "boto3")
-    def test_returns_completed_when_no_failures(self, mock_boto3):
-        """Test status is completed when all notes processed successfully."""
+    def test_returns_completed_from_db(self, mock_boto3):
+        """Test status is read directly from DB as completed."""
         batch_stats._stats_table = None
 
         mock_table = MagicMock()
@@ -262,10 +266,10 @@ class TestGetBatchStatsPartiallyCompleted:
                 "batch_id": "batch-001",
                 "input_count": Decimal("10"),
                 "processed_count": Decimal("10"),
-                "failed_count": Decimal("0"),
                 "approved_count": Decimal("0"),
                 "total_entities": Decimal("50"),
                 "notes_with_pii": Decimal("5"),
+                "status": "completed",  # Status stored in DB
                 "created_at": "2026-02-26T10:00:00+00:00",
                 "started_at": "2026-02-26T10:00:05+00:00",
                 "completed_at": "2026-02-26T10:05:00+00:00",
@@ -277,12 +281,12 @@ class TestGetBatchStatsPartiallyCompleted:
 
         assert result is not None
         assert result["status"] == "completed"
-        assert result["failed_count"] == 0
+        assert "failed_count" not in result  # No longer included in response
 
     @patch.object(batch_stats, "STATS_TABLE_NAME", "test-table")
     @patch.object(batch_stats, "boto3")
-    def test_returns_processing_when_in_progress(self, mock_boto3):
-        """Test status is processing when not all notes handled yet."""
+    def test_returns_processing_from_db(self, mock_boto3):
+        """Test status is read directly from DB as processing."""
         batch_stats._stats_table = None
 
         mock_table = MagicMock()
@@ -291,10 +295,10 @@ class TestGetBatchStatsPartiallyCompleted:
                 "batch_id": "batch-001",
                 "input_count": Decimal("10"),
                 "processed_count": Decimal("5"),
-                "failed_count": Decimal("1"),
                 "approved_count": Decimal("0"),
                 "total_entities": Decimal("30"),
                 "notes_with_pii": Decimal("3"),
+                "status": "processing",  # Status stored in DB
                 "created_at": "2026-02-26T10:00:00+00:00",
                 "started_at": "2026-02-26T10:00:05+00:00",
             }
@@ -305,6 +309,64 @@ class TestGetBatchStatsPartiallyCompleted:
 
         assert result is not None
         assert result["status"] == "processing"
+
+
+class TestGetBatchStatsReadsStatusDirectly:
+    """Tests for get_batch_stats reading status from DynamoDB directly."""
+
+    @patch.object(batch_stats, "STATS_TABLE_NAME", "test-table")
+    @patch.object(batch_stats, "boto3")
+    def test_returns_status_from_db_without_computation(self, mock_boto3):
+        """Test that status is read directly from DynamoDB, not computed."""
+        batch_stats._stats_table = None
+
+        mock_table = MagicMock()
+        mock_table.get_item.return_value = {
+            "Item": {
+                "batch_id": "batch-001",
+                "input_count": Decimal("10"),
+                "processed_count": Decimal("10"),
+                "approved_count": Decimal("0"),
+                "total_entities": Decimal("50"),
+                "notes_with_pii": Decimal("5"),
+                "status": "completed",  # Status stored in DB
+                "created_at": "2026-03-01T10:00:00+00:00",
+            }
+        }
+        mock_boto3.resource.return_value.Table.return_value = mock_table
+
+        result = batch_stats.get_batch_stats("batch-001")
+
+        assert result["status"] == "completed"
+        # Importantly: no failed_count in response
+        assert "failed_count" not in result
+
+    @patch.object(batch_stats, "STATS_TABLE_NAME", "test-table")
+    @patch.object(batch_stats, "boto3")
+    def test_returns_partially_completed_from_db(self, mock_boto3):
+        """Test that partially-completed status is preserved from DB."""
+        batch_stats._stats_table = None
+
+        mock_table = MagicMock()
+        mock_table.get_item.return_value = {
+            "Item": {
+                "batch_id": "batch-001",
+                "input_count": Decimal("10"),
+                "processed_count": Decimal("7"),
+                "approved_count": Decimal("0"),
+                "total_entities": Decimal("30"),
+                "notes_with_pii": Decimal("3"),
+                "status": "partially-completed",  # Status stored in DB
+                "failed_at": "2026-03-01T10:02:00+00:00",
+                "created_at": "2026-03-01T10:00:00+00:00",
+            }
+        }
+        mock_boto3.resource.return_value.Table.return_value = mock_table
+
+        result = batch_stats.get_batch_stats("batch-001")
+
+        assert result["status"] == "partially-completed"
+        assert result["failed_at"] == "2026-03-01T10:02:00+00:00"
 
 
 class TestResetFailedCountAndSetRedriveTimestamp:

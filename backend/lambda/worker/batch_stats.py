@@ -100,7 +100,7 @@ def set_partially_completed_status(batch_id: str, logger=None) -> None:
 
 
 def set_completed_at_if_done(batch_id: str, logger=None) -> None:
-    """Set completed_at timestamp if all notes are processed."""
+    """Set completed_at timestamp and status to completed if all notes are processed."""
     stats_table = _get_stats_table()
     if not stats_table:
         return
@@ -112,9 +112,9 @@ def set_completed_at_if_done(batch_id: str, logger=None) -> None:
         # and completed_at is not already set
         stats_table.update_item(
             Key={"batch_id": batch_id},
-            UpdateExpression="SET completed_at = :now, updated_at = :now",
+            UpdateExpression="SET completed_at = :now, updated_at = :now, status = :status",
             ConditionExpression="processed_count >= input_count AND attribute_not_exists(completed_at)",
-            ExpressionAttributeValues={":now": now},
+            ExpressionAttributeValues={":now": now, ":status": "completed"},
         )
     except Exception as exc:
         # Condition failed or other error - this is expected if not done yet

@@ -216,3 +216,22 @@ class TestSetPartiallyCompletedStatus:
 
         # Should not raise
         batch_stats.set_partially_completed_status("batch-001")
+
+
+class TestSetCompletedAtIfDoneWithStatus:
+    """Tests for set_completed_at_if_done setting status."""
+
+    def test_sets_status_completed_when_done(self):
+        """Test that set_completed_at_if_done sets status to completed."""
+        with patch.object(batch_stats, "STATS_TABLE_NAME", "test-table"), \
+             patch.object(batch_stats, "boto3") as mock_boto3:
+            batch_stats._stats_table = None
+            mock_table = MagicMock()
+            mock_boto3.resource.return_value.Table.return_value = mock_table
+
+            batch_stats.set_completed_at_if_done("batch-001")
+
+            mock_table.update_item.assert_called_once()
+            call_kwargs = mock_table.update_item.call_args.kwargs
+            assert "status = :status" in call_kwargs["UpdateExpression"]
+            assert call_kwargs["ExpressionAttributeValues"][":status"] == "completed"

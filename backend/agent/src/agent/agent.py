@@ -40,6 +40,7 @@ _scrubbing_options = logfire.ScrubbingOptions(callback=_scrubbing_callback)
 # Requires `LOGFIRE_TOKEN` env variable to be set in dev or prod environment
 # For local development, you can run `uv run logfire auth` and `uv run logfire projects use <project_name>`
 logfire.configure(scrubbing=_scrubbing_options)
+logfire.instrument_pydantic_ai()
 
 # Get model ID from environment variable
 DEFAULT_MODEL_ID = os.getenv(

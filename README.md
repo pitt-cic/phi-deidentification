@@ -37,7 +37,7 @@ Key capabilities include:
 
 https://github.com/user-attachments/assets/1f35119a-5b6a-4158-8f5e-0d6de21e8fe0
 
-You can also find out info site here: [info-site](info-site)
+You can also find our info site here: [info-site](info-site)
 
 # Description
 
@@ -148,16 +148,19 @@ Prepare the following tools and accounts before deploying:
      --output table
    ```
 
-4. **Use Amplify deployment for the frontend**:
+4. **Deploy the frontend to AWS Amplify**:
+   Run the deployment script:
 
-   The deployed stack provides `AmplifyAppUrl` for the hosted application. Frontend updates are continuously deployed
-   through Amplify from your main branch.
+   ```bash
+   cd ../frontend
+   chmod +x ./deploy-frontend.sh
+   ./deploy-frontend.sh
+   ```
 
 ### Local Frontend Setup
 
-1. **Install dependencies**:
+1. **Install dependencies** (from `frontend/`):
    ```bash
-   cd ../frontend
    npm install
    ```
 
@@ -205,21 +208,16 @@ This dashboard reads local evaluation artifacts from `eval_results/`, `synthetic
 
 ### Synthetic Data Generator
 
-Use the generator and evaluator scripts under `backend/synthetic-data-generator` for local dataset creation and scoring:
+Use the synthetic generator package under `backend/synthetic-data-generator/src`:
 
 ```bash
-cd backend/synthetic-data-generator
-python scripts/generate_bulk.py --help
-python scripts/evaluate.py --help
-```
+# From repo root: generator CLI help
+PYTHONPATH=backend/synthetic-data-generator/src \
+python backend/cli/src/cli/generate_notes.py --help
 
-Example evaluation command against repo-level datasets:
-
-```bash
-cd backend/synthetic-data-generator
-python scripts/evaluate.py \
-  --ground-truth ../../synthetic_dataset/manifests \
-  --solution ../../output-json
+# From repo root: evaluator import check
+PYTHONPATH=backend/synthetic-data-generator/src \
+python -c "from synthetic_data_generator.evaluator import Evaluator; print('Evaluator ready')"
 ```
 
 # Usage

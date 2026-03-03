@@ -14,7 +14,7 @@ Options:
   --branch <name>        Amplify branch override (otherwise parsed from AmplifyAppUrl output)
   --profile <profile>    AWS profile to use
   --region <region>      AWS region override
-  --skip-install         Skip bun ci before build
+  --skip-install         Skip npm ci before build
   -h, --help             Show this help text
 EOF
 }
@@ -64,7 +64,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-for cmd in aws bun curl zip mktemp; do
+for cmd in aws npm curl zip mktemp; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
     echo "Error: required command '$cmd' is not available in PATH." >&2
     exit 1
@@ -146,7 +146,7 @@ cd "$SCRIPT_DIR"
 
 if [[ "$SKIP_INSTALL" -eq 0 ]]; then
   echo "Installing frontend dependencies..." >&2
-  bun install
+  npm ci
 fi
 
 # Clean previous build artifacts
@@ -156,7 +156,7 @@ echo "Building frontend..." >&2
 VITE_API_URL="$API_URL" \
 VITE_USER_POOL_ID="$USER_POOL_ID" \
 VITE_USER_POOL_CLIENT_ID="$USER_POOL_CLIENT_ID" \
-bun run build
+npm run build
 
 if [[ ! -d dist ]]; then
   echo "Error: build did not produce frontend/dist." >&2
@@ -164,7 +164,6 @@ if [[ ! -d dist ]]; then
 fi
 
 ZIP_FILE="amplify-deploy-$(date +%Y%m%d-%H%M%S).zip"
-# trap 'rm -f "$ZIP_FILE"' EXIT
 
 echo "Packaging dist bundle..." >&2
 (cd dist && zip -r "$ZIP_FILE" .)

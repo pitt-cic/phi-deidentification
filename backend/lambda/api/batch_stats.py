@@ -3,7 +3,7 @@
 import base64
 import json
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 import boto3
 from boto3.dynamodb.conditions import Key
@@ -24,6 +24,29 @@ def _get_stats_table():
         _dynamodb_resource = boto3.resource("dynamodb")
         _stats_table = _dynamodb_resource.Table(STATS_TABLE_NAME)
     return _stats_table
+
+
+def _is_recently_updated(updated_at: str, threshold_minutes: int = 2) -> bool:
+    """
+    Check if the timestamp is within threshold_minutes of now.
+
+    Args:
+        updated_at: ISO format timestamp string
+        threshold_minutes: Number of minutes to consider "recent"
+
+    Returns:
+        True if timestamp is within threshold, False otherwise
+    """
+    if not updated_at:
+        return False
+
+    try:
+        updated_time = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
+        now = datetime.now(timezone.utc)
+        age = now - updated_time
+        return age < timedelta(minutes=threshold_minutes)
+    except (ValueError, TypeError):
+        return False
 
 
 def get_batch_stats(batch_id: str) -> dict | None:
@@ -49,6 +72,15 @@ def get_batch_stats(batch_id: str) -> dict | None:
 
     # Read status directly from DB (set by workers)
     status = stats.get("status", "created")
+
+    # Override partially-completed with processing if still active
+    # This keeps Retry button hidden while notes are still being processed
+    if (
+        status == "partially-completed"
+        and processed_count < input_count
+        and _is_recently_updated(stats.get("updated_at", ""), threshold_minutes=2)
+    ):
+        status = "processing"
 
     all_approved = (
         status == "completed"

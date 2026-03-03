@@ -3,6 +3,7 @@
 import importlib.util
 import os
 import sys
+from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from pathlib import Path
 from unittest.mock import patch, MagicMock
@@ -464,3 +465,162 @@ class TestListAllBatches:
         result = batch_stats.list_all_batches(limit=50, cursor=None)
 
         assert result["next_cursor"] is not None
+
+
+class TestIsRecentlyUpdated:
+    """Tests for _is_recently_updated helper function."""
+
+    def test_returns_true_when_within_threshold(self):
+        """Should return True when timestamp is within threshold minutes."""
+        # 1 minute ago is within 2-minute threshold
+        one_min_ago = (datetime.now(timezone.utc) - timedelta(minutes=1)).isoformat()
+
+        result = batch_stats._is_recently_updated(one_min_ago, threshold_minutes=2)
+
+        assert result is True
+
+    def test_returns_false_when_beyond_threshold(self):
+        """Should return False when timestamp is beyond threshold minutes."""
+        # 5 minutes ago is beyond 2-minute threshold
+        five_min_ago = (datetime.now(timezone.utc) - timedelta(minutes=5)).isoformat()
+
+        result = batch_stats._is_recently_updated(five_min_ago, threshold_minutes=2)
+
+        assert result is False
+
+    def test_returns_false_for_empty_string(self):
+        """Should return False for empty timestamp."""
+        result = batch_stats._is_recently_updated("", threshold_minutes=2)
+
+        assert result is False
+
+    def test_returns_false_for_invalid_timestamp(self):
+        """Should return False for invalid timestamp format."""
+        result = batch_stats._is_recently_updated("not-a-timestamp", threshold_minutes=2)
+
+        assert result is False
+
+
+class TestGetBatchStatsStatusOverride:
+    """Tests for status override when partially-completed but still processing."""
+
+    @patch.object(batch_stats, "STATS_TABLE_NAME", "test-table")
+    @patch.object(batch_stats, "boto3")
+    def test_returns_processing_when_partially_completed_but_recently_updated(self, mock_boto3):
+        """Should return 'processing' when status is partially-completed but updated_at is recent."""
+        batch_stats._stats_table = None
+
+        # updated_at is 1 minute ago (recent)
+        recent_time = (datetime.now(timezone.utc) - timedelta(minutes=1)).isoformat()
+
+        mock_table = MagicMock()
+        mock_table.get_item.return_value = {
+            "Item": {
+                "batch_id": "batch-001",
+                "input_count": Decimal("100"),
+                "processed_count": Decimal("50"),  # Not all processed
+                "approved_count": Decimal("0"),
+                "total_entities": Decimal("200"),
+                "notes_with_pii": Decimal("30"),
+                "status": "partially-completed",  # DB has partially-completed
+                "failed_at": "2026-03-03T10:00:00+00:00",
+                "updated_at": recent_time,  # But recently updated
+                "created_at": "2026-03-03T09:00:00+00:00",
+            }
+        }
+        mock_boto3.resource.return_value.Table.return_value = mock_table
+
+        result = batch_stats.get_batch_stats("batch-001")
+
+        # Should override to 'processing' because still active
+        assert result["status"] == "processing"
+
+    @patch.object(batch_stats, "STATS_TABLE_NAME", "test-table")
+    @patch.object(batch_stats, "boto3")
+    def test_returns_partially_completed_when_not_recently_updated(self, mock_boto3):
+        """Should return 'partially-completed' when updated_at is stale."""
+        batch_stats._stats_table = None
+
+        # updated_at is 5 minutes ago (stale)
+        stale_time = (datetime.now(timezone.utc) - timedelta(minutes=5)).isoformat()
+
+        mock_table = MagicMock()
+        mock_table.get_item.return_value = {
+            "Item": {
+                "batch_id": "batch-001",
+                "input_count": Decimal("100"),
+                "processed_count": Decimal("50"),
+                "approved_count": Decimal("0"),
+                "total_entities": Decimal("200"),
+                "notes_with_pii": Decimal("30"),
+                "status": "partially-completed",
+                "failed_at": "2026-03-03T10:00:00+00:00",
+                "updated_at": stale_time,  # Not recently updated
+                "created_at": "2026-03-03T09:00:00+00:00",
+            }
+        }
+        mock_boto3.resource.return_value.Table.return_value = mock_table
+
+        result = batch_stats.get_batch_stats("batch-001")
+
+        # Should return actual status because processing stopped
+        assert result["status"] == "partially-completed"
+
+    @patch.object(batch_stats, "STATS_TABLE_NAME", "test-table")
+    @patch.object(batch_stats, "boto3")
+    def test_returns_partially_completed_when_all_processed(self, mock_boto3):
+        """Should return 'partially-completed' when processed_count >= input_count."""
+        batch_stats._stats_table = None
+
+        # Even if recently updated, if all notes processed, show actual status
+        recent_time = (datetime.now(timezone.utc) - timedelta(minutes=1)).isoformat()
+
+        mock_table = MagicMock()
+        mock_table.get_item.return_value = {
+            "Item": {
+                "batch_id": "batch-001",
+                "input_count": Decimal("100"),
+                "processed_count": Decimal("100"),  # All processed
+                "approved_count": Decimal("0"),
+                "total_entities": Decimal("400"),
+                "notes_with_pii": Decimal("80"),
+                "status": "partially-completed",  # But some failed
+                "failed_at": "2026-03-03T10:00:00+00:00",
+                "updated_at": recent_time,
+                "created_at": "2026-03-03T09:00:00+00:00",
+            }
+        }
+        mock_boto3.resource.return_value.Table.return_value = mock_table
+
+        result = batch_stats.get_batch_stats("batch-001")
+
+        # Should NOT override because all notes have been attempted
+        assert result["status"] == "partially-completed"
+
+    @patch.object(batch_stats, "STATS_TABLE_NAME", "test-table")
+    @patch.object(batch_stats, "boto3")
+    def test_does_not_override_other_statuses(self, mock_boto3):
+        """Should not override completed or processing statuses."""
+        batch_stats._stats_table = None
+
+        recent_time = (datetime.now(timezone.utc) - timedelta(minutes=1)).isoformat()
+
+        mock_table = MagicMock()
+        mock_table.get_item.return_value = {
+            "Item": {
+                "batch_id": "batch-001",
+                "input_count": Decimal("100"),
+                "processed_count": Decimal("100"),
+                "approved_count": Decimal("0"),
+                "total_entities": Decimal("400"),
+                "notes_with_pii": Decimal("80"),
+                "status": "completed",  # Not partially-completed
+                "updated_at": recent_time,
+                "created_at": "2026-03-03T09:00:00+00:00",
+            }
+        }
+        mock_boto3.resource.return_value.Table.return_value = mock_table
+
+        result = batch_stats.get_batch_stats("batch-001")
+
+        assert result["status"] == "completed"

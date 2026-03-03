@@ -178,7 +178,9 @@ export default function DashboardPage() {
     setRetrying(true)
     try {
       await redriveBatch(batchId)
-      queryClient.invalidateQueries({ queryKey: ['batch', batchId] })
+      // Wait for batch detail refetch before resetting button state
+      await queryClient.refetchQueries({ queryKey: ['batch', batchId] })
+      // Batches list can update in background
       queryClient.invalidateQueries({ queryKey: ['batches'] })
     } catch (err) {
       alert(`Retry failed: ${err instanceof Error ? err.message : 'Unknown error'}`)

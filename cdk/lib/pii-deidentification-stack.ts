@@ -43,7 +43,7 @@ export class PiiDeidentificationStack extends Stack {
     const SQS_BATCH_SIZE = 1;
     const SQS_MAX_RECEIVE_COUNT = 3;
     const SQS_BATCHING_WINDOW = Duration.seconds(0);
-    const SQS_CONCURRENCY = 4; // Control the number of concurrent Lambda executions processing SQS messages
+    const SQS_CONCURRENCY = 10; // Control the number of concurrent Lambda executions processing SQS messages
     const BEDROCK_MODEL_ID = 'us.anthropic.claude-sonnet-4-5-20250929-v1:0';
 
     const bucket = new s3.Bucket(this, 'PiiDeidBucket', {

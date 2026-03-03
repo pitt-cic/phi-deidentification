@@ -61,7 +61,7 @@ def build_initial_stats_item(batch_id: str, input_count: int) -> dict:
 
 
 def initialize_batch_stats(batch_id: str, input_count: int) -> None:
-    """Initialize or reset batch stats in DynamoDB."""
+    """Initialize or update batch stats in DynamoDB for processing."""
     stats_table = _get_stats_table()
     if not stats_table:
         return
@@ -76,6 +76,16 @@ def initialize_batch_stats(batch_id: str, input_count: int) -> None:
     except ClientError as e:
         if e.response["Error"]["Code"] != "ConditionalCheckFailedException":
             raise
-        # Item exists - delete and recreate to fully reset all attributes
-        stats_table.delete_item(Key={"batch_id": batch_id})
-        stats_table.put_item(Item=item)
+        # Item exists (created by create_batch.sh) - update status to processing
+        # Preserves created_at and existing counters (defense against double-start)
+        now = datetime.now(timezone.utc).isoformat()
+        stats_table.update_item(
+            Key={"batch_id": batch_id},
+            UpdateExpression="SET #status = :status, started_at = :now, updated_at = :now, input_count = :input_count",
+            ExpressionAttributeNames={"#status": "status"},
+            ExpressionAttributeValues={
+                ":status": "processing",
+                ":now": now,
+                ":input_count": input_count,
+            },
+        )

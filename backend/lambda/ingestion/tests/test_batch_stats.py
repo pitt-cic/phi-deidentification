@@ -102,7 +102,8 @@ class TestInitializeBatchStats:
 
     @patch.object(batch_stats, "STATS_TABLE_NAME", "test-table")
     @patch.object(batch_stats, "boto3")
-    def test_deletes_and_recreates_when_exists(self, mock_boto3):
+    def test_updates_when_exists(self, mock_boto3):
+        """When item exists, update status to processing instead of delete+recreate."""
         from botocore.exceptions import ClientError
 
         batch_stats._stats_table = None
@@ -110,17 +111,21 @@ class TestInitializeBatchStats:
         mock_table = MagicMock()
         mock_boto3.resource.return_value.Table.return_value = mock_table
 
-        # First put_item raises ConditionalCheckFailedException
+        # put_item raises ConditionalCheckFailedException (item exists)
         error_response = {"Error": {"Code": "ConditionalCheckFailedException"}}
-        mock_table.put_item.side_effect = [
-            ClientError(error_response, "PutItem"),
-            None,  # Second call succeeds
-        ]
+        mock_table.put_item.side_effect = ClientError(error_response, "PutItem")
 
         batch_stats.initialize_batch_stats("test-batch", 100)
 
-        mock_table.delete_item.assert_called_once_with(Key={"batch_id": "test-batch"})
-        assert mock_table.put_item.call_count == 2
+        # Should NOT delete
+        mock_table.delete_item.assert_not_called()
+        # Should update instead
+        mock_table.update_item.assert_called_once()
+        call_kwargs = mock_table.update_item.call_args[1]
+        assert call_kwargs["Key"] == {"batch_id": "test-batch"}
+        assert ":status" in call_kwargs["ExpressionAttributeValues"]
+        assert call_kwargs["ExpressionAttributeValues"][":status"] == "processing"
+        assert call_kwargs["ExpressionAttributeValues"][":input_count"] == 100
 
 
 def test_build_initial_stats_item_includes_gsi_pk():

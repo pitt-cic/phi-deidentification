@@ -3,7 +3,7 @@ import * as cdk from 'aws-cdk-lib';
 import { PiiDeidentificationStack } from '../lib/pii-deidentification-stack';
 
 const app = new cdk.App();
-new PiiDeidentificationStack(app, 'PiiDeidentificationStack');
+new PiiDeidentificationStack(app, 'PiiDeidentificationStackV4');
 
 cdk.Tags.of(app).add('Project', 'PII Deidentification');
 cdk.Tags.of(app).add('Purpose', process.env.PURPOSE || 'Demo');

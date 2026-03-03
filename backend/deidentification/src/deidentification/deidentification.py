@@ -11,7 +11,6 @@ from typing import Any, Sequence
 
 import logfire
 from agent import AgentContext, AgentResponse, DetectionParameters, pii_agent
-from agent.prompt import SYSTEM_PROMPT
 from pydantic_ai.usage import RunUsage
 from .redaction import FormatterProtocol, process_json_file
 from .constants import DEFAULT_PROMPT, DEFAULT_MAX_CHARS
@@ -104,23 +103,11 @@ async def process_document(
 
     full_prompt = build_prompt_with_document(prompt, document_text)
     
-    pii_types_str = ", ".join(detection.pii_types)
-    limit = detection.max_entities or "no-limit"
-    detection_scope = (
-        f"<detection_scope>"
-        f"source={source_name}; "
-        f"pii_types={pii_types_str}; "
-        f"max_entities={limit}"
-        f"</detection_scope>"
-    )
-    system_instructions = f"{SYSTEM_PROMPT}\n\n{detection_scope}"
-    
     usage = RunUsage()
     
     with logfire.span('pii_detection', 
                       source=source_name,
                       document_length=len(document_text)) as span:
-        span.set_attribute('system_instructions', system_instructions)
         span.set_attribute('user_prompt', full_prompt)
         
         result = await pii_agent.run(full_prompt, deps=context, usage=usage)

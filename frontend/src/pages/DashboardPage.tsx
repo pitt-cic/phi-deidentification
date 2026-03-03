@@ -118,6 +118,7 @@ export default function DashboardPage() {
   }
 
   const handleStartBatch = async (batchId: string) => {
+    if (startingBatchId) return // Prevent double-submit
     setStartError('')
     setStartingBatchId(batchId)
     try {

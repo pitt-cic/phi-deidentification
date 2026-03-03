@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initLegendInteraction()
   initSmoothScroll()
   initTechGridAnimation()
+  initNavScrollEffect()
 })
 
 function initScrollAnimations() {
@@ -163,11 +164,13 @@ function initTechGridAnimation() {
   }
 }
 
-const nav = document.querySelector('.nav') as HTMLElement
-window.addEventListener('scroll', () => {
-  if (nav) {
+function initNavScrollEffect() {
+  const nav = document.querySelector('.nav') as HTMLElement | null
+  if (!nav) return
+
+  window.addEventListener('scroll', () => {
     nav.style.background = window.scrollY > 100
       ? 'rgba(7, 13, 24, 0.98)'
       : 'linear-gradient(to bottom, rgba(7, 13, 24, 0.95), rgba(7, 13, 24, 0.8))'
-  }
-})
+  })
+}

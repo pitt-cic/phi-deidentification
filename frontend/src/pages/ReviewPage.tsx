@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react'
 import { useParams, useNavigate, Link, useBeforeUnload } from 'react-router-dom'
-import { useInfiniteQuery, useQuery, useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query'
-import { listNotes, getNote, approveNote, type Note, type Batch, type PaginatedResponse } from '../api/client'
+import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { listNotes, getNote, approveNote, PAGE_SIZE, type Note, type BatchesQueryData } from '../api/client'
 import DiffViewer from '../components/DiffViewer'
 import './ReviewPage.css'
 
-const PAGE_SIZE = 50
-type BatchesQueryData = InfiniteData<PaginatedResponse<Batch>, number>
 type ReviewToast = { id: number; message: string }
 
 const normalizeRedactedForComparison = (value: string): string => value.replace(/\r\n/g, '\n')
@@ -110,7 +108,7 @@ export default function ReviewPage() {
     const timeoutId = window.setTimeout(() => {
       setReviewToasts((current) => current.filter((toast) => toast.id !== id))
       toastTimeoutIdsRef.current = toastTimeoutIdsRef.current.filter((existingId) => existingId !== timeoutId)
-    }, 3600)
+    }, 4000)
 
     toastTimeoutIdsRef.current.push(timeoutId)
   }, [])
@@ -238,11 +236,11 @@ export default function ReviewPage() {
           <>
             <div className="review-toolbar">
               <div className="toolbar-left">
-                <button className="btn btn-sm" onClick={() => hasPrev && goToNote(notes[currentIdx - 1].note_id)} disabled={!hasPrev}>
+                <button className="btn btn-sm" onClick={() => goToNote(notes[currentIdx - 1].note_id)} disabled={!hasPrev}>
                   &larr; Prev
                 </button>
                 <span className="toolbar-note-name">{selectedNoteId}</span>
-                <button className="btn btn-sm" onClick={() => hasNext && goToNote(notes[currentIdx + 1].note_id)} disabled={!hasNext}>
+                <button className="btn btn-sm" onClick={() => goToNote(notes[currentIdx + 1].note_id)} disabled={!hasNext}>
                   Next &rarr;
                 </button>
                 <span className="toolbar-position">{currentIdx + 1} of {totalNotes}</span>

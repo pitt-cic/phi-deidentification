@@ -7,11 +7,6 @@ interface DiffViewerProps {
   redacted: string
   editableRedacted?: boolean
   onRedactedChange?: (value: string) => void
-  onToggleEditRedacted?: () => void
-  editToggleDisabled?: boolean
-  onSaveRedacted?: () => void
-  saveDisabled?: boolean
-  saveLabel?: string
 }
 
 interface DiffChange {
@@ -29,11 +24,6 @@ export default function DiffViewer({
   redacted,
   editableRedacted = false,
   onRedactedChange,
-  onToggleEditRedacted,
-  editToggleDisabled = false,
-  onSaveRedacted,
-  saveDisabled = false,
-  saveLabel = 'Save',
 }: DiffViewerProps) {
   const originalRef = useRef<HTMLElement | null>(null)
   const redactedRef = useRef<HTMLElement | null>(null)
@@ -186,31 +176,7 @@ export default function DiffViewer({
 
         <div className="diff-panel">
           <div className="diff-panel-header">
-            <span className="diff-panel-title-wrap">
-              <span className="diff-panel-label">Redacted</span>
-              <span className="diff-panel-header-actions">
-                {onToggleEditRedacted && (
-                  <button
-                    type="button"
-                    className="diff-edit-toggle-btn"
-                    onClick={onToggleEditRedacted}
-                    disabled={editToggleDisabled || editableRedacted}
-                  >
-                    Edit
-                  </button>
-                )}
-                {onSaveRedacted && (
-                  <button
-                    type="button"
-                    className="diff-save-btn"
-                    onClick={onSaveRedacted}
-                    disabled={saveDisabled}
-                  >
-                    {saveLabel}
-                  </button>
-                )}
-              </span>
-            </span>
+            <span className="diff-panel-label">Redacted</span>
             <span className="diff-panel-stats diff-stats-info">
               {stats.removed} removed &middot; {stats.added} replaced
             </span>

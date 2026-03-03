@@ -1,4 +1,5 @@
 import { fetchAuthSession } from 'aws-amplify/auth'
+import type { InfiniteData } from '@tanstack/react-query'
 
 export interface Batch {
   batch_id: string
@@ -20,21 +21,14 @@ export interface BatchDetail extends Batch {
 
 export interface BatchPIIStats {
   entity_file_count: number
-  notes_with_pii: number
   total_entities: number
   by_type: Record<string, number>
 }
 
 export interface Note {
   note_id: string
-  filename: string
   has_output: boolean
   approved: boolean
-}
-
-export interface PIIEntity {
-  type: string
-  value: string
 }
 
 export interface NoteDetail {
@@ -42,8 +36,6 @@ export interface NoteDetail {
   original_text: string
   redacted_text: string
   output_redacted_text?: string
-  pii_entities: PIIEntity[]
-  summary: string
   needs_review: boolean
   approved: boolean
 }
@@ -73,6 +65,10 @@ export interface ApproveAllResponse {
   approved_note_count: number
   all_approved: boolean
 }
+
+export type BatchesQueryData = InfiniteData<PaginatedResponse<Batch>, number>
+
+export const PAGE_SIZE = 50
 
 const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
 
@@ -121,12 +117,14 @@ async function fetchApi<T>(path: string, options: RequestInit = {}): Promise<T> 
     throw new Error(requestId ? `${safeMessage} (ref: ${requestId})` : safeMessage)
   }
   const data = await response.json()
-  const duration = performance.now() - start
-  console.log(`[API] ${options.method || 'GET'} ${path} - ${duration.toFixed(0)}ms`)
+  if (import.meta.env.DEV) {
+    const duration = performance.now() - start
+    console.log(`[API] ${options.method || 'GET'} ${path} - ${duration.toFixed(0)}ms`)
+  }
   return data
 }
 
-export async function listBatches(limit = 50, offset = 0): Promise<PaginatedResponse<Batch>> {
+export async function listBatches(limit = PAGE_SIZE, offset = 0): Promise<PaginatedResponse<Batch>> {
   const data = await fetchApi<PaginatedResponse<Batch> | Batch[]>(`/batches?limit=${limit}&offset=${offset}`)
   if (Array.isArray(data)) return { items: data, total: data.length, limit: data.length, offset: 0 }
   return data
@@ -140,7 +138,7 @@ export async function startBatch(batchId: string): Promise<{ status: string; bat
   return fetchApi(`/batches/${batchId}/start`, { method: 'POST' })
 }
 
-export async function listNotes(batchId: string, limit = 50, offset = 0): Promise<PaginatedResponse<Note>> {
+export async function listNotes(batchId: string, limit = PAGE_SIZE, offset = 0): Promise<PaginatedResponse<Note>> {
   const data = await fetchApi<PaginatedResponse<Note> | Note[]>(`/batches/${batchId}/notes?limit=${limit}&offset=${offset}`)
   if (Array.isArray(data)) return { items: data, total: data.length, limit: data.length, offset: 0 }
   return data

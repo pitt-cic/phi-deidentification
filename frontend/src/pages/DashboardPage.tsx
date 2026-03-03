@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { useQuery, useInfiniteQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   listBatches,
@@ -7,12 +7,11 @@ import {
   startBatch,
   approveAllNotes,
   redriveBatch,
+  PAGE_SIZE,
   type Batch,
-  type PaginatedResponse,
+  type BatchesQueryData,
 } from '../api/client'
 import './DashboardPage.css'
-
-const PAGE_SIZE = 50
 
 type BatchStatusKey =
   | 'created'
@@ -27,8 +26,6 @@ type BatchStatusDisplay = {
   key: BatchStatusKey
   label: string
 }
-
-type BatchesQueryData = InfiniteData<PaginatedResponse<Batch>, number>
 
 const getBatchStatusDisplay = (status: Batch['status'], allApproved: boolean): BatchStatusDisplay => {
   if (status === 'completed') {
@@ -56,6 +53,8 @@ const getBatchStatusDisplay = (status: Batch['status'], allApproved: boolean): B
   return { key: 'unknown', label: 'Unknown' }
 }
 
+type DashboardToast = { id: number; message: string; tone: 'success' | 'error' }
+
 export default function DashboardPage() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
@@ -65,6 +64,27 @@ export default function DashboardPage() {
   const [startError, setStartError] = useState('')
   const [approvingAll, setApprovingAll] = useState(false)
   const [retrying, setRetrying] = useState(false)
+  const [toasts, setToasts] = useState<DashboardToast[]>([])
+  const toastTimeoutIdsRef = useRef<Array<ReturnType<typeof window.setTimeout>>>([])
+
+  const pushToast = useCallback((message: string, tone: DashboardToast['tone']) => {
+    const id = Date.now() + Math.random()
+    setToasts((current) => [...current, { id, message, tone }])
+
+    const timeoutId = window.setTimeout(() => {
+      setToasts((current) => current.filter((toast) => toast.id !== id))
+      toastTimeoutIdsRef.current = toastTimeoutIdsRef.current.filter((t) => t !== timeoutId)
+    }, 4000)
+
+    toastTimeoutIdsRef.current.push(timeoutId)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      toastTimeoutIdsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId))
+      toastTimeoutIdsRef.current = []
+    }
+  }, [])
 
   useEffect(() => {
     const currentBatchParam = searchParams.get('batch')
@@ -161,14 +181,14 @@ export default function DashboardPage() {
       updateBatchApprovalBadge(batchId, result.all_approved)
 
       if (result.required_note_count === 0) {
-        alert('No notes found in this batch.')
+        pushToast('No notes found in this batch.', 'error')
       } else if (result.all_approved) {
-        alert(`Approved ${result.approved_note_count} notes.`)
+        pushToast(`Approved ${result.approved_note_count} notes.`, 'success')
       } else {
-        alert(`Marked ${result.approved_note_count} notes approved. Batch processing must be completed first.`)
+        pushToast(`Marked ${result.approved_note_count} notes approved. Batch processing must be completed first.`, 'success')
       }
     } catch (err) {
-      alert(`Approve all error: ${err instanceof Error ? err.message : 'Unknown error'}`)
+      pushToast(err instanceof Error ? err.message : 'Failed to approve notes', 'error')
     } finally {
       setApprovingAll(false)
     }
@@ -215,6 +235,15 @@ export default function DashboardPage() {
 
   return (
     <div className="dashboard-layout">
+      {toasts.length > 0 && (
+        <div className="dashboard-toast-stack" aria-live="polite" aria-atomic="true">
+          {toasts.map((toast) => (
+            <div key={toast.id} className={`dashboard-toast dashboard-toast-${toast.tone}`} role="status">
+              {toast.message}
+            </div>
+          ))}
+        </div>
+      )}
       <aside className="dashboard-sidebar">
         <div className="sidebar-section">
           <button

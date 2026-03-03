@@ -60,7 +60,7 @@ function App() {
     const timeoutId = window.setTimeout(() => {
       setAuthToasts((current) => current.filter((toast) => toast.id !== id))
       timeoutIdsRef.current = timeoutIdsRef.current.filter((existingId) => existingId !== timeoutId)
-    }, 4500)
+    }, 4000)
 
     timeoutIdsRef.current.push(timeoutId)
   }, [])

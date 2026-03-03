@@ -113,8 +113,12 @@ batch_exists() {
   [[ "$key_count" != "0" && "$key_count" != "None" ]]
 }
 
+# Capture timestamp once for consistency between batch ID and created_at
+TIMESTAMP_COMPACT="$(date -u +%Y%m%d%H%M%S)"
+TIMESTAMP_ISO="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
 if [[ -z "$BATCH_ID" ]]; then
-  BASE_BATCH_ID="batch-$(date -u +%Y%m%d%H%M%S)"
+  BASE_BATCH_ID="batch-${TIMESTAMP_COMPACT}"
   BATCH_ID="$BASE_BATCH_ID"
   SUFFIX=1
   while batch_exists "$BATCH_ID"; do
@@ -151,8 +155,6 @@ STATS_TABLE="$(run_aws cloudformation describe-stacks \
 if [[ -z "$STATS_TABLE" || "$STATS_TABLE" == "None" ]]; then
   echo "Warning: Could not resolve stats table from stack '$STACK_NAME'. DynamoDB entry not created." >&2
 else
-  TIMESTAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-
   if [[ -n "$NOTES_DIR" ]]; then
     STATUS="ready"
     INPUT_COUNT=$(find "$NOTES_DIR" -maxdepth 1 -name "*.txt" -type f 2>/dev/null | wc -l | tr -d ' ')
@@ -172,7 +174,7 @@ else
       \"approved_count\": {\"N\": \"0\"},
       \"total_entities\": {\"N\": \"0\"},
       \"notes_with_pii\": {\"N\": \"0\"},
-      \"created_at\": {\"S\": \"$TIMESTAMP\"}
+      \"created_at\": {\"S\": \"$TIMESTAMP_ISO\"}
     }" 2>/dev/null || echo "Warning: Failed to create DynamoDB entry" >&2
 
   echo "Created DynamoDB entry: status=$STATUS, input_count=$INPUT_COUNT" >&2

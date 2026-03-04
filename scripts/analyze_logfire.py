@@ -26,6 +26,8 @@ LOGFIRE_API_URL = "https://logfire-us.pydantic.dev/v1/query"
 # Claude Sonnet 4.5 pricing (as of March 2026)
 INPUT_PRICE_PER_1M = 3.00
 OUTPUT_PRICE_PER_1M = 15.00
+CACHE_READ_PRICE_PER_1M = 0.30  # 90% discount on cached input tokens
+CACHE_WRITE_PRICE_PER_1M = 3.75  # 25% premium for writing to cache
 
 
 def get_token() -> str:
@@ -105,7 +107,11 @@ def get_summary(start: str, end: str, token: str) -> dict:
         SUM(CASE WHEN is_exception THEN 1 ELSE 0 END) AS failed_spans,
         SUM(CASE WHEN NOT is_exception THEN 1 ELSE 0 END) AS successful_spans,
         AVG(CAST(attributes->>'input_tokens' AS DOUBLE)) AS avg_input,
-        AVG(CAST(attributes->>'output_tokens' AS DOUBLE)) AS avg_output
+        AVG(CAST(attributes->>'output_tokens' AS DOUBLE)) AS avg_output,
+        SUM(COALESCE(CAST(attributes->>'cache_read_tokens' AS INTEGER), 0)) AS total_cache_read,
+        SUM(COALESCE(CAST(attributes->>'cache_write_tokens' AS INTEGER), 0)) AS total_cache_write,
+        AVG(COALESCE(CAST(attributes->>'cache_read_tokens' AS DOUBLE), 0)) AS avg_cache_read,
+        AVG(COALESCE(CAST(attributes->>'cache_write_tokens' AS DOUBLE), 0)) AS avg_cache_write
     FROM records
     WHERE span_name = 'pii_detection'
         AND start_timestamp >= '{start}'
@@ -180,8 +186,8 @@ def format_number(n: int | float | None) -> str:
     return f"{n:,}"
 
 
-def print_summary(data: dict) -> tuple[int, int]:
-    """Print summary and return token counts for cost calculation."""
+def print_summary(data: dict) -> tuple[int, int, int, int, int]:
+    """Print summary and return token counts and doc count for cost calculation."""
     print("\n" + "=" * 60)
     print("SUMMARY")
     print("=" * 60)
@@ -194,6 +200,10 @@ def print_summary(data: dict) -> tuple[int, int]:
     successful_spans = extract_column_value(data, "successful_spans", 0) or 0
     avg_input = extract_column_value(data, "avg_input", 0) or 0
     avg_output = extract_column_value(data, "avg_output", 0) or 0
+    total_cache_read = extract_column_value(data, "total_cache_read", 0) or 0
+    total_cache_write = extract_column_value(data, "total_cache_write", 0) or 0
+    avg_cache_read = extract_column_value(data, "avg_cache_read", 0) or 0
+    avg_cache_write = extract_column_value(data, "avg_cache_write", 0) or 0
 
     print("\nSpans:")
     print(f"  Total:      {format_number(total_spans)}")
@@ -209,24 +219,103 @@ def print_summary(data: dict) -> tuple[int, int]:
     print(f"  Output: {format_number(total_output)}")
     print(f"  Total:  {format_number(total_tokens)}")
 
+    # Cache tokens section (only show if caching was used)
+    if total_cache_read > 0 or total_cache_write > 0:
+        print("\nCache Tokens:")
+        print(f"  Cache Read:  {format_number(total_cache_read)}")
+        print(f"  Cache Write: {format_number(total_cache_write)}")
+        if total_input > 0:
+            cache_hit_rate = (total_cache_read / (total_input + total_cache_read)) * 100
+            print(f"  Cache Hit Rate: {cache_hit_rate:.1f}%")
+
     print("\nAverages per span:")
     print(f"  Input:  {format_number(avg_input)}")
     print(f"  Output: {format_number(avg_output)}")
+    if total_cache_read > 0 or total_cache_write > 0:
+        print(f"  Cache Read:  {format_number(avg_cache_read)}")
+        print(f"  Cache Write: {format_number(avg_cache_write)}")
 
-    return total_input, total_output
+    return total_input, total_output, successful_spans, total_cache_read, total_cache_write
 
 
-def print_cost(input_tokens: int, output_tokens: int):
-    """Print cost breakdown."""
+def calculate_cost_with_cache(
+    input_tokens: int,
+    output_tokens: int,
+    cache_read_tokens: int,
+    cache_write_tokens: int,
+) -> tuple[float, float, float, float, float, float]:
+    """Calculate cost based on token counts including cache tokens.
+
+    Note: cache_read_tokens are a SUBSET of input_tokens (tokens served from cache),
+    so we subtract them to avoid double-counting.
+    """
+    # Non-cached input tokens pay full price
+    non_cached_input = max(0, input_tokens - cache_read_tokens)
+    non_cached_input_cost = (non_cached_input / 1_000_000) * INPUT_PRICE_PER_1M
+
+    # Cached input tokens pay discounted price
+    cache_read_cost = (cache_read_tokens / 1_000_000) * CACHE_READ_PRICE_PER_1M
+
+    # Cache writes pay a premium
+    cache_write_cost = (cache_write_tokens / 1_000_000) * CACHE_WRITE_PRICE_PER_1M
+
+    # Output tokens
+    output_cost = (output_tokens / 1_000_000) * OUTPUT_PRICE_PER_1M
+
+    total_cost = non_cached_input_cost + cache_read_cost + cache_write_cost + output_cost
+    return non_cached_input_cost, output_cost, cache_read_cost, cache_write_cost, total_cost, non_cached_input
+
+
+def print_cost(
+    input_tokens: int,
+    output_tokens: int,
+    doc_count: int,
+    cache_read_tokens: int = 0,
+    cache_write_tokens: int = 0,
+):
+    """Print cost breakdown including per-document cost and cache savings."""
     print("\n" + "=" * 60)
     print("COST ESTIMATE (Claude Sonnet 4.5)")
     print("=" * 60)
 
-    input_cost, output_cost, total_cost = calculate_cost(input_tokens, output_tokens)
+    non_cached_input_cost, output_cost, cache_read_cost, cache_write_cost, total_cost, non_cached_input = calculate_cost_with_cache(
+        input_tokens, output_tokens, cache_read_tokens, cache_write_tokens
+    )
 
-    print(f"\n  Input:  ${input_cost:.4f} ({format_number(input_tokens)} tokens @ $3.00/1M)")
-    print(f"  Output: ${output_cost:.4f} ({format_number(output_tokens)} tokens @ $15.00/1M)")
+    # Show cache costs if caching was used
+    if cache_read_tokens > 0 or cache_write_tokens > 0:
+        print(f"\n  Input (non-cached): ${non_cached_input_cost:.4f} ({format_number(non_cached_input)} tokens @ $3.00/1M)")
+        print(f"  Input (cached):     ${cache_read_cost:.4f} ({format_number(cache_read_tokens)} tokens @ $0.30/1M)")
+        print(f"  Cache Write:        ${cache_write_cost:.4f} ({format_number(cache_write_tokens)} tokens @ $3.75/1M)")
+        print(f"  Output:             ${output_cost:.4f} ({format_number(output_tokens)} tokens @ $15.00/1M)")
+
+        # Calculate savings from caching
+        cost_without_cache = (cache_read_tokens / 1_000_000) * INPUT_PRICE_PER_1M
+        cache_savings = cost_without_cache - cache_read_cost
+        if cache_savings > 0:
+            print(f"  Cache Savings:      ${cache_savings:.4f} (vs full input price)")
+    else:
+        print(f"\n  Input:  ${non_cached_input_cost:.4f} ({format_number(input_tokens)} tokens @ $3.00/1M)")
+        print(f"  Output: ${output_cost:.4f} ({format_number(output_tokens)} tokens @ $15.00/1M)")
+
     print(f"  Total:  ${total_cost:.4f}")
+
+    if doc_count > 0:
+        per_doc_cost = total_cost / doc_count
+        per_doc_output = output_cost / doc_count
+        print(f"\nPer Document ({doc_count} docs):")
+        if cache_read_tokens > 0 or cache_write_tokens > 0:
+            per_doc_non_cached_input = non_cached_input_cost / doc_count
+            per_doc_cache_read = cache_read_cost / doc_count
+            per_doc_cache_write = cache_write_cost / doc_count
+            print(f"  Input (non-cached): ${per_doc_non_cached_input:.6f}")
+            print(f"  Input (cached):     ${per_doc_cache_read:.6f}")
+            print(f"  Cache Write:        ${per_doc_cache_write:.6f}")
+        else:
+            per_doc_input = non_cached_input_cost / doc_count
+            print(f"  Input:  ${per_doc_input:.6f}")
+        print(f"  Output: ${per_doc_output:.6f}")
+        print(f"  Total:  ${per_doc_cost:.6f}")
 
 
 def print_per_minute(data: dict):
@@ -387,14 +476,14 @@ Environment:
     # Get summary
     try:
         summary_data = get_summary(args.start, args.end, token)
-        input_tokens, output_tokens = print_summary(summary_data)
+        input_tokens, output_tokens, doc_count, cache_read, cache_write = print_summary(summary_data)
     except requests.exceptions.HTTPError as e:
         print(f"\nError querying Logfire: {e}")
         sys.exit(1)
 
     # Cost calculation
     if not args.no_cost:
-        print_cost(input_tokens, output_tokens)
+        print_cost(input_tokens, output_tokens, doc_count, cache_read, cache_write)
 
     # Per-minute breakdown
     if not args.no_per_minute:

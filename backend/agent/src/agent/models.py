@@ -68,6 +68,30 @@ class AgentResponse(BaseModel):
 
     pii_entities: list[PIIEntity] = Field(default_factory=list)
 
+
+class CompactAgentResponse(BaseModel):
+    """Grouped PII values by type code. Used for token-efficient LLM output."""
+
+    nam: list[str] = Field(default_factory=list, description="Names")
+    adr: list[str] = Field(default_factory=list, description="Addresses")
+    dat: list[str] = Field(default_factory=list, description="Dates")
+    phn: list[str] = Field(default_factory=list, description="Phones")
+    fax: list[str] = Field(default_factory=list, description="Fax numbers")
+    eml: list[str] = Field(default_factory=list, description="Emails")
+    ssn: list[str] = Field(default_factory=list, description="SSNs")
+    mrn: list[str] = Field(default_factory=list, description="MRNs")
+    hpb: list[str] = Field(default_factory=list, description="Health plan IDs")
+    acc: list[str] = Field(default_factory=list, description="Account numbers")
+    lic: list[str] = Field(default_factory=list, description="Licenses")
+    vin: list[str] = Field(default_factory=list, description="Vehicle IDs")
+    dev: list[str] = Field(default_factory=list, description="Device IDs")
+    url: list[str] = Field(default_factory=list, description="URLs")
+    ip: list[str] = Field(default_factory=list, description="IP addresses")
+    bio: list[str] = Field(default_factory=list, description="Biometrics")
+    img: list[str] = Field(default_factory=list, description="Photos")
+    oth: list[str] = Field(default_factory=list, description="Other PHI")
+
+
 @dataclass
 class DetectionParameters:
     """Fine-grained controls for how the agent extracts PII spans."""

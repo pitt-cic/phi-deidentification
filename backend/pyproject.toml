@@ -5,7 +5,7 @@ description = "Core backend logic for PII/PHI de-identification"
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2.12.5",
-    "pydantic-ai-slim[bedrock,logfire]>=1.58.0",
+    "pydantic-ai-slim[bedrock,logfire]>=1.65.0",
 ]
 
 [dependency-groups]

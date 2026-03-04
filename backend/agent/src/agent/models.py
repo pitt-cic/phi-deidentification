@@ -25,8 +25,32 @@ DEFAULT_PII_TYPES = [
     "ip_address",                           
     "biometric_identifier",                  
     "photographic_image",            
-    "other",             
+    "other",
 ]
+
+# Short codes for compact LLM output (reduces output tokens by ~60-70%)
+SHORT_TO_FULL_TYPE: dict[str, str] = {
+    "nam": "person_name",
+    "adr": "address",
+    "dat": "date",
+    "phn": "phone_number",
+    "fax": "fax_number",
+    "eml": "email",
+    "ssn": "ssn",
+    "mrn": "medical_record_number",
+    "hpb": "health_plan_beneficiary_number",
+    "acc": "account_number",
+    "lic": "certificate_or_license_number",
+    "vin": "vehicle_identifier",
+    "dev": "device_identifier",
+    "url": "url",
+    "ip": "ip_address",
+    "bio": "biometric_identifier",
+    "img": "photographic_image",
+    "oth": "other",
+}
+
+FULL_TO_SHORT_TYPE: dict[str, str] = {v: k for k, v in SHORT_TO_FULL_TYPE.items()}
 
 class PIIEntity(BaseModel):
     """Represents a single detected PII string to redact."""

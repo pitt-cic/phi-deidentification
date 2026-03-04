@@ -9,3 +9,10 @@ docs/plans
 
 # Playwright MCP
 .playwright-mcp
+
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.cache

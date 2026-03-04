@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Sequence
 
 import logfire
-from agent import AgentContext, AgentResponse, CompactAgentResponse, DetectionParameters, pii_agent, expand_compact_response
+from agent import AgentResponse, CompactAgentResponse, DetectionParameters, pii_agent, expand_compact_response
 from pydantic_ai.usage import RunUsage
 from .redaction import FormatterProtocol, process_json_file
 from .constants import DEFAULT_PROMPT, DEFAULT_MAX_CHARS
@@ -93,13 +93,6 @@ async def process_document(
     max_chars: int = DEFAULT_MAX_CHARS,
 ) -> AgentResponse:
     validate_document_length(document_text, max_chars)
-    
-    context = AgentContext(
-        document_text=document_text,
-        source_name=source_name,
-        language=language,
-        detection=detection,
-    )
 
     full_prompt = build_prompt_with_document(prompt, document_text)
     
@@ -110,7 +103,7 @@ async def process_document(
                       document_length=len(document_text)) as span:
         span.set_attribute('user_prompt', full_prompt)
         
-        result = await pii_agent.run(full_prompt, deps=context, usage=usage)
+        result = await pii_agent.run(full_prompt, usage=usage)
         compact_response: CompactAgentResponse = result.output
         response: AgentResponse = expand_compact_response(compact_response)
         

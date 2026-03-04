@@ -8,11 +8,11 @@ from pathlib import Path
 import boto3
 import logfire
 from botocore.config import Config
-from pydantic_ai import Agent, RunContext, ToolOutput
+from pydantic_ai import Agent, ToolOutput
 from pydantic_ai.models.bedrock import BedrockConverseModel, BedrockModelSettings
 from pydantic_ai.providers.bedrock import BedrockProvider
 
-from agent.models import AgentContext, CompactAgentResponse
+from agent.models import CompactAgentResponse
 from agent.prompt import SYSTEM_PROMPT
 
 # Initialize boto3 session and Bedrock client
@@ -60,29 +60,9 @@ bedrock_model = BedrockConverseModel(
     provider=BedrockProvider(bedrock_client=bedrock_client),
 )
 
-pii_agent = Agent[AgentContext, CompactAgentResponse](
+pii_agent = Agent[None, CompactAgentResponse](
     model=bedrock_model,
     instructions=SYSTEM_PROMPT,
     output_type=ToolOutput(CompactAgentResponse),
     model_settings=bedrock_settings,
 )
-
-@pii_agent.instructions
-async def add_detection_scope(ctx: RunContext[AgentContext]) -> str:
-    """Inject runtime detection parameters into the system prompt."""
-
-    context = ctx.deps
-    if context is None:
-        return "<detection_scope>No runtime context supplied.</detection_scope>"
-
-    detection = context.detection
-    pii_types = ", ".join(detection.pii_types)
-    limit = detection.max_entities or "no-limit"
-
-    return (
-        "<detection_scope>"
-        f"pii_types={pii_types}; "
-        f"max_entities={limit}"
-        "</detection_scope>"
-    )
-

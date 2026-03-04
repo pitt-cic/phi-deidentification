@@ -126,26 +126,3 @@ class DetectionParameters:
     def _normalize_types(values: list[str] | None) -> list[str]:
         cleaned = [value.strip().lower() for value in values or [] if value.strip()]
         return cleaned or DEFAULT_PII_TYPES.copy()
-
-@dataclass
-class AgentContext:
-    """
-    Context supplied when invoking the agent.
-
-    Args:
-        document_text: raw text contents to scan
-        source_name: friendly identifier for logs
-        language: BCP-47 language tag (defaults to English)
-        detection: optional detection parameters
-    """
-
-    document_text: str
-    source_name: str | None = None
-    language: str = "en"
-    detection: DetectionParameters = field(default_factory=DetectionParameters)
-
-    def __post_init__(self) -> None:
-        if not self.document_text:
-            raise ValueError("document_text must not be empty")
-        if not self.language:
-            self.language = "en"

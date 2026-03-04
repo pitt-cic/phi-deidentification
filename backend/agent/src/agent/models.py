@@ -92,6 +92,23 @@ class CompactAgentResponse(BaseModel):
     oth: list[str] = Field(default_factory=list, description="Other PHI")
 
 
+def expand_compact_response(compact: CompactAgentResponse) -> AgentResponse:
+    """Convert compact grouped format back to standard PIIEntity list.
+
+    Args:
+        compact: Response with values grouped by short type codes
+
+    Returns:
+        AgentResponse with flat list of PIIEntity objects
+    """
+    entities: list[PIIEntity] = []
+    for short_code, full_type in SHORT_TO_FULL_TYPE.items():
+        values = getattr(compact, short_code, [])
+        for value in values:
+            entities.append(PIIEntity(type=full_type, value=value))
+    return AgentResponse(pii_entities=entities)
+
+
 @dataclass
 class DetectionParameters:
     """Fine-grained controls for how the agent extracts PII spans."""

@@ -12,7 +12,7 @@ from pydantic_ai import Agent, RunContext, ToolOutput
 from pydantic_ai.models.bedrock import BedrockConverseModel
 from pydantic_ai.providers.bedrock import BedrockProvider
 
-from agent.models import AgentContext, AgentResponse
+from agent.models import AgentContext, CompactAgentResponse
 from agent.prompt import SYSTEM_PROMPT
 
 # Initialize boto3 session and Bedrock client
@@ -54,10 +54,10 @@ bedrock_model = BedrockConverseModel(
     provider=BedrockProvider(bedrock_client=bedrock_client),
 )
 
-pii_agent = Agent[AgentContext, AgentResponse](
+pii_agent = Agent[AgentContext, CompactAgentResponse](
     model=bedrock_model,
     instructions=SYSTEM_PROMPT,
-    output_type=ToolOutput(AgentResponse),
+    output_type=ToolOutput(CompactAgentResponse),
 )
 
 @pii_agent.instructions

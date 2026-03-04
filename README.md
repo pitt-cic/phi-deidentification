@@ -295,6 +295,7 @@ Generated notes are saved to `data/input/` with corresponding manifests containi
 The following costs are estimated based on AWS pricing as of February 2026. Actual costs will vary based on AWS region, note volume, note length, and model usage.
 
 ## Estimated Monthly Recurring Costs
+Assumes less than 10,000 users processing 50,000 notes/month.
 
 | Service            | Estimated Cost | Notes                                                     |
 |:-------------------|:-----------------------------|:----------------------------------------------------------|

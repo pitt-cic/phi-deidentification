@@ -225,7 +225,7 @@ def print_summary(data: dict) -> tuple[int, int, int, int, int]:
         print(f"  Cache Read:  {format_number(total_cache_read)}")
         print(f"  Cache Write: {format_number(total_cache_write)}")
         if total_input > 0:
-            cache_hit_rate = (total_cache_read / (total_input + total_cache_read)) * 100
+            cache_hit_rate = (total_cache_read / total_input) * 100
             print(f"  Cache Hit Rate: {cache_hit_rate:.1f}%")
 
     print("\nAverages per span:")
@@ -246,11 +246,13 @@ def calculate_cost_with_cache(
 ) -> tuple[float, float, float, float, float, float]:
     """Calculate cost based on token counts including cache tokens.
 
-    Note: cache_read_tokens are a SUBSET of input_tokens (tokens served from cache),
-    so we subtract them to avoid double-counting.
+    Note: input_tokens is partitioned into three categories:
+    - cache_read_tokens: served from cache (pay discounted rate)
+    - cache_write_tokens: written to cache (pay premium rate)
+    - non_cached: the remainder (pay standard rate)
     """
-    # Non-cached input tokens pay full price
-    non_cached_input = max(0, input_tokens - cache_read_tokens)
+    # Non-cached input tokens pay full price (exclude both cache read and write)
+    non_cached_input = max(0, input_tokens - cache_read_tokens - cache_write_tokens)
     non_cached_input_cost = (non_cached_input / 1_000_000) * INPUT_PRICE_PER_1M
 
     # Cached input tokens pay discounted price

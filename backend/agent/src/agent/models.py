@@ -67,6 +67,7 @@ class AgentResponse(BaseModel):
     """
 
     pii_entities: list[PIIEntity] = Field(default_factory=list)
+    compacted: CompactAgentResponse | None = Field(None, description="Optional compacted format with values grouped by type code")
 
 
 class CompactAgentResponse(BaseModel):
@@ -106,7 +107,7 @@ def expand_compact_response(compact: CompactAgentResponse) -> AgentResponse:
         values = getattr(compact, short_code, [])
         for value in values:
             entities.append(PIIEntity(type=full_type, value=value))
-    return AgentResponse(pii_entities=entities)
+    return AgentResponse(pii_entities=entities, compacted=compact)
 
 
 @dataclass

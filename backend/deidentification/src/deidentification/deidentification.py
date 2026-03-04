@@ -115,9 +115,12 @@ async def process_document(
         response: AgentResponse = expand_compact_response(compact_response)
         
         span.set_attribute('response', response.model_dump())
+        span.set_attribute('compacted_response', response.compacted.model_dump() if response.compacted else None)
         span.set_attribute('entities_count', len(response.pii_entities))
         span.set_attribute('input_tokens', usage.input_tokens if usage else 0)
         span.set_attribute('output_tokens', usage.output_tokens if usage else 0)
+        span.set_attribute('cache_read_tokens', usage.cache_read_tokens if usage else 0)
+        span.set_attribute('cache_write_tokens', usage.cache_write_tokens if usage else 0)
         span.set_attribute('total_tokens', usage.total_tokens if usage else 0)
     
     logger.info(

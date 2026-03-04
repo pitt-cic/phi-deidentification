@@ -9,7 +9,7 @@ import boto3
 import logfire
 from botocore.config import Config
 from pydantic_ai import Agent, RunContext, ToolOutput
-from pydantic_ai.models.bedrock import BedrockConverseModel
+from pydantic_ai.models.bedrock import BedrockConverseModel, BedrockModelSettings
 from pydantic_ai.providers.bedrock import BedrockProvider
 
 from agent.models import AgentContext, CompactAgentResponse
@@ -48,6 +48,12 @@ DEFAULT_MODEL_ID = os.getenv(
     "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
 )
 
+# Add model settings for caching
+bedrock_settings = BedrockModelSettings(
+    bedrock_cache_instructions=True, # Cache system prompt
+    bedrock_cache_tool_definitions=True, # Cache output schema
+)
+
 # Initialize BedrockConverseModel
 bedrock_model = BedrockConverseModel(
     DEFAULT_MODEL_ID,
@@ -58,6 +64,7 @@ pii_agent = Agent[AgentContext, CompactAgentResponse](
     model=bedrock_model,
     instructions=SYSTEM_PROMPT,
     output_type=ToolOutput(CompactAgentResponse),
+    model_settings=bedrock_settings,
 )
 
 @pii_agent.instructions

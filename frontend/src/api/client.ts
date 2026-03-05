@@ -111,7 +111,6 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
 }
 
 async function fetchApi<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const start = performance.now()
   const headers = await getAuthHeaders()
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
@@ -132,10 +131,6 @@ async function fetchApi<T>(path: string, options: RequestInit = {}): Promise<T> 
     throw new Error(requestId ? `${safeMessage} (ref: ${requestId})` : safeMessage)
   }
   const data = await response.json()
-  if (import.meta.env.DEV) {
-    const duration = performance.now() - start
-    console.log(`[API] ${options.method || 'GET'} ${path} - ${duration.toFixed(0)}ms`)
-  }
   return data
 }
 

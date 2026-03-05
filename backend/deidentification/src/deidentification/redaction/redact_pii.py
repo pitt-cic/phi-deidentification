@@ -1,4 +1,4 @@
-"""Script to redact PII from text files based on JSON annotation files."""
+"""Script to redact PHI from text files based on JSON annotation files."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ if not logger.handlers:
         format="%(asctime)s %(levelname)s %(name)s - %(message)s",
     )
 
-# PII type processing order - containers first, substrings last
+# PHI type processing order - containers first, substrings last
 # Types whose values contain other types as substrings are processed first
 PII_TYPE_ORDER: list[str] = [
     # Tier 1: Long, structured identifiers (contain substrings, never are substrings)
@@ -55,7 +55,7 @@ PII_TYPE_ORDER: list[str] = [
 
 
 def _type_sort_key(pii_type: str) -> tuple[int, str]:
-    """Return sort key for deterministic PII type ordering.
+    """Return sort key for deterministic PHI type ordering.
 
     Types in PII_TYPE_ORDER are sorted by their index.
     Unknown types are sorted after 'other', alphabetically.
@@ -71,7 +71,7 @@ class FormatterProtocol(Protocol):
     """Protocol for redaction formatters."""
     
     def get_tag(self, pii_type: str, value: str) -> str:
-        """Get the redaction tag for a PII value."""
+        """Get the redaction tag for a PHI value."""
         ...
     
     def reset(self) -> None:
@@ -106,7 +106,7 @@ def load_document_with_encoding(input_path: Path) -> str:
 
 
 def format_pii_tag(pii_type: str) -> str:
-    """Convert PII type to tag format (e.g., 'person_name' -> '[PERSON_NAME]').
+    """Convert PHI type to tag format (e.g., 'person_name' -> '[PERSON_NAME]').
     
     This is the legacy function for backwards compatibility.
     For custom formats, use a RedactionFormatter instance instead.
@@ -128,15 +128,15 @@ def redact_text(
     source_name: str = "",
     formatter: FormatterProtocol | None = None,
 ) -> RedactionResult:
-    """Redact PII entities from text by replacing exact string matches with tags.
+    """Redact PHI entities from text by replacing exact string matches with tags.
 
-    Entities are grouped by PII type, then sorted by value length (longest first)
+    Entities are grouped by PHI type, then sorted by value length (longest first)
     within each group. This prevents partial replacement issues and reduces false
     positive skip warnings.
 
     Args:
         text: The original text to redact.
-        pii_entities: List of PII entity dictionaries with 'type' and 'value' keys.
+        pii_entities: List of PHI entity dictionaries with 'type' and 'value' keys.
         source_name: Optional identifier for logging purposes.
         formatter: Optional formatter for custom redaction tags. If None, uses
                    the default [PII_TYPE] format.
@@ -152,7 +152,7 @@ def redact_text(
     if formatter is None:
         formatter = DefaultFormatter()
 
-    # Group entities by PII type
+    # Group entities by PHI type
     groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for entity in pii_entities:
         pii_type = entity.get("type", "")
@@ -200,7 +200,7 @@ def redact_text(
             if occurrences == 0:
                 skipped_in_group += 1
                 logger.debug(
-                    "PII string %r (type=%s) not found in %s",
+                    "PHI string %r (type=%s) not found in %s",
                     value,
                     pii_type,
                     source_name,
@@ -232,7 +232,7 @@ def redact_text(
 
     if total_replacements > 0:
         logger.info(
-            "Redacted %s total PII occurrence(s) from %s",
+            "Redacted %s total PHI occurrence(s) from %s",
             total_replacements,
             source_name or "document",
         )
@@ -241,7 +241,7 @@ def redact_text(
 
 
 def find_pii_positions(text: str, pii_entities: list[dict[str, Any]], source_name: str = "") -> list[dict[str, Any]]:
-    """Find all occurrences of PII entities in text and return their positions."""
+    """Find all occurrences of PHI entities in text and return their positions."""
     if not pii_entities or not text:
         return []
     
@@ -281,7 +281,7 @@ def process_json_file(
     """Process a single JSON annotation file and create a redacted text file.
     
     Args:
-        json_path: Path to the JSON file containing PII annotations.
+        json_path: Path to the JSON file containing PHI annotations.
         output_dir: Directory to write the redacted text file.
         output_json_dir: Optional directory to write the positions JSON file.
         formatter: Optional formatter for custom redaction tags.
@@ -310,9 +310,9 @@ def process_json_file(
         pii_entities = response.get("pii_entities", [])
         
         if not pii_entities:
-            logger.info("No PII entities found in %s", json_path)
+            logger.info("No PHI entities found in %s", json_path)
         else:
-            logger.info("Processing %s PII entities from %s", len(pii_entities), json_path)
+            logger.info("Processing %s PHI entities from %s", len(pii_entities), json_path)
         
         # Reset formatter state for each document to get fresh identifiers
         if formatter is not None:
@@ -344,7 +344,7 @@ def process_json_file(
             positions_path = output_json_dir / f"{positions_stem}.json"
             positions_data = {"pii_entities": pii_positions}
             positions_path.write_text(json.dumps(positions_data, indent=2), encoding="utf-8")
-            logger.info("PII positions JSON saved to %s (%s occurrences)", positions_path, len(pii_positions))
+            logger.info("PHI positions JSON saved to %s (%s occurrences)", positions_path, len(pii_positions))
         
     except (json.JSONDecodeError, OSError, KeyError) as exc:
         logger.error("Error processing %s: %s", json_path, exc)
@@ -353,7 +353,7 @@ def process_json_file(
 def parse_args() -> argparse.Namespace:
     """Parse command line arguments for standalone redaction."""
     parser = argparse.ArgumentParser(
-        description="Redact PII from text files based on JSON annotation files.",
+        description="Redact PHI from text files based on JSON annotation files.",
     )
     parser.add_argument(
         "--input-dir",
@@ -384,7 +384,7 @@ def parse_args() -> argparse.Namespace:
     format_group.add_argument(
         "--define-format",
         metavar="TEMPLATE",
-        help="Define a custom format template. Use {TYPE} for PII type and {ID} for "
+        help="Define a custom format template. Use {TYPE} for PHI type and {ID} for "
              "unique identifier. Examples: '[REDACTED]', '[{TYPE}]', '**{TYPE}[{ID}]'",
     )
     format_group.add_argument(

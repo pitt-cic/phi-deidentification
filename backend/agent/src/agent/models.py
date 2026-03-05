@@ -1,4 +1,4 @@
-"""Data models for the PII detection agent."""
+"""Data models for the PHI detection agent."""
 
 from __future__ import annotations
 
@@ -53,17 +53,17 @@ SHORT_TO_FULL_TYPE: dict[str, str] = {
 FULL_TO_SHORT_TYPE: dict[str, str] = {v: k for k, v in SHORT_TO_FULL_TYPE.items()}
 
 class PIIEntity(BaseModel):
-    """Represents a single detected PII string to redact."""
+    """Represents a single detected PHI string to redact."""
 
-    type: str = Field(..., description="Normalized PII type label, e.g. 'email'.")
+    type: str = Field(..., description="Normalized PHI type label, e.g. 'email'.")
     value: str = Field(..., description="Exact string text that should be redacted from the document.")
 
 class AgentResponse(BaseModel):
     """
-    Structured response returned by the PII agent.
+    Structured response returned by the PHI agent.
 
     Args:
-        pii_entities: ordered list of PII strings to redact
+        pii_entities: ordered list of PHI strings to redact
     """
 
     pii_entities: list[PIIEntity] = Field(default_factory=list)
@@ -71,7 +71,7 @@ class AgentResponse(BaseModel):
 
 
 class CompactAgentResponse(BaseModel):
-    """Grouped PII values by type code. Used for token-efficient LLM output."""
+    """Grouped PHI values by type code. Used for token-efficient LLM output."""
 
     nam: list[str] = Field(default_factory=list, description="Names")
     adr: list[str] = Field(default_factory=list, description="Addresses")
@@ -112,7 +112,7 @@ def expand_compact_response(compact: CompactAgentResponse) -> AgentResponse:
 
 @dataclass
 class DetectionParameters:
-    """Fine-grained controls for how the agent extracts PII spans."""
+    """Fine-grained controls for how the agent extracts PHI spans."""
 
     pii_types: list[str] = field(default_factory=lambda: DEFAULT_PII_TYPES.copy())
     max_entities: int | None = 200

@@ -39,7 +39,7 @@ def build_initial_stats_item(batch_id: str, input_count: int) -> dict:
         "created_at": now,
         "started_at": now,
         "updated_at": now,
-        # PII type counts - all initialized to 0
+        # PHI type counts - all initialized to 0
         "pii_person_name": 0,
         "pii_address": 0,
         "pii_date": 0,

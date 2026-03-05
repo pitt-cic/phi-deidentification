@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Analyze Logfire spans for PII detection test runs.
+"""Analyze Logfire spans for PHI detection test runs.
 
 Usage:
     python scripts/analyze_logfire.py <start_timestamp> <end_timestamp>
@@ -434,7 +434,7 @@ def print_errors(data: dict):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Analyze Logfire spans for PII detection test runs.",
+        description="Analyze Logfire spans for PHI detection test runs.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:

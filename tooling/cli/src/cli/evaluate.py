@@ -1,4 +1,4 @@
-"""Evaluation script to compare PII detection output against ground truth manifests."""
+"""Evaluation script to compare PHI detection output against ground truth manifests."""
 
 from __future__ import annotations
 
@@ -385,7 +385,7 @@ def run_evaluation(
 def print_results(results: dict[str, Any]) -> None:
     """Print evaluation results in a formatted way."""
     print("\n" + "=" * 70)
-    print("PII DETECTION EVALUATION RESULTS (Entity-Based)")
+    print("PHI DETECTION EVALUATION RESULTS (Entity-Based)")
     print("=" * 70)
     
     settings = results["settings"]
@@ -423,7 +423,7 @@ def print_results(results: dict[str, Any]) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Evaluate PII detection output against ground truth manifests using entity-based metrics.",
+        description="Evaluate PHI detection output against ground truth manifests using entity-based metrics.",
     )
     parser.add_argument(
         "--predictions-dir",

@@ -1,4 +1,4 @@
-"""Main module for processing documents with the Bedrock-backed PII agent."""
+"""Main module for processing documents with the Bedrock-backed PHI agent."""
 
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ if not logger.handlers:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Run the Bedrock-backed PII agent against a text document.",
+        description="Run the Bedrock-backed PHI agent against a text document.",
     )
     parser.add_argument(
         "input_path",
@@ -49,13 +49,13 @@ def parse_args() -> argparse.Namespace:
         nargs="+",
         default=None,
         metavar="TYPE",
-        help="Override the default PII categories (space-separated list).",
+        help="Override the default PHI categories (space-separated list).",
     )
     parser.add_argument(
         "--max-entities",
         type=int,
         default=None,
-        help="Maximum number of PII spans the agent should return.",
+        help="Maximum number of PHI spans the agent should return.",
     )
     parser.add_argument(
         "--language",
@@ -88,7 +88,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--no-redact",
         action="store_true",
-        help="Skip automatic PII redaction after processing (dataset mode only).",
+        help="Skip automatic PHI redaction after processing (dataset mode only).",
     )
     parser.add_argument(
         "--concurrency",
@@ -107,7 +107,7 @@ def parse_args() -> argparse.Namespace:
     format_group.add_argument(
         "--define-format",
         metavar="TEMPLATE",
-        help="Define a custom format template. Use {TYPE} for PII type and {ID} for "
+        help="Define a custom format template. Use {TYPE} for PHI type and {ID} for "
              "unique identifier. Examples: '[REDACTED]', '[{TYPE}]', '**{TYPE}[{ID}]'",
     )
     format_group.add_argument(

@@ -1,4 +1,4 @@
-"""Main module for processing documents with the Bedrock-backed PII agent."""
+"""Main module for processing documents with the Bedrock-backed PHI agent."""
 
 from __future__ import annotations
 
@@ -174,11 +174,11 @@ async def process_dataset(
     concurrency: int = 3,
     formatter: FormatterProtocol | None = None,
 ) -> None:
-    """Process a dataset of documents through the PII agent.
+    """Process a dataset of documents through the PHI agent.
     
     Args:
         dataset_dir: Directory containing .txt files to process.
-        detection: PII detection parameters.
+        detection: PHI detection parameters.
         language: Document language code.
         max_chars: Maximum document length.
         raw_response: Whether to use raw response format.
@@ -235,7 +235,7 @@ async def process_dataset(
     )
     
     if auto_redact and processed > 0:
-        logger.info("Starting automatic PII redaction...")
+        logger.info("Starting automatic PHI redaction...")
         output_text_dir = output_dir.parent / f"{output_dir.name}-text"
         output_json_dir = output_dir.parent / f"{output_dir.name}-json"
         output_text_dir.mkdir(parents=True, exist_ok=True)

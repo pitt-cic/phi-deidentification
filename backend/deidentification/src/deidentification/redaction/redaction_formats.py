@@ -1,4 +1,4 @@
-"""Custom redaction format system for PII de-identification."""
+"""Custom redaction format system for PHI de-identification."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ class RedactionFormat:
     """Configuration for a custom redaction format.
     
     Templates can use optional placeholders:
-    - {TYPE}: PII type (NAME, DATE, etc.)
+    - {TYPE}: PHI type (NAME, DATE, etc.)
     - {ID}: Unique identifier (A, B, C or 1, 2, 3)
     
     Examples: "[REDACTED]", "[{TYPE}]", "**{TYPE}[{ID}]"
@@ -86,7 +86,7 @@ class RedactionFormatManager:
 class RedactionFormatter:
     """Generates unique redaction tags with consistent value tracking.
     
-    Tracks unique PII values per type and assigns consistent identifiers:
+    Tracks unique PHI values per type and assigns consistent identifiers:
     - "John" (person_name) → **NAME[A]
     - "Jane" (person_name) → **NAME[B]
     - "John" again → **NAME[A] (same ID)
@@ -121,7 +121,7 @@ class RedactionFormatter:
         self._type_counters: dict[str, int] = {}
     
     def get_tag(self, pii_type: str, value: str) -> str:
-        """Get the redaction tag for a PII value."""
+        """Get the redaction tag for a PHI value."""
         template = self.format.template
         
         # No placeholders = static template
@@ -140,7 +140,7 @@ class RedactionFormatter:
         return template.format(TYPE=type_display, ID=identifier)
     
     def _next_id(self, pii_type: str) -> str:
-        """Generate the next identifier for a PII type."""
+        """Generate the next identifier for a PHI type."""
         count = self._type_counters.get(pii_type, 0)
         self._type_counters[pii_type] = count + 1
         

@@ -1,4 +1,4 @@
-"""FastAPI backend for the PII Evaluation Dashboard."""
+"""FastAPI backend for the PHI Evaluation Dashboard."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ from models import (
     AnnotationSpan,
 )
 
-app = FastAPI(title="PII Evaluation Dashboard API")
+app = FastAPI(title="PHI Evaluation Dashboard API")
 
 # Enable CORS for frontend
 app.add_middleware(

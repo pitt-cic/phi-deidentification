@@ -175,7 +175,7 @@ class TestRedactTextFormatter:
 
 
 class TestRedactTextTypeOrdering:
-    """Tests for deterministic PII type ordering."""
+    """Tests for deterministic PHI type ordering."""
 
     def test_type_order_prevents_substring_corruption(self):
         """Ensure longer values in specific types are not corrupted by shorter values in generic types."""

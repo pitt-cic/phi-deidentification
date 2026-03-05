@@ -1,4 +1,4 @@
-"""System instructions for the Bedrock-backed PII detection agent."""
+"""System instructions for the Bedrock-backed PHI detection agent."""
 
 from __future__ import annotations
 

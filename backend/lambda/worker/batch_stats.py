@@ -23,7 +23,7 @@ def _get_stats_table():
 
 
 def pii_type_to_attribute(pii_type: str) -> str:
-    """Convert PII type to lowercase DynamoDB attribute name."""
+    """Convert PHI type to lowercase DynamoDB attribute name."""
     return f"pii_{pii_type.lower().replace(' ', '_')}"
 
 
@@ -56,7 +56,7 @@ def increment_batch_stats(batch_id: str, pii_entities: list[dict], logger=None) 
         ":now": datetime.now(timezone.utc).isoformat(),
     }
 
-    # Add each PII type count
+    # Add each PHI type count
     for i, (attr_name, count) in enumerate(type_counts.items()):
         alias = f":t{i}"
         add_parts.append(f"{attr_name} {alias}")

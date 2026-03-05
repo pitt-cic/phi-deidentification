@@ -124,5 +124,13 @@ class DetectionParameters:
 
     @staticmethod
     def _normalize_types(values: list[str] | None) -> list[str]:
+        """Normalize PHI type strings to lowercase with whitespace trimmed.
+
+        Args:
+            values: List of PHI type strings, or None.
+
+        Returns:
+            Normalized list, or DEFAULT_PII_TYPES if input is empty or None.
+        """
         cleaned = [value.strip().lower() for value in values or [] if value.strip()]
         return cleaned or DEFAULT_PII_TYPES.copy()

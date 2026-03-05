@@ -1,6 +1,5 @@
 """Route handler functions for batch and note management operations."""
 import json
-import logging
 import os
 from datetime import datetime, timezone
 
@@ -8,8 +7,7 @@ import boto3
 
 import storage
 from batch_stats import get_batch_stats, increment_approval_count, set_processing_status_for_redrive, set_approved_at, list_all_batches
-
-logger = logging.getLogger("pii_deidentification.api")
+from handler import logger
 lambda_client = boto3.client("lambda")
 sqs_client = boto3.client("sqs")
 INGESTION_FUNCTION_NAME = os.environ["INGESTION_FUNCTION_NAME"]

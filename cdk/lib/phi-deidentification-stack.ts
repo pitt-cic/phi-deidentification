@@ -20,7 +20,7 @@ import {
 } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
-const APP_NAME_LOWERCASE = 'pii-deidentification-v4';
+const APP_NAME_LOWERCASE = 'phi-deidentification';
 
 export class PiiDeidentificationStack extends Stack {
   private readonly backendRoot = path.join(__dirname, '../../backend');

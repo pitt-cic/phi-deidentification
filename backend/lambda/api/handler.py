@@ -1,13 +1,12 @@
 """API Gateway Lambda handler for PHI deidentification REST API."""
 import json
-import logging
 
+from aws_lambda_powertools import Logger
 from aws_lambda_powertools.event_handler import APIGatewayRestResolver, Response
 
 import route_handlers as handlers
 
-logger = logging.getLogger("pii_deidentification.api")
-logger.setLevel(logging.INFO)
+logger = Logger(service="phi_deidentification.api")
 
 CORS_HEADERS = {
     "Content-Type": "application/json",
@@ -133,6 +132,7 @@ def route_not_found() -> Response:
     return _response(404, {"error": f"No route for {method} {path}"})
 
 
+@logger.inject_lambda_context(clear_state=True)
 def handler(event, context):
     """Lambda entry point for API Gateway requests."""
     method = event.get("httpMethod", "")

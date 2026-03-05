@@ -1,3 +1,8 @@
+/**
+ * Review page for examining and approving redacted notes.
+ * Provides side-by-side comparison and editing capabilities.
+ */
+
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react'
 import { useParams, useNavigate, Link, useBeforeUnload } from 'react-router-dom'
 import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -9,6 +14,7 @@ type ReviewToast = { id: number; message: string }
 
 const normalizeRedactedForComparison = (value: string): string => value.replace(/\r\n/g, '\n')
 
+/** Review page component with note comparison and approval workflow */
 export default function ReviewPage() {
   const { batchId, noteId } = useParams<{ batchId: string; noteId: string }>()
   const navigate = useNavigate()

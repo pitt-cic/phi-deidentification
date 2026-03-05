@@ -1,3 +1,7 @@
+/**
+ * Main application component with authentication and routing.
+ * Provides Cognito authentication flow and application layout.
+ */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
 import { confirmResetPassword, resetPassword } from 'aws-amplify/auth'
@@ -15,6 +19,7 @@ type AuthToast = {
   tone: 'info' | 'success'
 }
 
+/** Application header with navigation and user controls */
 function Header({ signOut, username }: { signOut: () => void; username: string }) {
   const displayName = username || 'unknown'
 
@@ -35,6 +40,7 @@ function Header({ signOut, username }: { signOut: () => void; username: string }
   )
 }
 
+/** Toast notification display for authentication status messages */
 function AuthStatusToasts({ toasts }: { toasts: AuthToast[] }) {
   if (toasts.length === 0) return null
 
@@ -49,6 +55,7 @@ function AuthStatusToasts({ toasts }: { toasts: AuthToast[] }) {
   )
 }
 
+/** Root application component with authentication and routing */
 function App() {
   const [authToasts, setAuthToasts] = useState<AuthToast[]>([])
   const timeoutIdsRef = useRef<Array<ReturnType<typeof window.setTimeout>>>([])

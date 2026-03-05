@@ -1,3 +1,4 @@
+"""PHI redaction and masking utilities."""
 from .redaction_formats import (
     DefaultFormatter,
     RedactionFormat,

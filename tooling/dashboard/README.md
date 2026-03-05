@@ -1,6 +1,6 @@
-# PII Evaluation Dashboard
+# PII/PHI Evaluation Dashboard
 
-React + FastAPI dashboard for visualizing PII detection results.
+React + FastAPI dashboard for visualizing PII/PHI detection results.
 
 ## Quick Start
 

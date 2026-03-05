@@ -1,4 +1,4 @@
-# PII De-identification Platform
+# PHI Deidentification Platform
 
 | Index                         | Description                                                   |
 |:------------------------------|:--------------------------------------------------------------|
@@ -16,18 +16,16 @@
 
 # Overview
 
-PII De-identification Platform is an AI-driven system for detecting and redacting sensitive information in clinical and
-operational text documents. The solution uses large language models (LLMs) through AWS services to identify PHI and PII
-with context awareness, generate redacted outputs, and support human review before release.
+PHI Deidentification Platform is an AI-driven system for detecting and redacting sensitive information in clinical and operational text documents. The solution uses large language models (LLMs) through AWS services to identify PII/PHI with context awareness, generate redacted outputs, and support human review before release.
 
-This project was created in response to a request by a research team at the University of Pittsburgh and the longstanding need for an effective and efficient de-identification system. Prior solutions for redaction were slow, inconsistent, and difficult to scale across large note volumes. The team that approached us relied on a static list of known PII, which failed to catch context-specific or unique information, and a system that took an entire week to process and often malfunctioned halfway through. 
+This project was created in response to a request by a research team at the University of Pittsburgh and the longstanding need for an effective and efficient deidentification system. Prior solutions for redaction were slow, inconsistent, and difficult to scale across large note volumes. The team that approached us relied on a static list of known PII/PHI, which failed to catch context-specific or unique information, and a system that took an entire week to process and often malfunctioned halfway through. 
 
 The platform provides end-to-end capabilities including batch ingestion, asynchronous processing, LLM-based detection,
 redacted artifact generation, reviewer approval workflows, and operational metrics for monitoring system health.
 
 Key capabilities include:
 
-- **Automated PII Detection**: Uses Claude via Amazon Bedrock to identify sensitive entities in clinical or operational notes.
+- **Automated PII/PHI Detection**: Uses Claude via Amazon Bedrock to identify sensitive entities in clinical or operational notes.
 - **Redacted Output Generation**: Produces redacted text and entity metadata for each input note.
 - **Human-in-the-Loop Review**: Provides a dashboard to compare original vs redacted text, edit, and approve.
 - **Async Processing at Scale**: Uses S3, SQS, and Lambda for asynchronous, serverless processing.
@@ -45,11 +43,11 @@ Medical research teams handling protected health information (PHI) and personall
 
 ## Our Approach
 
-PII De-identification Platform addresses these challenges through a context-aware, serverless redaction pipeline that combines LLM-based entity detection, asynchronous processing, and structured human review.
+PHI Deidentification Platform addresses these challenges through a context-aware, serverless redaction pipeline that combines LLM-based entity detection, asynchronous processing, and structured human review.
 
 **Asynchronous Ingestion Pipeline**: Notes are uploaded in batch folders to Amazon S3 and queued through Amazon SQS for processing. This design allows the system to handle high note volumes without blocking user workflows and supports reliable retries for long-running jobs.
 
-**AI Detection and Redaction Layer**: Worker Lambda functions call Claude Sonnet 4.5 via Amazon Bedrock to identify PII in context, then generate redacted outputs and entity artifacts per note. This improves detection quality beyond
+**AI Detection and Redaction Layer**: Worker Lambda functions call Claude Sonnet 4.5 via Amazon Bedrock to identify PII/PHI in context, then generate redacted outputs and entity artifacts per note. This improves detection quality beyond
 static pattern matching and supports all 18 HIPAA identifier categories.
 
 **Secure Access**: The platform uses Cognito for authentication and access control across the dashboard and API workflows. This ensures only authorized users can sign in, process batches, and approve redacted
@@ -59,14 +57,14 @@ outputs.
 
 # Architecture
 
-![PII De-identification Architecture](info-site/public/architecture-diagram.svg)
+![PHI Deidentification Architecture](info-site/public/architecture-diagram.svg)
 
 # Tech Stack
 
 | Category                      | Technology                                                | Purpose                                                |
 |:------------------------------|:----------------------------------------------------------|:-------------------------------------------------------|
 | **Amazon Web Services (AWS)** | [AWS CDK](https://docs.aws.amazon.com/cdk/)               | Infrastructure as code                                 |
-|                               | [Amazon Bedrock](https://aws.amazon.com/bedrock/)         | Claude-based PII detection                             |
+|                               | [Amazon Bedrock](https://aws.amazon.com/bedrock/)         | Claude-based PII/PHI detection                             |
 |                               | [AWS Lambda](https://aws.amazon.com/lambda/)              | Ingestion, processing, and API compute                 |
 |                               | [Amazon S3](https://aws.amazon.com/s3/)                   | Input/output note storage                              |
 |                               | [Amazon SQS](https://aws.amazon.com/sqs/)                 | Asynchronous note processing queue                     |
@@ -125,8 +123,8 @@ Prepare the following tools and accounts before deploying:
 1. **Clone the repository**:
 
    ```bash
-   git clone git@github.com:pitt-cic/pii-deidentification-project.git
-   cd pii-deidentification-project
+   git clone git@github.com:pitt-cic/phi-deidentification.git
+   cd phi-deidentification
    ```
 
 2. **Deploy infrastructure with CDK**:
@@ -141,7 +139,7 @@ Prepare the following tools and accounts before deploying:
 
    ```bash
    aws cloudformation describe-stacks \
-     --stack-name PiiDeidentificationStack \
+     --stack-name PHIDeidentificationStack \
      --query "Stacks[0].Outputs[].[OutputKey,OutputValue]" \
      --output table
    ```
@@ -206,7 +204,7 @@ This dashboard reads local evaluation artifacts from `eval_results/`, `synthetic
 
 ### Synthetic Data Generator
 
-Generate synthetic clinical notes with embedded PII for testing and evaluation:
+Generate synthetic clinical notes with embedded PII/PHI for testing and evaluation:
 
 ```bash
 # Generate 1 note per type (5 note types = 5 notes total)
@@ -214,7 +212,7 @@ PYTHONPATH=backend/synthetic-data-generator/src \
 python backend/cli/src/cli/generate_notes.py --type all --count 1
 ```
 
-Generated notes are saved to `data/input/` with corresponding manifests containing ground-truth PII labels for evaluation.
+Generated notes are saved to `data/input/` with corresponding manifests containing ground-truth PII/PHI labels for evaluation.
 
 # Usage
 
@@ -257,7 +255,7 @@ Generated notes are saved to `data/input/` with corresponding manifests containi
    <details>
    <summary><strong>Additional Options</strong></summary>
 
-   - `--stack-name <name>` when stack name differs from `PiiDeidentificationStack`
+   - `--stack-name <name>` when stack name differs from `PHIDeidentificationStack`
    - `--profile <profile>` and `--region <region>` for non-default AWS CLI contexts
    - `--bucket <bucket-name>` to bypass stack output lookup
 
@@ -268,7 +266,7 @@ Generated notes are saved to `data/input/` with corresponding manifests containi
 
    ```bash
    BUCKET=$(aws cloudformation describe-stacks \
-     --stack-name PiiDeidentificationStack \
+     --stack-name PHIDeidentificationStack \
      --query "Stacks[0].Outputs[?OutputKey=='BucketName'].OutputValue | [0]" \
      --output text)
 
@@ -281,9 +279,9 @@ Generated notes are saved to `data/input/` with corresponding manifests containi
 
    </details>
 
-5. **Start de-identification**:
+5. **Start deidentification**:
 
-   Select the batch in the dashboard and click **Start De-identification**.
+   Select the batch in the dashboard and click **Start Deidentification**.
 
 6. **Review and approve outputs**:
 
@@ -322,7 +320,7 @@ Each processing run incurs Bedrock charges based on token usage. This is estimat
 
 # Credits
 
-**PII De-identification Platform** is an open-source project developed by the University of Pittsburgh Health Sciences and Sports Analytics Cloud Innovation Center.
+**PHI Deidentification Platform** is an open-source project developed by the University of Pittsburgh Health Sciences and Sports Analytics Cloud Innovation Center.
 
 **Development Team:**
 
@@ -402,4 +400,4 @@ authorization and a lack of strict adherence to security best practices.
 
 ---
 
-For questions, issues, or contributions, please visit our [GitHub repository](https://github.com/pitt-cic/pii-deidentification-project) or contact the development team.
+For questions, issues, or contributions, please visit our [GitHub repository](https://github.com/pitt-cic/phi-deidentification) or contact the development team.

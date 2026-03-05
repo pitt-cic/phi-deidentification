@@ -1,3 +1,8 @@
+/**
+ * Dashboard page for viewing and managing deidentification batches.
+ * Supports batch creation, starting, reviewing, and approval workflows.
+ */
+
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router-dom'
@@ -55,6 +60,7 @@ const getBatchStatusDisplay = (status: Batch['status'], allApproved: boolean): B
 
 type DashboardToast = { id: number; message: string; tone: 'success' | 'error' }
 
+/** Dashboard page component with batch list and detail view */
 export default function DashboardPage() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()

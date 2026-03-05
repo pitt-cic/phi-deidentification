@@ -1,3 +1,4 @@
+"""SQS worker Lambda for processing notes through PHI detection and redaction."""
 import asyncio
 import json
 import os

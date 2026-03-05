@@ -1,3 +1,4 @@
+"""S3 storage operations for notes, redactions, and approvals."""
 import json
 import os
 

@@ -1,3 +1,7 @@
+/**
+ * CDK stack defining infrastructure for PHI deidentification platform.
+ * Provisions S3, Lambda, SQS, API Gateway, Cognito, DynamoDB, and Amplify resources.
+ */
 import * as path from 'path';
 import * as os from 'os';
 import {
@@ -22,6 +26,18 @@ import { Construct } from 'constructs';
 
 const APP_NAME_LOWERCASE = 'phi-deidentification';
 
+/**
+ * Infrastructure stack for PHI Deidentification Platform.
+ *
+ * Creates:
+ * - S3 bucket for note storage
+ * - SQS queues for async processing
+ * - Lambda functions (ingestion, worker, API)
+ * - API Gateway with Cognito authentication
+ * - DynamoDB table for batch statistics
+ * - Amplify hosting for frontend
+ * - CloudWatch dashboards and alarms
+ */
 export class PiiDeidentificationStack extends Stack {
   private readonly backendRoot = path.join(__dirname, '../../backend');
   private readonly commonEnv: Record<string, string>;

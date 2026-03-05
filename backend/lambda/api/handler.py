@@ -1,3 +1,4 @@
+"""API Gateway Lambda handler for PHI deidentification REST API."""
 import json
 import logging
 

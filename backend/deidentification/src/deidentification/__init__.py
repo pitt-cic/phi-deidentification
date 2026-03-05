@@ -1,3 +1,4 @@
+"""PHI deidentification module for processing clinical documents."""
 from .deidentification import (
     load_document,
     validate_document_length,

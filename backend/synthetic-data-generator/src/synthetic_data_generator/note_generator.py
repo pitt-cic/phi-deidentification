@@ -512,9 +512,7 @@ Use the clinical context (conditions, procedures, medications) as-is, but replac
         # Generate note
         generated_content = self.bedrock.generate(
             prompt=prompt,
-            system_role=system_role,
-            max_retries=self.config.max_retries,
-            retry_delay_base=self.config.retry_delay_base
+            system_role=system_role
         )
 
         # Find PHI positions (or placeholders if template mode)

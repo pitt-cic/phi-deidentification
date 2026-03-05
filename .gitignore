@@ -16,3 +16,26 @@ __pycache__
 *.pyd
 *.log
 *.cache
+
+# OS
+.DS_Store
+
+# Dataset
+/dataset
+/old_dataset
+/synthetic_dataset
+/test_notes
+
+# Dashboard & Frontend
+node_modules/
+.vite/
+*.tsbuildinfo
+dist/
+
+# CDK
+cdk.out/
+response.json
+
+# Virtual env
+venv/
+.venv/

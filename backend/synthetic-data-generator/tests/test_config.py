@@ -1,7 +1,32 @@
 """Tests for configuration module."""
 
 import pytest
-from synthetic_data_generator.config import GeneratorConfig
+from synthetic_data_generator.config import AWSConfig, DEFAULT_AWS_CONFIG, GeneratorConfig
+
+
+class TestAWSConfig:
+    """Test AWSConfig dataclass."""
+
+    def test_default_retry_timeout_settings(self):
+        """Test AWSConfig has retry/timeout defaults."""
+        config = AWSConfig()
+        assert config.read_timeout == 120
+        assert config.connect_timeout == 10
+        assert config.max_retries == 4
+        assert config.retry_mode == "adaptive"
+
+    def test_custom_retry_timeout_settings(self):
+        """Test AWSConfig accepts custom retry/timeout values."""
+        config = AWSConfig(
+            read_timeout=300,
+            connect_timeout=30,
+            max_retries=5,
+            retry_mode="standard"
+        )
+        assert config.read_timeout == 300
+        assert config.connect_timeout == 30
+        assert config.max_retries == 5
+        assert config.retry_mode == "standard"
 
 
 def test_generator_config_has_clinical_limit_fields():
@@ -20,7 +45,8 @@ def test_generator_config_has_clinical_limit_fields():
     assert hasattr(config, 'encounter_index')
 
     # Verify defaults
-    assert config.max_conditions is None  # None = unlimited
+    assert config.max_conditions == 5  # Default limit for efficiency
+    assert config.max_observations == 10  # Slightly higher for observations
     assert config.encounter_index == -1  # Most recent by default
 
 

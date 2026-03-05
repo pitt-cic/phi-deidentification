@@ -1,20 +1,21 @@
-"""AWS Bedrock client wrapper for Claude API calls."""
+"""Async AWS Bedrock client wrapper for Claude API calls."""
 
 import json
 from typing import Optional
 
-import boto3
+import aioboto3
 from botocore.config import Config
 from botocore.exceptions import ClientError
 
 from .config import AWSConfig, DEFAULT_AWS_CONFIG
 
 
-class BedrockClient:
-    """Client for interacting with AWS Bedrock Claude models."""
+class AsyncBedrockClient:
+    """Async client for interacting with AWS Bedrock Claude models."""
 
     def __init__(self, config: Optional[AWSConfig] = None):
         self.config = config or DEFAULT_AWS_CONFIG
+        self._session = aioboto3.Session()
         self._boto_config = Config(
             read_timeout=self.config.read_timeout,
             connect_timeout=self.config.connect_timeout,
@@ -23,26 +24,14 @@ class BedrockClient:
                 "mode": self.config.retry_mode
             }
         )
-        self._client = None
 
-    @property
-    def client(self):
-        """Lazy initialization of boto3 client."""
-        if self._client is None:
-            self._client = boto3.client(
-                "bedrock-runtime",
-                region_name=self.config.region,
-                config=self._boto_config
-            )
-        return self._client
-
-    def generate(
+    async def generate(
         self,
         prompt: str,
         system_role: str = "You are a helpful assistant.",
     ) -> str:
         """
-        Generate text using Claude on Bedrock.
+        Generate text using Claude on Bedrock asynchronously.
 
         Args:
             prompt: The user prompt to send
@@ -68,14 +57,23 @@ class BedrockClient:
         }
 
         try:
-            response = self.client.invoke_model(
-                modelId=self.config.model_id,
-                body=json.dumps(request_body)
-            )
+            async with self._session.client(
+                "bedrock-runtime",
+                region_name=self.config.region,
+                config=self._boto_config
+            ) as client:
+                response = await client.invoke_model(
+                    modelId=self.config.model_id,
+                    body=json.dumps(request_body)
+                )
 
-            model_response = json.loads(response["body"].read())
-            return model_response["content"][0]["text"]
+                response_body = await response["body"].read()
+                model_response = json.loads(response_body)
+                usage = model_response.get("usage", {})
+                print(f"Tokens: input={usage.get('input_tokens', 0)}, output={usage.get('output_tokens', 0)}")
+                return model_response["content"][0]["text"]
 
         except ClientError as e:
             error_code = e.response["Error"]["Code"]
+            print(f"Bedrock API error: {error_code}", e)
             raise RuntimeError(f"Bedrock API error: {error_code}") from e

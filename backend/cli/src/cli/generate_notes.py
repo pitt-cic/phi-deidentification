@@ -20,6 +20,7 @@ Usage:
 """
 
 import argparse
+import asyncio
 import sys
 import tempfile
 import traceback
@@ -45,6 +46,8 @@ class CLIArgs(argparse.Namespace):
     template: bool = False
     s3_output: str | None = None
     seed: int | None = None
+    use_async: bool = False
+    rate_limit: int = 150
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -102,6 +105,18 @@ def parse_args():
         default=None,
         help="Random seed for reproducible PHI generation (Faker mode only)"
     )
+    parser.add_argument(
+        "--async",
+        action="store_true",
+        dest="use_async",
+        help="Use async generation with rate limiting (recommended for large batches)"
+    )
+    parser.add_argument(
+        "--rate-limit",
+        type=int,
+        default=150,
+        help="Max requests per minute for async mode (default: 150)"
+    )
     return parser.parse_args(namespace=CLIArgs())
 
 def main():
@@ -152,6 +167,14 @@ def main():
         print("Data source: Faker (synthetic PHI)")
     print(f"Count per type: {args.count}")
     print("-" * 60)
+
+    # Dispatch to async or sync mode
+    if args.use_async:
+        if is_s3:
+            print("Error: Async mode does not yet support S3 bundles. Use local bundles.")
+            sys.exit(1)
+        asyncio.run(async_main(args, bundles, note_types, config))
+        return  # Exit after async completion
 
     generator = NoteGenerator(config=config)
 
@@ -305,6 +328,48 @@ def main():
     else:
         print(f"Notes saved to: {config.notes_dir}")
         print(f"Manifests saved to: {config.manifests_dir}")
+
+
+async def async_main(args: CLIArgs, bundles: list, note_types: list, config):
+    """Async entry point for concurrent note generation."""
+    from synthetic_data_generator.async_note_generator import AsyncNoteGenerator
+
+    generator = AsyncNoteGenerator(config=config, rate_limit=args.rate_limit)
+
+    # Build task list
+    tasks = []
+    for bundle_info in bundles:
+        # Handle S3 vs local bundles
+        if isinstance(bundle_info, dict):
+            # S3 bundle - not supported in async mode yet
+            print("Warning: S3 bundles not yet supported in async mode. Use local bundles.")
+            return
+        else:
+            bundle_path = bundle_info
+
+        for note_type in note_types:
+            for _ in range(args.count):
+                tasks.append((bundle_path, note_type))
+
+    print(f"\nAsync mode enabled")
+    print(f"Rate limit: {args.rate_limit} RPM")
+    print(f"Total tasks: {len(tasks)}")
+    print(f"Estimated time: ~{len(tasks) / args.rate_limit:.1f} minutes")
+    print("-" * 60)
+
+    notes, errors = await generator.generate_all(
+        tasks=tasks,
+        template_mode=args.template
+    )
+
+    print("\n" + "=" * 60)
+    print(f"Total notes generated: {len(notes)}")
+    if errors:
+        print(f"Total errors: {len(errors)}")
+        for i, err in enumerate(errors[:10]):  # Show first 10 errors
+            print(f"  {i+1}. {type(err).__name__}: {err}")
+        if len(errors) > 10:
+            print(f"  ... and {len(errors) - 10} more errors")
 
 
 if __name__ == "__main__":

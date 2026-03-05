@@ -8,9 +8,14 @@ from typing import Optional
 class AWSConfig:
     """AWS Bedrock configuration."""
     region: str = "us-east-1"
-    model_id: str = "us.anthropic.claude-sonnet-4-20250514-v1:0"
-    max_tokens: int = 4000
+    model_id: str = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+    max_tokens: int = 5000
     temperature: float = 0.7
+    # Retry/timeout settings
+    read_timeout: int = 120
+    connect_timeout: int = 10
+    max_retries: int = 4
+    retry_mode: str = "adaptive"
 
 
 @dataclass
@@ -22,22 +27,18 @@ class GeneratorConfig:
     manifests_subdir: str = "manifests"
     templates_subdir: str = "templates"
 
-    # LLM retry settings
-    max_retries: int = 4
-    retry_delay_base: int = 5
-
     # Bulk generation settings
     default_batch_size: int = 10
 
     # Clinical context limits (None = unlimited)
-    max_conditions: Optional[int] = None
-    max_medications: Optional[int] = None
-    max_procedures: Optional[int] = None
-    max_allergies: Optional[int] = None
-    max_immunizations: Optional[int] = None
-    max_observations: Optional[int] = None
-    max_imaging_studies: Optional[int] = None
-    max_devices: Optional[int] = None
+    max_conditions: Optional[int] = 5
+    max_medications: Optional[int] = 5
+    max_procedures: Optional[int] = 5
+    max_allergies: Optional[int] = 5
+    max_immunizations: Optional[int] = 5
+    max_observations: Optional[int] = 10
+    max_imaging_studies: Optional[int] = 5
+    max_devices: Optional[int] = 5
 
     # Encounter selection (-1 = most recent, 0 = oldest, positive = specific index)
     encounter_index: int = -1

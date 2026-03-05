@@ -9,8 +9,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <script type="module" crossorigin src="./assets/index-Bl3QUeWr.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-CkCG6LG6.css">
+    <script type="module" crossorigin src="./assets/index-Bwv-Uo-F.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-DI-2KMk4.css">
   </head>
   <body>
     <div class="noise-overlay"></div>
@@ -18,15 +18,16 @@
     <!-- Navigation -->
     <nav class="nav">
       <a href="#" class="nav-logo">
-        <span class="nav-logo-icon">&#9670;</span>
+        <span class="nav-logo-icon">◈</span>
         <span class="nav-logo-text">PII De-Identification</span>
       </a>
       <div class="nav-links">
-        <a href="#tech-stack">Tech Stack</a>
-        <a href="#architecture">Architecture</a>
-        <a href="#demo">Demo</a>
+        <a href="#preview">Preview</a>
         <a href="#features">Features</a>
-        <a href="https://github.com" class="nav-cta" target="_blank" rel="noopener">GitHub</a>
+        <a href="#video">Demo Video</a>
+        <a href="#architecture">Architecture</a>
+        <a href="#tech-stack">Tech Stack</a>
+        <a href="https://github.com/pitt-cic/pii-deidentification-project" class="nav-cta" target="_blank" rel="noopener">GitHub</a>
       </div>
     </nav>
 
@@ -49,16 +50,275 @@
         </h1>
         <p class="hero-description">
           Automatically detect and redact personally identifiable information from documents
-          using advanced AI. Built for healthcare, legal, and enterprise compliance workflows.
+          using advanced AI. Built for healthcare and enterprise compliance workflows.
         </p>
         <div class="hero-actions">
-          <a href="#demo" class="btn btn-primary">
+          <a href="#preview" class="btn btn-primary">
             <span>See it in action</span>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </a>
-          <a href="#tech-stack" class="btn btn-secondary">View Tech Stack</a>
+          <a href="#video" class="btn btn-secondary">View Demo</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Demo Section -->
+    <section id="preview" class="demo">
+      <div class="section-header">
+        <span class="section-tag">Live Preview</span>
+        <h2 class="section-title">See Redaction in Action</h2>
+        <p class="section-description">
+          Watch how the AI identifies and redacts sensitive information while preserving document context.
+        </p>
+      </div>
+
+      <div class="demo-container">
+        <div class="demo-panel demo-panel-original">
+          <div class="demo-panel-header">
+            <span class="demo-panel-dot demo-panel-dot-red"></span>
+            <span class="demo-panel-dot demo-panel-dot-yellow"></span>
+            <span class="demo-panel-dot demo-panel-dot-green"></span>
+            <span class="demo-panel-title">Original Document</span>
+          </div>
+          <div class="demo-panel-content" id="demo-original">
+            <p class="demo-text">
+              <span class="demo-line"><strong>Patient Information</strong></span>
+              <span class="demo-line">Name: <span class="pii pii-name" data-type="NAME">John Michael Smith</span></span>
+              <span class="demo-line">DOB: <span class="pii pii-date" data-type="DATE">March 15, 1985</span></span>
+              <span class="demo-line">SSN: <span class="pii pii-ssn" data-type="SSN">482-55-7891</span></span>
+              <span class="demo-line">Phone: <span class="pii pii-phone" data-type="PHONE">(555) 234-8901</span></span>
+              <span class="demo-line">Email: <span class="pii pii-email" data-type="EMAIL">jsmith@email.com</span></span>
+              <span class="demo-line">MRN: <span class="pii pii-mrn" data-type="MRN">MR-2024-881456</span></span>
+              <span class="demo-line"></span>
+              <span class="demo-line"><strong>Visit Notes</strong></span>
+              <span class="demo-line">Patient presents with recurring headaches for</span>
+              <span class="demo-line">the past 2 weeks. Reports stress from work at</span>
+              <span class="demo-line"><span class="pii pii-org" data-type="ORG">Acme Corporation</span> as contributing factor.</span>
+              <span class="demo-line"></span>
+              <span class="demo-line"><strong>Assessment:</strong> Tension-type headache.</span>
+              <span class="demo-line">Follow-up scheduled for <span class="pii pii-date" data-type="DATE">April 2, 2024</span>.</span>
+              <span class="demo-line"></span>
+              <span class="demo-line">Physician: <span class="pii pii-name" data-type="NAME">Dr. Sarah Johnson</span></span>
+              <span class="demo-line">License: <span class="pii pii-license" data-type="LICENSE">MD-45892</span></span>
+            </p>
+          </div>
+        </div>
+
+        <div class="demo-arrow">
+          <div class="demo-arrow-line"></div>
+          <div class="demo-arrow-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 2v4m0 12v4M2 12h4m12 0h4"/>
+            </svg>
+          </div>
+          <span class="demo-arrow-label">AI Processing</span>
+          <div class="demo-arrow-line"></div>
+        </div>
+
+        <div class="demo-panel demo-panel-redacted">
+          <div class="demo-panel-header">
+            <span class="demo-panel-dot demo-panel-dot-red"></span>
+            <span class="demo-panel-dot demo-panel-dot-yellow"></span>
+            <span class="demo-panel-dot demo-panel-dot-green"></span>
+            <span class="demo-panel-title">Redacted Output</span>
+            <button class="demo-approve-btn" id="demo-approve" disabled>Approve</button>
+          </div>
+          <div class="demo-panel-content" id="demo-redacted">
+            <p class="demo-text">
+              <span class="demo-line"><strong>Patient Information</strong></span>
+              <span class="demo-line">Name: <span class="redacted" data-type="NAME">[PATIENT_NAME]</span></span>
+              <span class="demo-line">DOB: <span class="redacted" data-type="DATE">[DATE_OF_BIRTH]</span></span>
+              <span class="demo-line">SSN: <span class="redacted" data-type="SSN">[SSN]</span></span>
+              <span class="demo-line">Phone: <span class="redacted" data-type="PHONE">[PHONE_NUMBER]</span></span>
+              <span class="demo-line">Email: <span class="redacted" data-type="EMAIL">[EMAIL_ADDRESS]</span></span>
+              <span class="demo-line">MRN: <span class="redacted" data-type="MRN">[MEDICAL_RECORD_NUMBER]</span></span>
+              <span class="demo-line"></span>
+              <span class="demo-line"><strong>Visit Notes</strong></span>
+              <span class="demo-line">Patient presents with recurring headaches for</span>
+              <span class="demo-line">the past 2 weeks. Reports stress from work at</span>
+              <span class="demo-line"><span class="redacted" data-type="ORG">[ORGANIZATION]</span> as contributing factor.</span>
+              <span class="demo-line"></span>
+              <span class="demo-line"><strong>Assessment:</strong> Tension-type headache.</span>
+              <span class="demo-line">Follow-up scheduled for <span class="redacted" data-type="DATE">[DATE]</span>.</span>
+              <span class="demo-line"></span>
+              <span class="demo-line">Physician: <span class="redacted" data-type="NAME">[PHYSICIAN_NAME]</span></span>
+              <span class="demo-line">License: <span class="redacted" data-type="LICENSE">[LICENSE_NUMBER]</span></span>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="demo-controls">
+        <button class="demo-btn demo-btn-replay" id="demo-replay">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 4v6h6M23 20v-6h-6"/>
+            <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/>
+          </svg>
+          <span>Replay Animation</span>
+        </button>
+      </div>
+
+      <div class="demo-pii-legend">
+        <span class="demo-legend-title">HIPAA 18 Protected Health Information Identifiers:</span>
+        <div class="demo-legend-items">
+          <span class="demo-legend-chip" data-type="NAME">1. Names</span>
+          <span class="demo-legend-chip" data-type="GEO">2. Geographic Data</span>
+          <span class="demo-legend-chip" data-type="DATE">3. Dates</span>
+          <span class="demo-legend-chip" data-type="PHONE">4. Phone Numbers</span>
+          <span class="demo-legend-chip" data-type="FAX">5. Fax Numbers</span>
+          <span class="demo-legend-chip" data-type="EMAIL">6. Email Addresses</span>
+          <span class="demo-legend-chip" data-type="SSN">7. SSN</span>
+          <span class="demo-legend-chip" data-type="MRN">8. Medical Record Numbers</span>
+          <span class="demo-legend-chip" data-type="HEALTH_PLAN">9. Health Plan Beneficiary Numbers</span>
+          <span class="demo-legend-chip" data-type="ACCOUNT">10. Account Numbers</span>
+          <span class="demo-legend-chip" data-type="LICENSE">11. Certificate/License Numbers</span>
+          <span class="demo-legend-chip" data-type="VEHICLE">12. Vehicle Identifiers</span>
+          <span class="demo-legend-chip" data-type="DEVICE">13. Device Identifiers</span>
+          <span class="demo-legend-chip" data-type="URL">14. Web URLs</span>
+          <span class="demo-legend-chip" data-type="IP">15. IP Addresses</span>
+          <span class="demo-legend-chip" data-type="BIOMETRIC">16. Biometric Identifiers</span>
+          <span class="demo-legend-chip" data-type="PHOTO">17. Full-face Photos</span>
+          <span class="demo-legend-chip" data-type="OTHER">18. Other Unique Identifiers</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+      <div class="section-header">
+        <span class="section-tag">Capabilities</span>
+        <h2 class="section-title">Built for Enterprise</h2>
+        <p class="section-description">
+          Every feature designed with security, scalability, and compliance in mind.
+        </p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card" data-feature="ai">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 2v4m0 12v4M2 12h4m12 0h4"/>
+              <path d="M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">Claude-Powered Detection</h3>
+          <p class="feature-description">
+            Leverages Claude Sonnet via Amazon Bedrock for context-aware PII detection that understands document semantics.
+          </p>
+        </div>
+
+        <div class="feature-card" data-feature="batch">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="3" width="7" height="7" rx="1"/>
+              <rect x="14" y="3" width="7" height="7" rx="1"/>
+              <rect x="3" y="14" width="7" height="7" rx="1"/>
+              <rect x="14" y="14" width="7" height="7" rx="1"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">Async Processing</h3>
+          <p class="feature-description">
+            Process multiple documents concurrently with automatic scaling. SQS-based queue ensures reliable delivery.
+          </p>
+        </div>
+
+        <div class="feature-card" data-feature="review">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M9 12l2 2 4-4"/>
+              <circle cx="12" cy="12" r="10"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">Human-in-the-Loop</h3>
+          <p class="feature-description">
+            Built-in review dashboard with diff viewer. Edit redactions inline and approve individual notes or entire batches.
+          </p>
+        </div>
+
+        <div class="feature-card" data-feature="secure">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <path d="M9 12l2 2 4-4"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">Enterprise Security</h3>
+          <p class="feature-description">
+            Cognito authentication with secure access controls. All data stays within your AWS account.
+          </p>
+        </div>
+
+        <div class="feature-card" data-feature="iac">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">Infrastructure as Code</h3>
+          <p class="feature-description">
+            Complete AWS CDK stack for one-command deployment. Version controlled, reproducible, and customizable.
+          </p>
+        </div>
+
+        <div class="feature-card" data-feature="types">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M4 6h16M4 12h16M4 18h10"/>
+              <circle cx="19" cy="18" r="3"/>
+            </svg>
+          </div>
+          <h3 class="feature-title">HIPAA 18 Detection</h3>
+          <p class="feature-description">
+            Detects all 18 HIPAA identifiers: names, SSNs, dates, geographic data, contact info, medical records, device IDs, biometrics, and more.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Video Section -->
+    <section id="video" class="video-section">
+      <div class="section-header">
+        <span class="section-tag">Walkthrough</span>
+        <h2 class="section-title">Full Demo Video</h2>
+        <p class="section-description">
+          See the complete workflow from upload to approval.
+        </p>
+      </div>
+
+      <div class="video-container">
+        <video class="demo-video" controls preload="metadata">
+          <source src="./pii-deid-demo.mp4" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
+      </div>
+    </section>
+
+    <!-- Architecture Section -->
+    <section id="architecture" class="architecture">
+      <div class="section-header">
+        <span class="section-tag">System Design</span>
+        <h2 class="section-title">Architecture</h2>
+        <p class="section-description">
+          Infrastructure defined as code with AWS CDK. One-command deployment to your AWS account.
+        </p>
+      </div>
+
+      <div class="architecture-placeholder">
+        <img
+          class="architecture-diagram"
+          src="./architecture-diagram.svg"
+          alt="Architecture diagram for the PII de-identification platform"
+          loading="lazy"
+        />
+        <div class="architecture-tags">
+          <span class="architecture-tag">Serverless</span>
+          <span class="architecture-tag">Event-Driven</span>
+          <span class="architecture-tag">Cloud-Native</span>
+          <span class="architecture-tag">Secure Authentication</span>
         </div>
       </div>
     </section>
@@ -185,262 +445,39 @@
           <span class="tech-node-label">Python</span>
           <span class="tech-node-sublabel">Backend Logic</span>
         </div>
-      </div>
-    </section>
 
-    <!-- Architecture Section -->
-    <section id="architecture" class="architecture">
-      <div class="section-header">
-        <span class="section-tag">System Design</span>
-        <h2 class="section-title">Architecture</h2>
-        <p class="section-description">
-          Infrastructure defined as code with AWS CDK. One-command deployment to your AWS account.
-        </p>
-      </div>
-
-      <div class="architecture-placeholder">
-        <div class="placeholder-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <rect x="3" y="3" width="18" height="18" rx="2"/>
-            <path d="M3 9h18M9 21V9"/>
-            <circle cx="6" cy="6" r="1" fill="currentColor"/>
-            <circle cx="9" cy="6" r="1" fill="currentColor"/>
-          </svg>
-        </div>
-        <span class="placeholder-text">Architecture Diagram Coming Soon</span>
-        <span class="placeholder-subtext">Detailed system architecture and data flow visualization</span>
-      </div>
-    </section>
-
-    <!-- Demo Section -->
-    <section id="demo" class="demo">
-      <div class="section-header">
-        <span class="section-tag">Live Preview</span>
-        <h2 class="section-title">See Redaction in Action</h2>
-        <p class="section-description">
-          Watch how the AI identifies and redacts sensitive information while preserving document context.
-        </p>
-      </div>
-
-      <div class="demo-container">
-        <div class="demo-panel demo-panel-original">
-          <div class="demo-panel-header">
-            <span class="demo-panel-dot demo-panel-dot-red"></span>
-            <span class="demo-panel-dot demo-panel-dot-yellow"></span>
-            <span class="demo-panel-dot demo-panel-dot-green"></span>
-            <span class="demo-panel-title">Original Document</span>
-          </div>
-          <div class="demo-panel-content" id="demo-original">
-            <p class="demo-text">
-              <span class="demo-line"><strong>Patient Information</strong></span>
-              <span class="demo-line">Name: <span class="pii pii-name" data-type="NAME">John Michael Smith</span></span>
-              <span class="demo-line">DOB: <span class="pii pii-date" data-type="DATE">March 15, 1985</span></span>
-              <span class="demo-line">SSN: <span class="pii pii-ssn" data-type="SSN">482-55-7891</span></span>
-              <span class="demo-line">Phone: <span class="pii pii-phone" data-type="PHONE">(555) 234-8901</span></span>
-              <span class="demo-line">Email: <span class="pii pii-email" data-type="EMAIL">jsmith@email.com</span></span>
-              <span class="demo-line">MRN: <span class="pii pii-mrn" data-type="MRN">MR-2024-881456</span></span>
-              <span class="demo-line"></span>
-              <span class="demo-line"><strong>Visit Notes</strong></span>
-              <span class="demo-line">Patient presents with recurring headaches for</span>
-              <span class="demo-line">the past 2 weeks. Reports stress from work at</span>
-              <span class="demo-line"><span class="pii pii-org" data-type="ORG">Acme Corporation</span> as contributing factor.</span>
-              <span class="demo-line"></span>
-              <span class="demo-line"><strong>Assessment:</strong> Tension-type headache.</span>
-              <span class="demo-line">Follow-up scheduled for <span class="pii pii-date" data-type="DATE">April 2, 2024</span>.</span>
-              <span class="demo-line"></span>
-              <span class="demo-line">Physician: <span class="pii pii-name" data-type="NAME">Dr. Sarah Johnson</span></span>
-              <span class="demo-line">License: <span class="pii pii-license" data-type="LICENSE">MD-45892</span></span>
-            </p>
-          </div>
-        </div>
-
-        <div class="demo-arrow">
-          <div class="demo-arrow-line"></div>
-          <div class="demo-arrow-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="3"/>
-              <path d="M12 2v4m0 12v4M2 12h4m12 0h4"/>
+        <div class="tech-node" data-tech="dynamodb">
+          <div class="tech-node-icon tech-node-icon-storage">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <ellipse cx="12" cy="5" rx="8" ry="3"/>
+              <path d="M4 5v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5"/>
+              <path d="M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/>
             </svg>
           </div>
-          <span class="demo-arrow-label">AI Processing</span>
-          <div class="demo-arrow-line"></div>
+          <span class="tech-node-label">DynamoDB</span>
+          <span class="tech-node-sublabel">Batch State</span>
         </div>
 
-        <div class="demo-panel demo-panel-redacted">
-          <div class="demo-panel-header">
-            <span class="demo-panel-dot demo-panel-dot-red"></span>
-            <span class="demo-panel-dot demo-panel-dot-yellow"></span>
-            <span class="demo-panel-dot demo-panel-dot-green"></span>
-            <span class="demo-panel-title">Redacted Output</span>
-            <span class="demo-panel-badge">Safe to Share</span>
-          </div>
-          <div class="demo-panel-content" id="demo-redacted">
-            <p class="demo-text">
-              <span class="demo-line"><strong>Patient Information</strong></span>
-              <span class="demo-line">Name: <span class="redacted" data-type="NAME">[PATIENT_NAME]</span></span>
-              <span class="demo-line">DOB: <span class="redacted" data-type="DATE">[DATE_OF_BIRTH]</span></span>
-              <span class="demo-line">SSN: <span class="redacted" data-type="SSN">[SSN]</span></span>
-              <span class="demo-line">Phone: <span class="redacted" data-type="PHONE">[PHONE_NUMBER]</span></span>
-              <span class="demo-line">Email: <span class="redacted" data-type="EMAIL">[EMAIL_ADDRESS]</span></span>
-              <span class="demo-line">MRN: <span class="redacted" data-type="MRN">[MEDICAL_RECORD_NUMBER]</span></span>
-              <span class="demo-line"></span>
-              <span class="demo-line"><strong>Visit Notes</strong></span>
-              <span class="demo-line">Patient presents with recurring headaches for</span>
-              <span class="demo-line">the past 2 weeks. Reports stress from work at</span>
-              <span class="demo-line"><span class="redacted" data-type="ORG">[ORGANIZATION]</span> as contributing factor.</span>
-              <span class="demo-line"></span>
-              <span class="demo-line"><strong>Assessment:</strong> Tension-type headache.</span>
-              <span class="demo-line">Follow-up scheduled for <span class="redacted" data-type="DATE">[DATE]</span>.</span>
-              <span class="demo-line"></span>
-              <span class="demo-line">Physician: <span class="redacted" data-type="NAME">[PHYSICIAN_NAME]</span></span>
-              <span class="demo-line">License: <span class="redacted" data-type="LICENSE">[LICENSE_NUMBER]</span></span>
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div class="demo-controls">
-        <button class="demo-btn demo-btn-replay" id="demo-replay">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M1 4v6h6M23 20v-6h-6"/>
-            <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/>
-          </svg>
-          <span>Replay Animation</span>
-        </button>
-      </div>
-
-      <div class="demo-pii-legend">
-        <span class="demo-legend-title">HIPAA 18 Protected Health Information Identifiers:</span>
-        <div class="demo-legend-items">
-          <span class="demo-legend-chip" data-type="NAME">1. Names</span>
-          <span class="demo-legend-chip" data-type="GEO">2. Geographic Data</span>
-          <span class="demo-legend-chip" data-type="DATE">3. Dates</span>
-          <span class="demo-legend-chip" data-type="PHONE">4. Phone Numbers</span>
-          <span class="demo-legend-chip" data-type="FAX">5. Fax Numbers</span>
-          <span class="demo-legend-chip" data-type="EMAIL">6. Email Addresses</span>
-          <span class="demo-legend-chip" data-type="SSN">7. SSN</span>
-          <span class="demo-legend-chip" data-type="MRN">8. Medical Record Numbers</span>
-          <span class="demo-legend-chip" data-type="HEALTH_PLAN">9. Health Plan Beneficiary Numbers</span>
-          <span class="demo-legend-chip" data-type="ACCOUNT">10. Account Numbers</span>
-          <span class="demo-legend-chip" data-type="LICENSE">11. Certificate/License Numbers</span>
-          <span class="demo-legend-chip" data-type="VEHICLE">12. Vehicle Identifiers</span>
-          <span class="demo-legend-chip" data-type="DEVICE">13. Device Identifiers</span>
-          <span class="demo-legend-chip" data-type="URL">14. Web URLs</span>
-          <span class="demo-legend-chip" data-type="IP">15. IP Addresses</span>
-          <span class="demo-legend-chip" data-type="BIOMETRIC">16. Biometric Identifiers</span>
-          <span class="demo-legend-chip" data-type="PHOTO">17. Full-face Photos</span>
-          <span class="demo-legend-chip" data-type="OTHER">18. Other Unique Identifiers</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- Video Section -->
-    <section id="video" class="video-section">
-      <div class="section-header">
-        <span class="section-tag">Walkthrough</span>
-        <h2 class="section-title">Full Demo Video</h2>
-        <p class="section-description">
-          See the complete workflow from upload to approval in this comprehensive walkthrough.
-        </p>
-      </div>
-
-      <div class="video-container">
-        <video class="demo-video" controls preload="metadata">
-          <source src="./pii-deid-demo.mp4" type="video/mp4">
-          Your browser does not support the video tag.
-        </video>
-      </div>
-    </section>
-
-    <!-- Features Section -->
-    <section id="features" class="features">
-      <div class="section-header">
-        <span class="section-tag">Capabilities</span>
-        <h2 class="section-title">Built for Enterprise</h2>
-        <p class="section-description">
-          Every feature designed with security, scalability, and compliance in mind.
-        </p>
-      </div>
-
-      <div class="features-grid">
-        <div class="feature-card" data-feature="ai">
-          <div class="feature-icon">
+        <div class="tech-node" data-tech="amplify">
+          <div class="tech-node-icon tech-node-icon-frontend">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <circle cx="12" cy="12" r="3"/>
-              <path d="M12 2v4m0 12v4M2 12h4m12 0h4"/>
-              <path d="M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/>
+              <path d="M12 2L2 19h20L12 2z"/>
+              <path d="M12 8v6M12 16v2"/>
             </svg>
           </div>
-          <h3 class="feature-title">Claude-Powered Detection</h3>
-          <p class="feature-description">
-            Leverages Claude Sonnet via Amazon Bedrock for context-aware PII detection that understands document semantics.
-          </p>
+          <span class="tech-node-label">AWS Amplify</span>
+          <span class="tech-node-sublabel">Frontend Hosting</span>
         </div>
 
-        <div class="feature-card" data-feature="batch">
-          <div class="feature-icon">
+        <div class="tech-node" data-tech="cloudwatch">
+          <div class="tech-node-icon tech-node-icon-compute">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <rect x="3" y="3" width="7" height="7" rx="1"/>
-              <rect x="14" y="3" width="7" height="7" rx="1"/>
-              <rect x="3" y="14" width="7" height="7" rx="1"/>
-              <rect x="14" y="14" width="7" height="7" rx="1"/>
-            </svg>
-          </div>
-          <h3 class="feature-title">Batch Processing</h3>
-          <p class="feature-description">
-            Process thousands of documents in parallel with automatic scaling. SQS-based queue with DLQ ensures reliability.
-          </p>
-        </div>
-
-        <div class="feature-card" data-feature="review">
-          <div class="feature-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M9 12l2 2 4-4"/>
               <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
             </svg>
           </div>
-          <h3 class="feature-title">Human-in-the-Loop</h3>
-          <p class="feature-description">
-            Built-in review dashboard with diff viewer. Edit redactions inline and approve individual notes or entire batches.
-          </p>
-        </div>
-
-        <div class="feature-card" data-feature="secure">
-          <div class="feature-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              <path d="M9 12l2 2 4-4"/>
-            </svg>
-          </div>
-          <h3 class="feature-title">Enterprise Security</h3>
-          <p class="feature-description">
-            Cognito authentication, IAM least privilege, encrypted storage. All data stays within your AWS account.
-          </p>
-        </div>
-
-        <div class="feature-card" data-feature="iac">
-          <div class="feature-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/>
-            </svg>
-          </div>
-          <h3 class="feature-title">Infrastructure as Code</h3>
-          <p class="feature-description">
-            Complete AWS CDK stack for one-command deployment. Version controlled, reproducible, and customizable.
-          </p>
-        </div>
-
-        <div class="feature-card" data-feature="types">
-          <div class="feature-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M4 6h16M4 12h16M4 18h10"/>
-              <circle cx="19" cy="18" r="3"/>
-            </svg>
-          </div>
-          <h3 class="feature-title">HIPAA 18 Compliant</h3>
-          <p class="feature-description">
-            Detects all 18 HIPAA identifiers: names, SSNs, dates, geographic data, contact info, medical records, device IDs, biometrics, and more.
-          </p>
+          <span class="tech-node-label">CloudWatch</span>
+          <span class="tech-node-sublabel">Metrics & Logs</span>
         </div>
       </div>
     </section>
@@ -453,10 +490,10 @@
       <div class="cta-content">
         <h2 class="cta-title">Ready to protect sensitive data?</h2>
         <p class="cta-description">
-          Deploy the full stack to your AWS account in minutes.<br/>Open source and fully customizable.
+          Deploy the full stack to your AWS account with a single command.<br/>Open source and fully customizable.
         </p>
         <div class="cta-actions">
-          <a href="https://github.com" class="btn btn-primary btn-large" target="_blank" rel="noopener">
+          <a href="https://github.com/pitt-cic/pii-deidentification-project" class="btn btn-primary btn-large" target="_blank" rel="noopener">
             <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
               <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
             </svg>
@@ -469,9 +506,44 @@
     <!-- Footer -->
     <footer class="footer">
       <div class="footer-content">
-        <div class="footer-brand">
-          <span class="footer-logo-icon">&#9670;</span>
-          <span class="footer-logo-text">PII De-identification Platform</span>
+        <!-- Left side -->
+        <div class="footer-left">
+          <div class="footer-brand">
+            <div class="footer-logo-icon">◈</div>
+            <span class="footer-logo-text">PII De-identification Platform</span>
+          </div>
+          <a href="https://github.com/pitt-cic/pii-deidentification-project" target="_blank" rel="noopener" class="footer-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+            </svg>
+            GitHub
+          </a>
+          <a href="https://digital.pitt.edu/cic" target="_blank" rel="noopener" class="footer-link footer-link-cic">
+            Pitt CIC
+          </a>
+        </div>
+
+        <!-- Right side - Team -->
+        <div class="footer-right">
+          <span class="footer-team-label">Team</span>
+          <a href="https://www.linkedin.com/in/mmisran/" target="_blank" rel="noopener" class="footer-team-member">
+            Mohammed Misran
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+            </svg>
+          </a>
+          <a href="https://www.linkedin.com/in/avaluu/" target="_blank" rel="noopener" class="footer-team-member">
+            Ava Luu
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+            </svg>
+          </a>
+          <a href="https://www.linkedin.com/in/maciejzukowski/" target="_blank" rel="noopener" class="footer-team-member">
+            Maciej Zukowski
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+            </svg>
+          </a>
         </div>
       </div>
     </footer>

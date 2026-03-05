@@ -1,0 +1,20 @@
+[project]
+name = "tooling"
+version = "0.1.0"
+description = "Local development tools for PHI deidentification"
+requires-python = ">=3.12"
+dependencies = []
+
+[tool.uv.workspace]
+members = [
+    "cli",
+    "scripts",
+    "synthetic-data-generator",
+]
+
+[tool.uv.sources]
+agent = { path = "../backend/agent", editable = true }
+deidentification = { path = "../backend/deidentification", editable = true }
+
+[tool.setuptools]
+packages = []

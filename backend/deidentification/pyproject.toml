@@ -3,7 +3,9 @@ name = "deidentification"
 version = "0.1.0"
 description = "Core de-identifcation logic"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "agent",
+]
 
 [tool.uv.sources]
 agent = { workspace = true }

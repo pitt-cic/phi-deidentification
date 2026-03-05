@@ -6,12 +6,9 @@ from pathlib import Path
 from typing import Any
 import asyncio
 
-# Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-
-from src.s3_client import S3Client
-from src.local_file_client import LocalFileClient
-from src import utils
+from synthetic_data_generator.s3_client import S3Client
+from synthetic_data_generator.local_file_client import LocalFileClient
+from synthetic_data_generator import utils
 
 
 class CLIArgs(argparse.Namespace):
@@ -58,10 +55,10 @@ async def process_s3_file(bundle_info: dict[str, Any], temp_path: Path, s3_clien
         local_bundle_path.unlink()
     except Exception as e:
         print(f"Error processing bundle {bundle_filename}: {e}")
-        print(f"Skipping bundle and continuing...")
+        print("Skipping bundle and continuing...")
 
 
-async def main():
+async def async_main():
     args = parse_args()
 
     try:
@@ -144,6 +141,8 @@ async def main():
         print(f"Error: {e}")
         sys.exit(1)
 
+def main():
+    asyncio.run(async_main())
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

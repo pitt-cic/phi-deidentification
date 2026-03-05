@@ -5,7 +5,6 @@ Analyze a Synthea FHIR bundle to identify encounter types and template opportuni
 import json
 import sys
 from collections import defaultdict
-from pathlib import Path
 
 
 def analyze_bundle(bundle_path):
@@ -254,8 +253,7 @@ def analyze_bundle(bundle_path):
         'has_imaging': len(imaging_studies) > 0
     }
 
-
-if __name__ == "__main__":
+def main():
     if len(sys.argv) < 2:
         print("Usage: python analyze_bundle.py <path_to_fhir_bundle.json>")
         print("\nExample:")
@@ -263,3 +261,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     analyze_bundle(sys.argv[1])
+
+
+if __name__ == "__main__":
+    main()

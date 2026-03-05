@@ -19,10 +19,8 @@ dev = [
 
 [tool.uv.workspace]
 members = [
-    "cli",
     "agent",
     "deidentification",
-    "synthetic-data-generator",
     "lambda/api",
     "lambda/ingestion",
     "lambda/worker",

@@ -1,3 +1,4 @@
+"""Route handler functions for batch and note management operations."""
 import json
 import logging
 import os

@@ -209,7 +209,7 @@ export default function DashboardPage() {
       // Batches list can update in background
       queryClient.invalidateQueries({ queryKey: ['batches'] })
     } catch (err) {
-      alert(`Retry failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
+      pushToast(err instanceof Error ? err.message : 'Retry failed', 'error')
     } finally {
       setRetrying(false)
     }

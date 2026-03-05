@@ -58,6 +58,7 @@ export interface PaginatedResponse<T> {
   offset: number
 }
 
+/** Response from approving a note */
 export interface ApprovalResponse {
   note_id: string
   approved: boolean
@@ -65,11 +66,13 @@ export interface ApprovalResponse {
   timestamp: string
 }
 
+/** Payload for approving or unapproving a note */
 export interface ApproveNotePayload {
   approved: boolean
   redacted_text?: string
 }
 
+/** Response from batch-wide approval operation */
 export interface ApproveAllResponse {
   batch_id: string
   required_note_count: number
@@ -77,6 +80,7 @@ export interface ApproveAllResponse {
   all_approved: boolean
 }
 
+/** React Query infinite data structure for batches list */
 export type BatchesQueryData = InfiniteData<PaginatedResponse<Batch>, number>
 
 export const PAGE_SIZE = 50

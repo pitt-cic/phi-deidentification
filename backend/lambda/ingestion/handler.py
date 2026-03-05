@@ -31,6 +31,18 @@ metrics = Metrics(namespace="PIIDeidentification", service="ingestion")
 
 @metrics.log_metrics
 def handler(event, context):
+    """Lambda entry point for batch ingestion.
+
+    Lists all files under {batch_id}/input/ in S3 and enqueues
+    each as an SQS message for worker processing.
+
+    Args:
+        event: Lambda event dict with 'batch_id' key.
+        context: Lambda context object (unused).
+
+    Returns:
+        Dict with status, batch_id, file_count, and failed_count.
+    """
     start = time.perf_counter()
     batch_id = event["batch_id"]
     prefix = f"{batch_id}/input/"

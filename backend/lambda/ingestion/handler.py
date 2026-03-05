@@ -15,7 +15,7 @@ import os
 import json
 import boto3
 import time
-from aws_lambda_powertools import Metrics
+from aws_lambda_powertools import Logger, Metrics
 from aws_lambda_powertools.metrics import MetricUnit
 
 from batch_stats import initialize_batch_stats
@@ -27,9 +27,11 @@ BUCKET_NAME = os.environ["BUCKET_NAME"]
 QUEUE_URL = os.environ["QUEUE_URL"]
 
 metrics = Metrics(namespace="PIIDeidentification", service="ingestion")
+logger = Logger(service="phi_deidentification.ingestion")
 
 
 @metrics.log_metrics
+@logger.inject_lambda_context(clear_state=True)
 def handler(event, context):
     """Lambda entry point for batch ingestion.
 

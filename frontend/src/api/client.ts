@@ -1,6 +1,12 @@
+/**
+ * API client for PHI deidentification platform backend.
+ * Handles authentication, request formatting, and error handling.
+ */
+
 import { fetchAuthSession } from 'aws-amplify/auth'
 import type { InfiniteData } from '@tanstack/react-query'
 
+/** Batch metadata and status information */
 export interface Batch {
   batch_id: string
   created_at: string
@@ -8,6 +14,7 @@ export interface Batch {
   all_approved?: boolean
 }
 
+/** Detailed batch information with statistics */
 export interface BatchDetail extends Batch {
   input_count: number
   output_count: number
@@ -19,18 +26,21 @@ export interface BatchDetail extends Batch {
   approved_at?: string
 }
 
+/** PHI statistics for a batch */
 export interface BatchPIIStats {
   entity_file_count: number
   total_entities: number
   by_type: Record<string, number>
 }
 
+/** Note metadata */
 export interface Note {
   note_id: string
   has_output: boolean
   approved: boolean
 }
 
+/** Detailed note content with redaction */
 export interface NoteDetail {
   note_id: string
   original_text: string
@@ -40,6 +50,7 @@ export interface NoteDetail {
   approved: boolean
 }
 
+/** Paginated API response wrapper */
 export interface PaginatedResponse<T> {
   items: T[]
   total: number
@@ -124,30 +135,36 @@ async function fetchApi<T>(path: string, options: RequestInit = {}): Promise<T> 
   return data
 }
 
+/** Fetches paginated list of batches */
 export async function listBatches(limit = PAGE_SIZE, offset = 0): Promise<PaginatedResponse<Batch>> {
   const data = await fetchApi<PaginatedResponse<Batch> | Batch[]>(`/batches?limit=${limit}&offset=${offset}`)
   if (Array.isArray(data)) return { items: data, total: data.length, limit: data.length, offset: 0 }
   return data
 }
 
+/** Fetches detailed batch information by ID */
 export async function getBatch(batchId: string): Promise<BatchDetail> {
   return fetchApi(`/batches/${batchId}`)
 }
 
+/** Starts deidentification processing for a batch */
 export async function startBatch(batchId: string): Promise<{ status: string; batch_id: string }> {
   return fetchApi(`/batches/${batchId}/start`, { method: 'POST' })
 }
 
+/** Fetches paginated list of notes in a batch */
 export async function listNotes(batchId: string, limit = PAGE_SIZE, offset = 0): Promise<PaginatedResponse<Note>> {
   const data = await fetchApi<PaginatedResponse<Note> | Note[]>(`/batches/${batchId}/notes?limit=${limit}&offset=${offset}`)
   if (Array.isArray(data)) return { items: data, total: data.length, limit: data.length, offset: 0 }
   return data
 }
 
+/** Fetches detailed note content and redaction */
 export async function getNote(batchId: string, noteId: string): Promise<NoteDetail> {
   return fetchApi(`/batches/${batchId}/notes/${noteId}`)
 }
 
+/** Approves or unapproves a single note */
 export async function approveNote(batchId: string, noteId: string, payload: ApproveNotePayload): Promise<ApprovalResponse> {
   return fetchApi(`/batches/${batchId}/notes/${noteId}/approve`, {
     method: 'POST',
@@ -155,12 +172,14 @@ export async function approveNote(batchId: string, noteId: string, payload: Appr
   })
 }
 
+/** Approves all notes in a batch */
 export async function approveAllNotes(batchId: string): Promise<ApproveAllResponse> {
   return fetchApi(`/batches/${batchId}/approve-all`, {
     method: 'POST',
   })
 }
 
+/** Retries failed messages from DLQ for a batch */
 export async function redriveBatch(batchId: string): Promise<{ batch_id: string; redriven_count: number; status: string }> {
   return fetchApi(`/batches/${batchId}/redrive`, { method: 'POST' })
 }

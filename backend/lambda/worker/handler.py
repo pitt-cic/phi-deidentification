@@ -29,6 +29,20 @@ RETRYABLE_MESSAGE_SUBSTRINGS = ("too many tokens", "rate exceeded", "temporarily
 
 
 def _int_env(name: str, default: int, minimum: int = 1) -> int:
+    """Parse an integer environment variable with bounds enforcement.
+
+    Retrieves an environment variable by name and parses it as an integer,
+    ensuring the result is at least the specified minimum value.
+
+    Args:
+        name: The name of the environment variable to retrieve.
+        default: The default value to return if the variable is not set or invalid.
+        minimum: The minimum allowed value; parsed values below this are clamped.
+
+    Returns:
+        The parsed integer value clamped to at least the minimum, or the default
+        if the variable is not set or cannot be parsed.
+    """
     raw_value = os.getenv(name)
     if raw_value is None:
         return default
@@ -41,6 +55,20 @@ def _int_env(name: str, default: int, minimum: int = 1) -> int:
 
 
 def _float_env(name: str, default: float, minimum: float = 0.0) -> float:
+    """Parse a float environment variable with bounds enforcement.
+
+    Retrieves an environment variable by name and parses it as a float,
+    ensuring the result is at least the specified minimum value.
+
+    Args:
+        name: The name of the environment variable to retrieve.
+        default: The default value to return if the variable is not set or invalid.
+        minimum: The minimum allowed value; parsed values below this are clamped.
+
+    Returns:
+        The parsed float value clamped to at least the minimum, or the default
+        if the variable is not set or cannot be parsed.
+    """
     raw_value = os.getenv(name)
     if raw_value is None:
         return default
@@ -59,6 +87,19 @@ MODEL_RETRY_JITTER_SECONDS = _float_env("MODEL_RETRY_JITTER_SECONDS", default=0.
 
 
 def _is_retryable_model_error(exc: Exception) -> bool:
+    """Check if an exception represents a retryable model error.
+
+    Determines whether the given exception indicates a transient error that
+    may succeed on retry. Checks for HTTP status codes (429, 500-504),
+    throttling-related error codes, and rate limit error messages.
+
+    Args:
+        exc: The exception to evaluate for retryability.
+
+    Returns:
+        True if the exception represents a retryable error (throttling,
+        rate limits, or server errors); False otherwise.
+    """
     status_code = getattr(exc, "status_code", None)
     if isinstance(status_code, int) and status_code in RETRYABLE_STATUS_CODES:
         return True
@@ -90,13 +131,45 @@ def _is_retryable_model_error(exc: Exception) -> bool:
 
 
 def _compute_backoff_seconds(attempt: int) -> float:
+    """Calculate exponential backoff delay with jitter for retry attempts.
+
+    Computes a delay using exponential backoff (base * 2^(attempt-1)) plus
+    random jitter, capped at a configured maximum to prevent excessive waits.
+
+    Args:
+        attempt: The current retry attempt number (1-indexed).
+
+    Returns:
+        The calculated delay in seconds, including jitter, capped at
+        MODEL_RETRY_MAX_SECONDS.
+    """
     base_delay = MODEL_RETRY_BASE_SECONDS * (2 ** (attempt - 1))
     jitter = random.uniform(0.0, MODEL_RETRY_JITTER_SECONDS)
     return min(base_delay + jitter, MODEL_RETRY_MAX_SECONDS)
 
 
 def _process_with_retry(note_text: str, source_name: str, detection: DetectionParameters) -> tuple[AgentResponse, int]:
-    """Process document with retry logic. Returns (response, retry_count)."""
+    """Process document through PHI detection with exponential backoff retry logic.
+
+    Attempts to process the document up to MODEL_RETRY_MAX_ATTEMPTS times,
+    retrying only on transient errors (throttling, rate limits, server errors).
+    Uses exponential backoff with jitter between retry attempts.
+
+    Args:
+        note_text: The document text to process for PHI detection.
+        source_name: Identifier for the document source (used for logging).
+        detection: Parameters controlling PHI detection behavior.
+
+    Returns:
+        A tuple containing:
+            - AgentResponse: The PHI detection results from the model.
+            - int: The number of retries performed (0 if succeeded on first attempt).
+
+    Raises:
+        Exception: Re-raises the original exception if max retries exceeded
+            or if the error is not retryable.
+        RuntimeError: If the retry loop exits unexpectedly without returning.
+    """
     retry_count = 0
     for attempt in range(1, MODEL_RETRY_MAX_ATTEMPTS + 1):
         try:
@@ -128,11 +201,24 @@ def build_occurrence_entities(
     pii_entities: list[dict],
     source_name: str,
 ) -> list[dict[str, str]]:
-    """
-    Expand unique entities into occurrence-level entries in document order.
+    """Expand unique entities into occurrence-level entries in document order.
 
-    Example: John (line 1), date (line 2), John (line 3) ->
-    [John, date, John]
+    Finds all occurrences of each PII entity in the text and returns them
+    sorted by their position in the document. This converts a list of unique
+    entities into a list where each occurrence appears separately.
+
+    Example: If "John" appears on lines 1 and 3, and a date on line 2,
+    the output will be [John, date, John] in document order.
+
+    Args:
+        note_text: The original document text to search for entity occurrences.
+        pii_entities: List of unique PII entities, each containing 'type' and
+            'value' keys identifying the detected PHI.
+        source_name: Identifier for the document source (used for logging).
+
+    Returns:
+        A list of dictionaries, each with 'type' and 'value' keys, representing
+        every occurrence of each entity sorted by position in the document.
     """
     positions = find_pii_positions(note_text, pii_entities, source_name=source_name)
     positions.sort(key=lambda item: (item.get("start", 0), item.get("end", 0)))
@@ -140,6 +226,20 @@ def build_occurrence_entities(
 
 
 def _process_record(record: SQSRecord) -> None:
+    """Process a single SQS message through the PHI detection pipeline.
+
+    Retrieves a document from S3, runs PHI detection and redaction, writes
+    results back to S3, emits CloudWatch metrics, and updates batch statistics
+    in DynamoDB. On failure, sets the batch status to partially-completed if
+    this is the final retry attempt before the message goes to the DLQ.
+
+    Args:
+        record: The SQS record containing the message with batch_id and s3_key.
+
+    Raises:
+        Exception: Re-raises any exception after logging and updating metrics
+            to allow the batch processor to handle partial failures.
+    """
     try:
         start = time.perf_counter()
         message = record.json_body
@@ -216,6 +316,20 @@ def _process_record(record: SQSRecord) -> None:
 @metrics.log_metrics
 @logger.inject_lambda_context(clear_state=True)
 def handler(event, context):
+    """Lambda entry point for SQS batch processing of PHI detection jobs.
+
+    Processes a batch of SQS messages, each representing a document to be
+    scanned for PHI. Uses partial batch response to report individual message
+    failures back to SQS, allowing successful messages to be deleted while
+    failed messages are retried or sent to the dead-letter queue.
+
+    Args:
+        event: The Lambda event containing SQS batch records.
+        context: The Lambda context object with runtime information.
+
+    Returns:
+        A partial batch response indicating which messages succeeded or failed.
+    """
     return process_partial_response(
         event=event,
         record_handler=_process_record,

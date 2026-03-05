@@ -32,6 +32,7 @@ class RedactionFormat:
     created: str | None = None
     
     def to_dict(self) -> dict:
+        """Serialize format configuration to dict for JSON storage."""
         return {
             "name": self.name,
             "template": self.template,
@@ -41,6 +42,14 @@ class RedactionFormat:
     
     @classmethod
     def from_dict(cls, data: dict) -> RedactionFormat:
+        """Deserialize format configuration from dict.
+
+        Args:
+            data: Dict with template, id_scheme, name, and created keys.
+
+        Returns:
+            RedactionFormat instance.
+        """
         return cls(
             template=data["template"],
             id_scheme=data.get("id_scheme", "alpha"),
@@ -166,7 +175,17 @@ class DefaultFormatter:
     
     @staticmethod
     def get_tag(pii_type: str, value: str) -> str:
+        """Get default redaction tag in [TYPE] format.
+
+        Args:
+            pii_type: PHI type string.
+            value: Original value (unused in default formatter).
+
+        Returns:
+            Tag string in format [TYPE].
+        """
         return f"[{pii_type.upper()}]"
     
     def reset(self) -> None:
+        """No-op reset for stateless default formatter."""
         pass

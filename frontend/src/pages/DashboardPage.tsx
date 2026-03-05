@@ -391,7 +391,7 @@ export default function DashboardPage() {
 
                     <div className="detail-card metric-card-pii">
                       <div className="detail-card-value">{piiStats?.total_entities ?? 0}</div>
-                      <div className="detail-card-label">PII Detected</div>
+                      <div className="detail-card-label">PHI Detected</div>
                     </div>
 
                     <div className="metric-processed-footer">
@@ -487,7 +487,7 @@ export default function DashboardPage() {
                   </div>
 
                   <div className="pii-dropdown-panel">
-                    <div className="pii-dropdown-title">Detected PII Types</div>
+                    <div className="pii-dropdown-title">Detected PHI Types</div>
                     {hasBreakdownData ? (
                       <div className="pii-type-list">
                         {piiTypeEntries.map(([entityType, count]) => (
@@ -500,7 +500,7 @@ export default function DashboardPage() {
                     ) : (
                       <div className="pii-type-empty">
                         {piiStats && piiStats.entity_file_count > 0
-                          ? 'No PII detected in processed notes.'
+                          ? 'No PHI detected in processed notes.'
                           : 'Waiting for processed notes.'}
                       </div>
                     )}

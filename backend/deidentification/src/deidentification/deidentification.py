@@ -23,6 +23,20 @@ if not logger.handlers:
     )
 
 def load_document(input_path: Path) -> str:
+    """Load document text from file with automatic encoding detection.
+
+    Supports UTF-8, UTF-16-LE, UTF-16-BE, and Latin-1 encodings.
+    Use '-' as input_path to read from stdin.
+
+    Args:
+        input_path: Path to text file, or '-' for stdin.
+
+    Returns:
+        Document text content.
+
+    Raises:
+        FileNotFoundError: If input_path does not exist.
+    """
     if str(input_path) == "-":
         return sys.stdin.read()
     if not input_path.exists() or not input_path.is_file():
@@ -45,6 +59,15 @@ def load_document(input_path: Path) -> str:
             return raw_bytes.decode('latin-1', errors='replace')
 
 def validate_document_length(document_text: str, max_chars: int) -> None:
+    """Validate document is non-empty and within length limit.
+
+    Args:
+        document_text: The document text to validate.
+        max_chars: Maximum allowed character count (0 disables limit).
+
+    Raises:
+        ValueError: If document is empty or exceeds max_chars.
+    """
     if not document_text.strip():
         raise ValueError("Document is empty; nothing to analyze.")
     if max_chars > 0 and len(document_text) > max_chars:
@@ -54,6 +77,15 @@ def build_detection_params(
     pii_types: Sequence[str] | None,
     max_entities: int | None,
 ) -> DetectionParameters:
+    """Build DetectionParameters from optional overrides.
+
+    Args:
+        pii_types: Optional list of PHI types to detect.
+        max_entities: Optional maximum number of entities to return.
+
+    Returns:
+        DetectionParameters instance with specified or default values.
+    """
     kwargs: dict[str, Any] = {}
     if pii_types:
         kwargs["pii_types"] = [value.lower() for value in pii_types if value.strip()]
@@ -68,7 +100,20 @@ def build_response_payload(
     detection: DetectionParameters,
     raw_response: bool = False,
 ) -> dict[str, Any]:
-    """Build the output payload, either raw response or wrapped with metadata."""
+    """Build the output payload, either raw response or wrapped with metadata.
+
+    Args:
+        response: The agent response containing detected PHI entities.
+        source_name: Identifier for the document source.
+        language: Document language code.
+        detection: PHI detection parameters used for the request.
+        raw_response: If True, return only the response model dump;
+            otherwise wrap with metadata.
+
+    Returns:
+        Dictionary containing either the raw response or a wrapped payload
+        with source, language, detection parameters, and response data.
+    """
     if raw_response:
         return response.model_dump()
     return {
@@ -80,7 +125,16 @@ def build_response_payload(
     }
 
 def build_prompt_with_document(prompt: str, document_text: str) -> str:
-    """Build the full prompt with document text delimited."""
+    """Build the full prompt with document text delimited.
+
+    Args:
+        prompt: The base prompt instructions for PHI detection.
+        document_text: The document text to analyze.
+
+    Returns:
+        Combined prompt string with document text wrapped in XML-style
+        <document> tags.
+    """
     return f"{prompt}\n\nDocument text to analyze:\n<document>\n{document_text}\n</document>"
 
 async def process_document(
@@ -92,6 +146,22 @@ async def process_document(
     prompt: str = DEFAULT_PROMPT,
     max_chars: int = DEFAULT_MAX_CHARS,
 ) -> AgentResponse:
+    """Process a document through the PHI detection agent.
+
+    Args:
+        document_text: Text content to analyze.
+        source_name: Identifier for logging and tracing.
+        detection: PHI detection parameters.
+        language: Document language code (default: 'en').
+        prompt: Custom prompt override.
+        max_chars: Maximum document length.
+
+    Returns:
+        AgentResponse containing detected PHI entities.
+
+    Raises:
+        ValueError: If document is empty or exceeds max_chars.
+    """
     validate_document_length(document_text, max_chars)
 
     full_prompt = build_prompt_with_document(prompt, document_text)
@@ -138,9 +208,18 @@ async def process_single_document(
     output_dir: Path,
 ) -> tuple[bool, Path, str | None]:
     """Process a single document with semaphore-controlled concurrency.
-    
+
+    Args:
+        doc_path: Path to the document file to process.
+        semaphore: Asyncio semaphore for controlling concurrency.
+        detection: PHI detection parameters.
+        language: Document language code.
+        max_chars: Maximum document length allowed.
+        raw_response: Whether to use raw response format without metadata.
+        output_dir: Directory to write the JSON output file.
+
     Returns:
-        Tuple of (success, doc_path, error_message or None)
+        Tuple of (success, doc_path, error_message or None).
     """
     async with semaphore:
         try:

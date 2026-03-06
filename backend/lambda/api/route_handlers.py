@@ -8,8 +8,10 @@ import boto3
 import storage
 from batch_stats import get_batch_stats, increment_approval_count, set_processing_status_for_redrive, set_approved_at, list_all_batches
 from api_logger import logger
+
 lambda_client = boto3.client("lambda")
 sqs_client = boto3.client("sqs")
+
 INGESTION_FUNCTION_NAME = os.environ["INGESTION_FUNCTION_NAME"]
 DLQ_URL = os.environ.get("DLQ_URL", "")
 QUEUE_URL = os.environ.get("QUEUE_URL", "")

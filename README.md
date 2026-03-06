@@ -290,33 +290,52 @@ Generated notes are saved to `data/input/` with corresponding manifests containi
 
 # Costs
 
-The following costs are estimated based on AWS pricing as of February 2026. Actual costs will vary based on AWS region, note volume, note length, and model usage.
+The following costs are based on AWS pricing as of March 2026 and a test run of **1,277 clinical notes** processed at SQS concurrency of 10 (~60 notes/minute). Actual costs vary by AWS region, note length, and batch size.
 
 ## Estimated Monthly Recurring Costs
-Assumes less than 10,000 users processing 50,000 notes/month.
 
-| Service            | Estimated Cost | Notes                                                     |
-|:-------------------|:-----------------------------|:----------------------------------------------------------|
-| AWS Amplify        | ~$0     | Free tier covers most small deployments            |
-| Amazon Cognito     | ~$0     | Free tier covers first 10,000 MAUs                           |
-| Amazon S3          | <$1          | $0.023/GB a month                   |
-| Amazon SQS         | ~$0         | First 1 million requests free                                      |
-| AWS Lambda         | <$1     | Ingestion/worker/API invocations and duration             |
-| API Gateway        | <$1       | Based on request volume                   |
-| Amazon DynamoDB    | <$1    | Minimal to track read/write activity                           |
-| Amazon CloudWatch  | ~$0  | Free tier includes logging and metrics                        |
-| **Total Baseline** | **$0-$5/month** | Excludes variable Bedrock inference spend               |
+Assumes fewer than 10,000 users processing 50,000 notes/month.
 
-## Per-Run / Per-Query Model Costs (Amazon Bedrock)
+| Service            | Estimated Cost | Notes                                            |
+|:-------------------|:---------------|:-------------------------------------------------|
+| AWS Amplify        | ~$0            | Free tier covers most small deployments          |
+| Amazon Cognito     | ~$0            | Free tier covers first 10,000 MAUs               |
+| Amazon S3          | <$1            | $0.023/GB per month                              |
+| Amazon SQS         | ~$0            | First 1 million requests free                    |
+| AWS Lambda         | <$1            | Ingestion/worker/API invocations and duration    |
+| API Gateway        | <$1            | Based on request volume                          |
+| Amazon DynamoDB    | <$1            | Minimal read/write activity                      |
+| Amazon CloudWatch  | ~$0            | Free tier includes logging and metrics           |
+| **Total Baseline** | **$0–$5/month**| Excludes variable Bedrock inference spend        |
 
-Each processing run incurs Bedrock charges based on token usage. This is estimating that each note is around 1,000 input and output tokens.
+## Per-Note Model Costs (Amazon Bedrock)
 
-| Model                      | Estimated Usage | Estimated Cost |
-|:---------------------------|:-------------------------------|:-----------------------------|
-| Claude Sonnet 4.5 (input)  | ~1,000 tokens       | ~$0.003      |
-| Claude Sonnet 4.5 (output) | ~1,000 tokens      | ~$0.015      |
-| **Total per Note**          | **~2,000 tokens**       | **~$0.018**   |
-| **Total per 1,000 Notes**          | **~2,000,000 tokens**       | **~$18.00**   |
+Costs below reflect a test run of 1,277 notes using Claude Sonnet 4.5. Token counts vary by note length; these are observed averages.
+
+| Component                  | Avg Tokens/Note | Cost per Note |
+|:---------------------------|----------------:|--------------:|
+| Input (non-cached)         | ~2,750          | $0.0083       |
+| Input (cached)             | ~1,050          | $0.0003       |
+| Cache write                | ~5              | <$0.0001      |
+| Output                     | ~650            | $0.0098       |
+| **Total per Note**         | **~4,455**      | **~$0.018**   |
+
+### Batch Cost Examples
+
+| Batch Size   | Estimated Cost | Notes                                    |
+|:-------------|---------------:|:-----------------------------------------|
+| 100 notes    | ~$1.80         | Minimal cache benefit                    |
+| 1,000 notes  | ~$18.00        | Cache warming reduces cost               |
+| 10,000 notes | ~$150–$170     | Higher cache hit rate reduces input cost |
+
+### How Prompt Caching Reduces Cost
+
+Amazon Bedrock caches repeated prompt content (system instructions, few-shot examples) across requests within a batch. In our 1,277-note test run:
+
+- **Cache hit rate**: 27.6%
+- **Savings from caching**: $3.63 (13% reduction vs. no caching)
+
+Larger batches benefit more from caching because the system prompt is reused across more notes. A batch of 10,000 notes will see a higher cache hit rate—and lower per-note cost—than a batch of 100.
 
 # Credits
 

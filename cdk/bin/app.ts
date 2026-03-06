@@ -3,6 +3,9 @@
  * CDK application entry point for PHI Deidentification Platform.
  * Defines infrastructure stack and applies project tags.
  */
+import * as dotenv from 'dotenv';
+dotenv.config();
+
 import * as cdk from 'aws-cdk-lib';
 import { PiiDeidentificationStack } from '../lib/phi-deidentification-stack';
 

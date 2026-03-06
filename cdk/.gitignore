@@ -9,3 +9,6 @@ cdk.out
 
 # Environment variables
 .env
+
+# bun lockfile (if using bun)
+bun.lock

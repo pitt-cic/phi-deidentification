@@ -1,12 +1,10 @@
 """API Gateway Lambda handler for PHI deidentification REST API."""
 import json
 
-from aws_lambda_powertools import Logger
 from aws_lambda_powertools.event_handler import APIGatewayRestResolver, Response
 
+from api_logger import logger
 import route_handlers as handlers
-
-logger = Logger(service="phi_deidentification.api")
 
 CORS_HEADERS = {
     "Content-Type": "application/json",

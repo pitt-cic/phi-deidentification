@@ -66,7 +66,7 @@ def parse_args():
     parser.add_argument(
         "-o", "--output",
         type=str,
-        default="data/input",
+        default="data/synthetic_data",
         help="Output directory (default: output)"
     )
     parser.add_argument(

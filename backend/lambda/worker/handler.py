@@ -16,7 +16,7 @@ from batch_stats import increment_batch_stats, set_partially_completed_status, s
 from deidentification import process_document
 from deidentification.redaction import find_pii_positions, redact_text, RedactionResult
 
-logger = Logger(service="pii_deidentification.worker")
+logger = Logger(service="phi_deidentification.worker")
 metrics = Metrics(namespace="PIIDeidentification", service="worker")
 processor = BatchProcessor(event_type=EventType.SQS)
 

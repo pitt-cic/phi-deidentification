@@ -15,7 +15,7 @@ from pydantic_ai.usage import RunUsage
 from .redaction import FormatterProtocol, process_json_file
 from .constants import DEFAULT_PROMPT, DEFAULT_MAX_CHARS
 
-logger = logging.getLogger("pii_deidentification.main")
+logger = logging.getLogger("phi_deidentification.main")
 if not logger.handlers:
     logging.basicConfig(
         level=logging.INFO,

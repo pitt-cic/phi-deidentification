@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal
 
-logger = logging.getLogger("pii_deidentification.redaction_formats")
+logger = logging.getLogger("phi_deidentification.redaction_formats")
 
 DEFAULT_FORMATS_DIR = Path(__file__).parent / "formats"
 IdScheme = Literal["alpha", "numeric"]

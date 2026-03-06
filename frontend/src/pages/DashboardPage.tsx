@@ -315,7 +315,7 @@ export default function DashboardPage() {
                 Replace <code>/PATH/TO/YOUR-NOTES</code> with your local notes folder path.
               </div>
               <div className="cli-card-note">
-                If your stack name is not <code>PiiDeidentificationStack</code>, add <code>--stack-name &lt;your-stack-name&gt;</code>.
+                If your stack name is not <code>PHIDeidentificationStack</code>, add <code>--stack-name &lt;your-stack-name&gt;</code>.
               </div>
 
               <p className="directions-text">

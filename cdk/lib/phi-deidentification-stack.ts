@@ -38,7 +38,7 @@ const APP_NAME_LOWERCASE = 'phi-deidentification';
  * - Amplify hosting for frontend
  * - CloudWatch dashboards and alarms
  */
-export class PiiDeidentificationStack extends Stack {
+export class PHIDeidentificationStack extends Stack {
   private readonly backendRoot = path.join(__dirname, '../../backend');
   private readonly commonEnv: Record<string, string>;
 
@@ -549,7 +549,7 @@ frontend:
     if (config.additionalDeps?.length) {
       const additionalDeps = config.additionalDeps.join(' ');
       bundlingCommands.push(
-        `python -m uv pip install --python 3.12 --target /asset-output ${additionalDeps}`
+        `python -m uv pip install --no-sources --python 3.12 --target /asset-output ${additionalDeps}`
       );
     }
 

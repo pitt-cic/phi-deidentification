@@ -18,7 +18,7 @@ from .redaction_formats import (
     RedactionFormatter,
 )
 
-logger = logging.getLogger("pii_deidentification.redact")
+logger = logging.getLogger("phi_deidentification.redact")
 if not logger.handlers:
     logging.basicConfig(
         level=logging.INFO,

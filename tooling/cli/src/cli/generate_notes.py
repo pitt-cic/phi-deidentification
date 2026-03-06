@@ -136,7 +136,9 @@ def main():
 
     bundles = []
     is_s3 = utils.is_s3_path(args.bundle)
-    if is_s3:
+    if args.bundle is None:
+        bundles = [] # Faker mode - no bundles to process
+    elif is_s3:
         bucket, prefix = utils.parse_s3_path(args.bundle)
         bundles = s3_client.list_objects(
             bucket,

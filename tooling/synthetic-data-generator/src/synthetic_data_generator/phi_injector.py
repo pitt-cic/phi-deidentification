@@ -62,18 +62,6 @@ class PHIInjector:
 
         # Generate technical identifiers
         injected.ip_address = self.phi_gen.generate_ip_address()
-        # injected.patient_portal_url = self.phi_gen.generate_patient_portal_url()
-
-        # Generate emergency contact
-        # injected.emergency_contact_name = self.phi_gen.generate_name()["full_name"]
-        # injected.emergency_contact_phone = self.phi_gen.generate_phone()
-        # injected.emergency_contact_relationship = self.phi_gen.fake.random_element([
-        #     "spouse", "parent", "child", "sibling", "friend", "partner"
-        # ])
-
-        # Generate provider contact info
-        # injected.provider_fax = self.phi_gen.generate_fax()
-        # injected.provider_email = self.phi_gen.generate_email()
 
         # Generate facility info (if not in bundle)
         current_encounter = synthea_context.get('current_encounter', {})
@@ -82,14 +70,9 @@ class PHIInjector:
             injected.facility_phone = self.phi_gen.generate_phone()
             injected.facility_fax = self.phi_gen.generate_fax()
         else:
-            # org = synthea_context['organizations'][0]
             injected.facility_name = current_encounter.get('provider_name', current_encounter.get('location_name', ''))
             injected.facility_phone = self.phi_gen.generate_phone()
             injected.facility_fax = self.phi_gen.generate_fax()
-
-        # Generate device IDs (supplement if not in bundle)
-        # injected.device_id = self.phi_gen.generate_device_id()
-        # injected.scanner_id = f"SCN-{self.phi_gen.fake.random_int(10000, 99999)}"
 
         # Merge injected PHI into context
         enhanced_context = synthea_context.copy()
@@ -110,36 +93,12 @@ class PHIInjector:
             patient['emergency_contact_phone'] = injected.emergency_contact_phone
             patient['emergency_contact_relationship'] = injected.emergency_contact_relationship
 
-        # Add provider contact info
-        # if enhanced_context.get('providers'):
-        #     for provider in enhanced_context['providers']:
-        #         provider['fax'] = injected.provider_fax
-        #         provider['email'] = injected.provider_email
-        # else:
-        #     # Create a synthetic provider if none exists
-        #     enhanced_context['providers'] = [{
-        #         'id': '',
-        #         'name': self.phi_gen.generate_provider_name(),
-        #         'specialty': 'Internal Medicine',
-        #         'organization': injected.facility_name,
-        #         'phone': self.phi_gen.generate_phone(),
-        #         'fax': injected.provider_fax,
-        #         'email': injected.provider_email,
-        #         'address': ''
-        #     }]
-
         # Ensure facility info is available
         enhanced_context['facility'] = {
             'name': injected.facility_name,
             'phone': injected.facility_phone,
             'fax': injected.facility_fax,
         }
-
-        # Add device info
-        # enhanced_context['device'] = {
-        #     'id': injected.device_id,
-        #     'scanner_id': injected.scanner_id,
-        # }
 
         return enhanced_context
 

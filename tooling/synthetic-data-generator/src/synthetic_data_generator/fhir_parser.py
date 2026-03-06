@@ -88,32 +88,6 @@ class FHIRBundleParser:
 
     def extract_patient(self) -> PatientData:
         """Extract patient demographics and identifiers."""
-
-        """
-        Extract below:
-            root
-            - id
-            - name (nested)
-            - telecom (nested)
-            - gender
-            - birthDate
-            - deceasedDateTime
-            - address (nested)
-            - maritalStatus (nested)
-            identifiers
-            - mrn
-            - 
-            extensions
-            - race
-            - ethnicity
-            - mothers maiden name
-            - birth city, state and country
-            - disability adjusted life years
-            - quality adjusted life years
-            
-             
-        """
-
         patients = self.get_resources('Patient')
         if not patients:
             return PatientData()
@@ -130,30 +104,10 @@ class FHIRBundleParser:
         data.drivers_license = jmespath.search("identifier[?type.coding[?code=='DL']] | [0].value", patient) or ''
         data.passport = jmespath.search("identifier[?type.coding[?code=='PPN']] | [0].value", patient) or ''
 
-        # for identifier in patient.get('identifier', []):
-        #     id_type = identifier.get('type', {}).get('coding', [{}])[0].get('code', '')
-        #     id_display = identifier.get('type', {}).get('coding', [{}])[0].get('display', '')
-        #     value = identifier.get('value', '')
-        #
-        #     if 'MR' in id_type or 'Medical Record' in id_display:
-        #         data.mrn = value
-        #     elif 'SS' in id_type or 'Social Security' in id_display:
-        #         data.ssn = value
-        #     elif 'DL' in id_type or "Driver" in id_display:
-        #         data.drivers_license = value
-        #     elif 'PPN' in id_type or 'Passport' in id_display:
-        #         data.passport = value
-        #     elif not data.mrn and id_type == '':
-        #         # First unknown identifier often is MRN
-        #         data.mrn = value
-
         # Extract name
         official_name = jmespath.search("name[?use=='official'] | [0]", patient) or {}
         data.first_name = strip_digits(' '.join(official_name.get('given', [])))
-        data.last_name = strip_digits(official_name.get('family', ''))
-        # data.first_name = strip_digits(jmespath.search("name[0].given | join(' ', @)", patient))
         data.last_name = strip_digits(jmespath.search("name[0].family", patient))
-        # data.prefix = jmespath.search("name[0].prefix[0]", patient) or  ''
         data.full_name = f"{data.first_name} {data.last_name}".strip()
         data.nicknames = jmespath.search("(name[?use=='usual'] | [0].given || `[]`) | join(' ', @)", patient) or ""
 
@@ -192,9 +146,7 @@ class FHIRBundleParser:
         data.state = address_data.get('state', '')
         data.country = address_data.get('country', '')
         data.zip_code = address_data.get('postalCode', '')
-        # print([data.city, data.state])
         data.address_city_and_state = ", ".join([address_part for address_part in [data.city, data.state] if address_part]).strip()
-        # print(f"Address City & State {data.address_city_and_state}")
         data.address_state_and_country = ", ".join([address_part for address_part in [data.state, data.country] if address_part]).strip()
         data.address_city_state_and_country = ", ".join([address_part for address_part in [data.city, data.state, data.country] if address_part]).strip()
         data.full_address = ", ".join([address_part for address_part in [data.address_line, data.city, data.state, data.zip_code] if address_part]).strip()
@@ -228,18 +180,8 @@ class FHIRBundleParser:
             data.id = enc.get('id', '')
 
             # Type
-            # data.type_display = jmespath.search('')
-            # enc_type = enc.get('type', [{}])[0].get('coding', [{}])[0]
-            # data.type_code = enc_type.get('code', '')
-            # print('DEBUGGG', enc)
-            # print('DEBUGGG2222')
-            # print(jmespath.search("type[].coding[].display", enc))
-            # print("ID:", data.id)
             types = jmespath.search("type[].coding[].display", enc)
             data.type_display = ', '.join(types) if types else ''
-
-            # data.type_display = jmespath.search("type[].{val: coding[0].display || text}.val | [?@ ] | join(', ', @)", enc)
-            # data.type_display = enc_type.get('display', '')
 
             # Class
             data.encounter_class = enc.get('class', {}).get('code', '')
@@ -247,11 +189,6 @@ class FHIRBundleParser:
             # Reason
             reasons = jmespath.search("reasonCode[].coding[].display", enc)
             data.reason_display = ', '.join(reasons) if reasons else ''
-            # data.reason_display = jmespath.search("reasonCode[].coding[].display | join(', ', @)", enc)
-            # if enc.get('reasonCode'):
-            #     reason = enc['reasonCode'][0].get('coding', [{}])[0]
-            #     data.reason_code = reason.get('code', '')
-            #     data.reason_display = reason.get('display', '')
 
             # Period
             period = enc.get('period', {})

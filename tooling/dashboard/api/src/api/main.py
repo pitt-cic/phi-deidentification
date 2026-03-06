@@ -34,13 +34,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Data directories (relative to project root)
-PROJECT_ROOT = Path(__file__).parent.parent.parent
-EVAL_RESULTS_DIR = PROJECT_ROOT / "eval_results"
-NOTES_DIR = PROJECT_ROOT / "synthetic_dataset" / "notes"
-MANIFESTS_DIR = PROJECT_ROOT / "synthetic_dataset" / "manifests"
-POSITIONS_DIR = PROJECT_ROOT / "output-json"
-REDACTED_DIR = PROJECT_ROOT / "output-text"
+# Data directories (relative to tooling/data/)
+DATA_DIR = Path(__file__).parent.parent.parent.parent.parent / "data"
+EVAL_RESULTS_DIR = DATA_DIR / "eval_results"
+NOTES_DIR = DATA_DIR / "synthetic_data" / "notes"
+MANIFESTS_DIR = DATA_DIR / "synthetic_data" / "manifests"
+POSITIONS_DIR = DATA_DIR / "output-json"
+REDACTED_DIR = DATA_DIR / "output-text"
+# Safe Harbor paths remain at project root level (not in data/)
+PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.parent
 SAFE_HARBOR_REDACTED_DIR = PROJECT_ROOT / "sample-output-text"
 SAFE_HARBOR_DEID_DIR = PROJECT_ROOT / "sample_safe_harbor_notes" / "text_manifest"
 SAFE_HARBOR_ORIGINAL_DIR = PROJECT_ROOT / "sample_safe_harbor_notes" / "notes"

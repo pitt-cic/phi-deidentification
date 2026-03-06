@@ -174,45 +174,7 @@ Prepare the following tools and accounts before deploying:
 
 ## Local Testing
 
-This repository also includes local evaluation tooling and a synthetic data generator for offline testing with ground truth data.
-
-### Local Testing Prerequisites
-
-- Python 3.12+ and `pip`
-- Node.js 18+ and `npm`
-
-### Evaluation Dashboard
-
-To test locally with the dashboard backend, run `dashboard/backend/main.py`:
-
-```bash
-cd dashboard/backend
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
-```
-
-In a second terminal, run the dashboard frontend:
-
-```bash
-cd dashboard/frontend
-npm install
-npm run dev
-```
-
-This dashboard reads local evaluation artifacts from `eval_results/`, `synthetic_dataset/`, `output-json/`, and
-`output-text/`.
-
-### Synthetic Data Generator
-
-Generate synthetic clinical notes with embedded PHI for testing and evaluation:
-
-```bash
-# Generate 1 note per type (5 note types = 5 notes total)
-PYTHONPATH=backend/synthetic-data-generator/src \
-python backend/cli/src/cli/generate_notes.py --type all --count 1
-```
-
-The generator saves notes to `data/input/` with manifests containing ground-truth PHI labels for evaluation.
+For local evaluation tooling, synthetic data generation, and running the dashboard locally, see [`tooling/README.md`](./tooling/README.md).
 
 # Usage
 

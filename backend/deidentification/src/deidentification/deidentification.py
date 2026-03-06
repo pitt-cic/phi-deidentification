@@ -231,7 +231,8 @@ async def process_single_document(
                 language=language,
                 max_chars=max_chars,
             )
-            payload = build_response_payload(response, str(doc_path), language, detection, raw_response)
+            # Use absolute path so redaction can find the source file regardless of CWD
+            payload = build_response_payload(response, str(doc_path.resolve()), language, detection, raw_response)
             output_file = output_dir / f"{doc_path.stem}_response.json"
             output_file.write_text(json.dumps(payload, indent=2), encoding="utf-8")
             logger.info("Wrote result for '%s' to '%s'.", doc_path.name, output_file)

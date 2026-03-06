@@ -298,8 +298,10 @@ def process_json_file(
         source_path = Path(source_path_str)
         
         if not source_path.is_absolute():
-            project_root = Path(__file__).parent
-            source_path = project_root / source_path
+            # Backwards compatibility: older JSON files may have relative paths.
+            # New files use absolute paths (see deidentification.py:build_response_payload).
+            # Resolve relative to CWD since that's where the CLI was invoked.
+            source_path = Path.cwd() / source_path
         
         if not source_path.exists():
             logger.error("Source file not found: %s (from %s)", source_path, json_path)

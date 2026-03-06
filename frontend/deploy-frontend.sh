@@ -9,7 +9,7 @@ Usage:
   ./deploy-frontend.sh [options]
 
 Options:
-  --stack-name <name>    CloudFormation stack name (default: PiiDeidentificationStack)
+  --stack-name <name>    CloudFormation stack name (default: PHIDeidentificationStack)
   --app-id <id>          Amplify app ID override (otherwise parsed from AmplifyAppUrl output)
   --branch <name>        Amplify branch override (otherwise parsed from AmplifyAppUrl output)
   --profile <profile>    AWS profile to use
@@ -19,7 +19,7 @@ Options:
 EOF
 }
 
-STACK_NAME="PiiDeidentificationStackV4"
+STACK_NAME="PHIDeidentificationStack"
 APP_ID=""
 BRANCH_NAME=""
 PROFILE=""

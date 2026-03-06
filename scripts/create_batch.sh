@@ -10,7 +10,7 @@ Usage:
 
 Optional:
   --bucket <name>         S3 bucket name (if omitted, resolved from stack output)
-  --stack-name <name>     CloudFormation stack name for bucket lookup (default: PiiDeidentificationStack)
+  --stack-name <name>     CloudFormation stack name for bucket lookup (default: PHIDeidentificationStack)
   --notes-dir <path>      Upload .txt files from this directory to input/
   --batch-id <id>         Use a specific batch id
   --profile <profile>     AWS profile to use
@@ -20,7 +20,7 @@ EOF
 }
 
 BUCKET=""
-STACK_NAME="PiiDeidentificationStack"
+STACK_NAME="PHIDeidentificationStack"
 NOTES_DIR=""
 BATCH_ID=""
 PROFILE=""

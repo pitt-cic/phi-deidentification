@@ -76,13 +76,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--dataset",
         type=Path,
-        default=Path("synthetic_dataset/notes"),
+        default=Path("data/synthetic_data/notes"),
         help="Directory containing .txt files to process instead of a single document.",
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("output"),
+        default=Path("data/output"),
         help="Directory where JSON results will be written (dataset mode).",
     )
     parser.add_argument(

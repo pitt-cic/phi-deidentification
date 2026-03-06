@@ -27,9 +27,6 @@ import traceback
 
 from pathlib import Path
 
-# Add parent directory to path for imports
-# sys.path.insert(0, str(Path(__file__).parent.parent))
-
 from synthetic_data_generator.config import GeneratorConfig
 from synthetic_data_generator.note_generator import NoteGenerator
 from synthetic_data_generator.local_file_client import LocalFileClient
@@ -222,18 +219,6 @@ def main():
                                         template_mode=args.template
                                     )
                                     generator.save_note(note)
-
-                                    # Upload to S3 if requested
-                                    # if args.s3_output:
-                                    #     if note.is_template:
-                                    #         note_path = config.template_notes_dir / f"{note.note_id}.txt"
-                                    #         manifest_path = config.template_manifests_dir / f"{note.note_id}.json"
-                                    #     else:
-                                    #         note_path = config.notes_dir / f"{note.note_id}.txt"
-                                    #         manifest_path = config.manifests_dir / f"{note.note_id}.json"
-                                    #     upload_to_s3(note_path, args.s3_output)
-                                    #     upload_to_s3(manifest_path, args.s3_output)
-
                                     total_generated += 1
                             except Exception as e:
                                 traceback.print_exc()
@@ -273,14 +258,6 @@ def main():
                                     template_mode=args.template
                                 )
                                 generator.save_note(note)
-
-                                # Upload to S3 if requested
-                                # if args.s3_output:
-                                #     note_path = output_dir / config.notes_subdir / f"{note.note_id}.txt"
-                                #     manifest_path = output_dir / config.manifests_subdir / f"{note.note_id}.json"
-                                #     upload_to_s3(note_path, args.s3_output)
-                                #     upload_to_s3(manifest_path, args.s3_output)
-
                                 total_generated += 1
                         except Exception as e:
                             print(f"  Error generating {note_type.value}: {e}")
@@ -302,14 +279,6 @@ def main():
                         template_mode=args.template
                     )
                     generator.save_note(note)
-
-                    # Upload to S3 if requested
-                    # if args.s3_output:
-                    #     note_path = output_dir / config.notes_subdir / f"{note.note_id}.txt"
-                    #     manifest_path = output_dir / config.manifests_subdir / f"{note.note_id}.json"
-                    #     upload_to_s3(note_path, args.s3_output)
-                    #     upload_to_s3(manifest_path, args.s3_output)
-
                     total_generated += 1
             except Exception as e:
                 print(f"Error generating {note_type.value}: {e}")

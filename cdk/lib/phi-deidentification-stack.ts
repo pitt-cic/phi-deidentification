@@ -549,7 +549,7 @@ frontend:
     if (config.additionalDeps?.length) {
       const additionalDeps = config.additionalDeps.join(' ');
       bundlingCommands.push(
-        `python -m uv pip install --python 3.12 --target /asset-output ${additionalDeps}`
+        `python -m uv pip install --no-sources --python 3.12 --target /asset-output ${additionalDeps}`
       );
     }
 

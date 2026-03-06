@@ -37,7 +37,7 @@ import synthetic_data_generator.utils as utils
 class CLIArgs(argparse.Namespace):
     type: str
     count: int = 1
-    output: str = "output"
+    output: str = "data/synthetic_data"
     bundle: str | None = None
     max_bundles: int | None = None
     template: bool = False
@@ -67,7 +67,7 @@ def parse_args():
         "-o", "--output",
         type=str,
         default="data/synthetic_data",
-        help="Output directory (default: output)"
+        help="Output directory (default: data/synthetic_data)"
     )
     parser.add_argument(
         "-b", "--bundle",

@@ -27,7 +27,7 @@ function Header({ signOut, username }: { signOut: () => void; username: string }
     <header className="app-header">
       <Link to="/" className="header-logo">
         <span className="logo-icon">◈</span>
-        <span className="logo-text">PII De-identification</span>
+        <span className="logo-text">PHI De-identification</span>
       </Link>
       <div className="header-right">
         <span className="user-info">Logged in as: {displayName}</span>
@@ -103,7 +103,7 @@ function App() {
           <div className="auth-brand">
             <span className="logo-icon auth-brand-icon">◈</span>
             <div className="auth-brand-text">
-              <h1 className="auth-title">PII De-identification</h1>
+              <h1 className="auth-title">PHI De-identification</h1>
               <p className="auth-subtitle">Sign in to review and approve redacted notes</p>
             </div>
           </div>

@@ -16,16 +16,16 @@
 
 # Overview
 
-PHI Deidentification Platform is an AI-driven system for detecting and redacting sensitive information in clinical and operational text documents. The solution uses large language models (LLMs) through AWS services to identify PII/PHI with context awareness, generate redacted outputs, and support human review before release.
+PHI Deidentification Platform is an AI-driven system for detecting and redacting sensitive information in clinical and operational text documents. The solution uses large language models (LLMs) through AWS services to identify PHI with context awareness, generate redacted outputs, and support human review before release.
 
-This project was created in response to a request by a research team at the University of Pittsburgh and the longstanding need for an effective and efficient deidentification system. Prior solutions for redaction were slow, inconsistent, and difficult to scale across large note volumes. The team that approached us relied on a static list of known PII/PHI, which failed to catch context-specific or unique information, and a system that took an entire week to process and often malfunctioned halfway through. 
+This project was created in response to a request by a research team at the University of Pittsburgh and the longstanding need for an effective and efficient deidentification system. Prior solutions for redaction were slow, inconsistent, and difficult to scale across large note volumes. The team that approached us relied on a static list of known PHI, which failed to catch context-specific or unique information, and a system that took an entire week to process and often malfunctioned halfway through. 
 
 The platform provides end-to-end capabilities including batch ingestion, asynchronous processing, LLM-based detection,
 redacted artifact generation, reviewer approval workflows, and operational metrics for monitoring system health.
 
 Key capabilities include:
 
-- **Automated PII/PHI Detection**: Uses Claude via Amazon Bedrock to identify sensitive entities in clinical or operational notes.
+- **Automated PHI Detection**: Uses Claude via Amazon Bedrock to identify sensitive entities in clinical or operational notes.
 - **Redacted Output Generation**: Produces redacted text and entity metadata for each input note.
 - **Human-in-the-Loop Review**: Provides a dashboard to compare original vs redacted text, edit, and approve.
 - **Async Processing at Scale**: Uses S3, SQS, and Lambda for asynchronous, serverless processing.
@@ -47,7 +47,7 @@ PHI Deidentification Platform addresses these challenges through a context-aware
 
 **Asynchronous Ingestion Pipeline**: Notes are uploaded in batch folders to Amazon S3 and queued through Amazon SQS for processing. This design allows the system to handle high note volumes without blocking user workflows and supports reliable retries for long-running jobs.
 
-**AI Detection and Redaction Layer**: Worker Lambda functions call Claude Sonnet 4.5 via Amazon Bedrock to identify PII/PHI in context, then generate redacted outputs and entity artifacts per note. This improves detection quality beyond
+**AI Detection and Redaction Layer**: Worker Lambda functions call Claude Sonnet 4.5 via Amazon Bedrock to identify PHI in context, then generate redacted outputs and entity artifacts per note. This improves detection quality beyond
 static pattern matching and supports all 18 HIPAA identifier categories.
 
 **Secure Access**: The platform uses Cognito for authentication and access control across the dashboard and API workflows. This ensures only authorized users can sign in, process batches, and approve redacted
@@ -64,7 +64,7 @@ outputs.
 | Category                      | Technology                                                | Purpose                                                |
 |:------------------------------|:----------------------------------------------------------|:-------------------------------------------------------|
 | **Amazon Web Services (AWS)** | [AWS CDK](https://docs.aws.amazon.com/cdk/)               | Infrastructure as code                                 |
-|                               | [Amazon Bedrock](https://aws.amazon.com/bedrock/)         | Claude-based PII/PHI detection                             |
+|                               | [Amazon Bedrock](https://aws.amazon.com/bedrock/)         | Claude-based PHI detection                             |
 |                               | [AWS Lambda](https://aws.amazon.com/lambda/)              | Ingestion, processing, and API compute                 |
 |                               | [Amazon S3](https://aws.amazon.com/s3/)                   | Input/output note storage                              |
 |                               | [Amazon SQS](https://aws.amazon.com/sqs/)                 | Asynchronous note processing queue                     |
@@ -204,7 +204,7 @@ This dashboard reads local evaluation artifacts from `eval_results/`, `synthetic
 
 ### Synthetic Data Generator
 
-Generate synthetic clinical notes with embedded PII/PHI for testing and evaluation:
+Generate synthetic clinical notes with embedded PHI for testing and evaluation:
 
 ```bash
 # Generate 1 note per type (5 note types = 5 notes total)
@@ -212,7 +212,7 @@ PYTHONPATH=backend/synthetic-data-generator/src \
 python backend/cli/src/cli/generate_notes.py --type all --count 1
 ```
 
-Generated notes are saved to `data/input/` with corresponding manifests containing ground-truth PII/PHI labels for evaluation.
+Generated notes are saved to `data/input/` with corresponding manifests containing ground-truth PHI labels for evaluation.
 
 # Usage
 
@@ -324,8 +324,8 @@ Each processing run incurs Bedrock charges based on token usage. This is estimat
 
 **Development Team:**
 
-- [Mohammed Misran](https://www.linkedin.com/in/mmisran/)
 - [Ava Luu](https://www.linkedin.com/in/avaluu/)
+- [Mohammed Misran](https://www.linkedin.com/in/mmisran/)
 
 **Project Leadership:**
 

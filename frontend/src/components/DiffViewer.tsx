@@ -149,7 +149,7 @@ export default function DiffViewer({
         <div className="diff-legend">
           <span className="legend-item">
             <span className="legend-color legend-removed"></span>
-            PII (removed)
+            PHI (removed)
           </span>
           <span className="legend-item">
             <span className="legend-color legend-added"></span>

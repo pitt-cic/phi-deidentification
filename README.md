@@ -18,7 +18,7 @@
 
 PHI Deidentification Platform is an AI-driven system for detecting and redacting sensitive information in clinical and operational text documents. The solution uses large language models (LLMs) through AWS services to identify PHI with context awareness, generate redacted outputs, and support human review before release.
 
-This project was created in response to a request by a research team at the University of Pittsburgh and the longstanding need for an effective and efficient deidentification system. Prior solutions for redaction were slow, inconsistent, and difficult to scale across large note volumes. The team that approached us relied on a static list of known PHI, which failed to catch context-specific or unique information, and a system that took an entire week to process and often malfunctioned halfway through. 
+A University of Pittsburgh research team requested this project to address challenges with existing deidentification approaches: static PHI identifier lists that miss context-specific or unique information, long processing times for large note volumes, and mid-processing failures that require full restarts.
 
 The platform provides end-to-end capabilities including batch ingestion, asynchronous processing, LLM-based detection,
 redacted artifact generation, reviewer approval workflows, and operational metrics for monitoring system health.
@@ -39,13 +39,13 @@ https://github.com/user-attachments/assets/1f35119a-5b6a-4158-8f5e-0d6de21e8fe0
 
 ## Problem Statement
 
-Medical research teams handling protected health information (PHI) and personally identifiable information (PII) must de-identify notes before secondary use, collaboration, and analytics. Existing solutions struggle with context-specific identifiers, produce inconsistent results, and require long runtimes. A context-aware automated pipeline with human-in-the-loop validation was needed.
+Medical research teams handling protected health information (PHI) and personally identifiable information (PII) must de-identify notes before secondary use, collaboration, and analytics. Existing solutions struggle with context-specific identifiers, produce inconsistent results, and require long runtimes. We needed a context-aware automated pipeline with human-in-the-loop validation.
 
 ## Our Approach
 
 PHI Deidentification Platform addresses these challenges through a context-aware, serverless redaction pipeline that combines LLM-based entity detection, asynchronous processing, and structured human review.
 
-**Asynchronous Ingestion Pipeline**: Notes are uploaded in batch folders to Amazon S3 and queued through Amazon SQS for processing. This design allows the system to handle high note volumes without blocking user workflows and supports reliable retries for long-running jobs.
+**Asynchronous Ingestion Pipeline**: Users upload notes in batch folders to Amazon S3, where Amazon SQS queues them for processing. This design handles high note volumes without blocking user workflows and supports reliable retries for long-running jobs.
 
 **AI Detection and Redaction Layer**: Worker Lambda functions call Claude Sonnet 4.5 via Amazon Bedrock to identify PHI in context, then generate redacted outputs and entity artifacts per note. This improves detection quality beyond
 static pattern matching and supports all 18 HIPAA identifier categories.
@@ -53,7 +53,7 @@ static pattern matching and supports all 18 HIPAA identifier categories.
 **Secure Access**: The platform uses Cognito for authentication and access control across the dashboard and API workflows. This ensures only authorized users can sign in, process batches, and approve redacted
 outputs.
 
-**Human-in-the-Loop Review Workflow**: The review interface lets users inspect original vs. redacted text, edit redactions, and approve notes or full batches. Approved outputs are tracked separately, supporting controlled release workflows and reviewer quality oversight.
+**Human-in-the-Loop Review Workflow**: The review interface lets users inspect original vs. redacted text, edit redactions, and approve notes or full batches. The system tracks approved outputs separately, supporting controlled release workflows and reviewer quality oversight.
 
 # Architecture
 
@@ -174,7 +174,7 @@ Prepare the following tools and accounts before deploying:
 
 ## Local Testing
 
-In addition to the deployed app, this repository has local evaluation tooling and a synthetic data generation pipeline for offline testing and evaluation with ground truth data.
+This repository also includes local evaluation tooling and a synthetic data generator for offline testing with ground truth data.
 
 ### Local Testing Prerequisites
 
@@ -183,7 +183,7 @@ In addition to the deployed app, this repository has local evaluation tooling an
 
 ### Evaluation Dashboard
 
-If you want to test locally with the dashboard backend entrypoint, use `dashboard/backend/main.py`:
+To test locally with the dashboard backend, run `dashboard/backend/main.py`:
 
 ```bash
 cd dashboard/backend
@@ -212,7 +212,7 @@ PYTHONPATH=backend/synthetic-data-generator/src \
 python backend/cli/src/cli/generate_notes.py --type all --count 1
 ```
 
-Generated notes are saved to `data/input/` with corresponding manifests containing ground-truth PHI labels for evaluation.
+The generator saves notes to `data/input/` with manifests containing ground-truth PHI labels for evaluation.
 
 # Usage
 
@@ -290,33 +290,52 @@ Generated notes are saved to `data/input/` with corresponding manifests containi
 
 # Costs
 
-The following costs are estimated based on AWS pricing as of February 2026. Actual costs will vary based on AWS region, note volume, note length, and model usage.
+The following costs are based on AWS pricing as of March 2026 and a test run of **1,277 clinical notes** processed at SQS concurrency of 10 (~60 notes/minute). Actual costs vary by AWS region, note length, and batch size.
 
 ## Estimated Monthly Recurring Costs
-Assumes less than 10,000 users processing 50,000 notes/month.
 
-| Service            | Estimated Cost | Notes                                                     |
-|:-------------------|:-----------------------------|:----------------------------------------------------------|
-| AWS Amplify        | ~$0     | Free tier covers most small deployments            |
-| Amazon Cognito     | ~$0     | Free tier covers first 10,000 MAUs                           |
-| Amazon S3          | <$1          | $0.023/GB a month                   |
-| Amazon SQS         | ~$0         | First 1 million requests free                                      |
-| AWS Lambda         | <$1     | Ingestion/worker/API invocations and duration             |
-| API Gateway        | <$1       | Based on request volume                   |
-| Amazon DynamoDB    | <$1    | Minimal to track read/write activity                           |
-| Amazon CloudWatch  | ~$0  | Free tier includes logging and metrics                        |
-| **Total Baseline** | **$0-$5/month** | Excludes variable Bedrock inference spend               |
+Assumes fewer than 10,000 users processing 50,000 notes/month.
 
-## Per-Run / Per-Query Model Costs (Amazon Bedrock)
+| Service            | Estimated Cost | Notes                                            |
+|:-------------------|:---------------|:-------------------------------------------------|
+| AWS Amplify        | ~$0            | Free tier covers most small deployments          |
+| Amazon Cognito     | ~$0            | Free tier covers first 10,000 MAUs               |
+| Amazon S3          | <$1            | $0.023/GB per month                              |
+| Amazon SQS         | ~$0            | First 1 million requests free                    |
+| AWS Lambda         | <$1            | Ingestion/worker/API invocations and duration    |
+| API Gateway        | <$1            | Based on request volume                          |
+| Amazon DynamoDB    | <$1            | Minimal read/write activity                      |
+| Amazon CloudWatch  | ~$0            | Free tier includes logging and metrics           |
+| **Total Baseline** | **$0–$5/month**| Excludes variable Bedrock inference spend        |
 
-Each processing run incurs Bedrock charges based on token usage. This is estimating that each note is around 1,000 input and output tokens.
+## Per-Note Model Costs (Amazon Bedrock)
 
-| Model                      | Estimated Usage | Estimated Cost |
-|:---------------------------|:-------------------------------|:-----------------------------|
-| Claude Sonnet 4.5 (input)  | ~1,000 tokens       | ~$0.003      |
-| Claude Sonnet 4.5 (output) | ~1,000 tokens      | ~$0.015      |
-| **Total per Note**          | **~2,000 tokens**       | **~$0.018**   |
-| **Total per 1,000 Notes**          | **~2,000,000 tokens**       | **~$18.00**   |
+Costs below reflect a test run of 1,277 notes using Claude Sonnet 4.5. Token counts vary by note length; these are observed averages.
+
+| Component                  | Avg Tokens/Note | Cost per Note |
+|:---------------------------|----------------:|--------------:|
+| Input (non-cached)         | ~2,750          | $0.0083       |
+| Input (cached)             | ~1,050          | $0.0003       |
+| Cache write                | ~5              | <$0.0001      |
+| Output                     | ~650            | $0.0098       |
+| **Total per Note**         | **~4,455**      | **~$0.018**   |
+
+### Batch Cost Examples
+
+| Batch Size   | Estimated Cost | Notes                                    |
+|:-------------|---------------:|:-----------------------------------------|
+| 100 notes    | ~$1.80         | Minimal cache benefit                    |
+| 1,000 notes  | ~$18.00        | Cache warming reduces cost               |
+| 10,000 notes | ~$150–$170     | Higher cache hit rate reduces input cost |
+
+### How Prompt Caching Reduces Cost
+
+Amazon Bedrock caches repeated prompt content (system instructions, few-shot examples) across requests within a batch. In our 1,277-note test run:
+
+- **Cache hit rate**: 27.6%
+- **Savings from caching**: $3.63 (13% reduction vs. no caching)
+
+Larger batches benefit more from caching because the system prompt is reused across more notes. A batch of 10,000 notes will see a higher cache hit rate—and lower per-note cost—than a batch of 100.
 
 # Credits
 

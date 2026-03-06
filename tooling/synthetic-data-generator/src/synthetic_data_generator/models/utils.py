@@ -1,3 +1,5 @@
+"""Utility functions for model operations."""
+
 from .note_models import NoteType
 
 

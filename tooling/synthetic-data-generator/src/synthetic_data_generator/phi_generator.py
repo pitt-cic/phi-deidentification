@@ -49,7 +49,8 @@ class PHIGenerator:
         """Generate a first name."""
         return self.fake.first_name()
 
-    def generate_middle_name(self):
+    def generate_middle_name(self) -> str:
+        """Generate a middle name."""
         return self.fake.middle_name()
 
     def generate_last_name(self) -> str:
@@ -65,9 +66,9 @@ class PHIGenerator:
 
     @staticmethod
     def generate_gender() -> Literal["male", "female", "non_binary"]:
+        """Generate a random gender."""
         return random.choice(["male", "female", "non_binary"])
 
-    # TODO: Leave out city or states
     def generate_address(self) -> str:
         """Generate a full street address in various formats."""
         # Randomly choose an address format
@@ -170,11 +171,6 @@ class PHIGenerator:
         except phonenumbers.phonenumberutil.NumberParseException:
             return phone_number
 
-
-    # def generate_simple_phone(self) -> str:
-    #     """Generate a simple phone number format."""
-    #     return f"{self.fake.random_int(200, 999)}-{self.fake.random_int(100, 999)}-{self.fake.random_int(1000, 9999)}"
-
     def generate_fax(self) -> str:
         """Generate a fax number."""
         return f"{self.fake.random_int(200, 999)}-{self.fake.random_int(100, 999)}-{self.fake.random_int(1000, 9999)}"
@@ -184,6 +180,7 @@ class PHIGenerator:
         return self.fake.email()
 
     def generate_email_domain(self) -> str:
+        """Generate an email domain name."""
         return self.fake.domain_name()
 
     def generate_ssn(self) -> str:
@@ -267,31 +264,6 @@ class PHIGenerator:
             Dictionary mapping PHI type to generated value
         """
         return {}
-        # generators = {
-        #     PHIType.NAME: self.generate_name,
-        #     PHIType.ADDRESS: self.generate_address,
-        #     PHIType.DATE: self.generate_date,
-        #     PHIType.PHONE: self.generate_simple_phone,
-        #     PHIType.FAX: self.generate_fax,
-        #     PHIType.EMAIL: self.generate_email,
-        #     PHIType.SSN: self.generate_ssn,
-        #     PHIType.MRN: self.generate_mrn,
-        #     PHIType.HEALTH_PLAN_ID: self.generate_health_plan_id,
-        #     PHIType.ACCOUNT_NUMBER: self.generate_account_number,
-        #     PHIType.LICENSE: self.generate_drivers_license,
-        #     PHIType.VEHICLE_ID: self.generate_vehicle_id,
-        #     PHIType.DEVICE_ID: self.generate_device_id,
-        #     PHIType.URL: self.generate_patient_portal_url,
-        #     PHIType.IP_ADDRESS: self.generate_ip_address,
-        # }
-        #
-        # result = {}
-        # for phi_type in phi_types:
-        #     if phi_type in generators:
-        #         value = generators[phi_type]()
-        #         result[phi_type] = PHIValue(phi_type=phi_type, value=value)
-        #
-        # return result
 
     def generate_patient_context(self) -> dict:
         """Generate a complete patient context for note generation."""

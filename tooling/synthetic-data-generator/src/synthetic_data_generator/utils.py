@@ -1,3 +1,5 @@
+"""General utility functions for file handling, S3 paths, and data formatting."""
+
 import glob
 import re
 from datetime import datetime
@@ -74,6 +76,7 @@ def list_local_files(path: str, pattern: str | None = None, limit: int | None = 
     return file_paths
 
 def round_and_to_str(value: float | int | str | None = None) -> str:
+    """Round a numeric value and convert to string, or return empty string if falsy."""
     if not value:
         return ''
     if isinstance(value, str):
@@ -82,22 +85,24 @@ def round_and_to_str(value: float | int | str | None = None) -> str:
     return str(round(value))
 
 def strip_digits(value: str | None) -> str:
+    """Remove all digits from a string."""
     if not value:
         return ''
     return re.sub(r'\d', '', value)
 
 def human_readable_datetime(date_str: str) -> str:
+    """Convert an ISO datetime string to a human-readable format."""
     if not date_str:
         return ''
     try:
         dt = datetime.fromisoformat(date_str)
         return dt.strftime("%Y-%m-%d, %I:%M %p")
-    # Return the original string if not a valid date
     except Exception:
         return date_str
 
 
 def should_include_in_llm_context(value, allow_zero_if_number_field: bool = False) -> bool:
+    """Determine if a value should be included in LLM context (non-empty, non-zero)."""
     if value is None:
         return False
     if isinstance(value, str) and not value.strip():

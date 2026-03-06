@@ -1,3 +1,5 @@
+"""Data models for clinical note generation and PHI tracking."""
+
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum

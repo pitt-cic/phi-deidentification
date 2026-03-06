@@ -379,22 +379,6 @@ class NoteGenerator:
         # Inject additional PHI not in Synthea
         context = self.phi_injector.inject(context)
 
-        # Add encounter-specific context
-        # encounters = context.get('encounters', [])
-        # if encounters:
-        #     # Validate encounter_index
-        #     if encounter_index < -1:
-        #         raise ValueError(f"encounter_index must be -1 or >= 0, got {encounter_index}")
-        #     if encounter_index >= len(encounters):
-        #         raise ValueError(f"encounter_index {encounter_index} out of range (0-{len(encounters)-1})")
-        #
-        #     enc = encounters[encounter_index]
-        #     context['current_encounter'] = enc
-        #     # Add encounter date in simple format
-        #     if enc.get('start_datetime'):
-        #         context['encounter_date'] = enc['start_datetime'][:10]
-        #         context['encounter_datetime'] = enc['start_datetime']
-
         return self._generate_note_internal(
             note_type=note_type,
             note_id=note_id,
@@ -507,8 +491,6 @@ Use the clinical context (conditions, procedures, medications) as-is, but replac
         }
         system_role = system_roles.get(note_type, "You are a clinical documentation specialist.")
 
-        # system_role = f"{system_role}. **IMPORTANT: DO NOT TRANSFORM the PHI context values (e.g., dates) given to you. Include it as given to you."
-
         # Generate note
         generated_content = self.bedrock.generate(
             prompt=prompt,
@@ -571,12 +553,6 @@ Use the clinical context (conditions, procedures, medications) as-is, but replac
         else:
             notes_dir = self.config.notes_dir
             manifests_dir = self.config.manifests_dir
-
-        # notes_dir = output_dir / self.config.notes_subdir
-        # manifests_dir = output_dir / self.config.manifests_subdir
-
-        # notes_dir.mkdir(parents=True, exist_ok=True)
-        # manifests_dir.mkdir(parents=True, exist_ok=True)
 
         # Save note content
         note_path = notes_dir / f"{note.note_id}.txt"

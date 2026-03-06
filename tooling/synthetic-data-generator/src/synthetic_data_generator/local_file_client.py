@@ -1,3 +1,5 @@
+"""Client for listing and filtering local files."""
+
 import glob
 from pathlib import Path
 

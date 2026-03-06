@@ -75,7 +75,6 @@ class PatientData:
     race: str = ""
     ethnicity: str = ""
     marital_status: str = ""
-    # birth_place: str = ""
     birth_city: str = ""
     birth_state: str = ""
     birth_country: str = ""
@@ -210,53 +209,16 @@ class PatientData:
 
         return "\n".join(lines)
 
-    """
-    def to_dict(self) -> dict:
-        return {
-            "id": self.id,
-            "mrn": self.mrn,
-            "ssn": self.ssn,
-            "drivers_license": self.drivers_license,
-            "passport": self.passport,
-            "first_name": self.first_name,
-            "last_name": self.last_name,
-            "full_name": self.full_name,
-            "prefix": self.prefix,
-            "gender": self.gender,
-            "birth_date": self.birth_date,
-            "age": self.age,
-            "deceased_date": self.deceased_date,
-            "phone": self.phone,
-            "address_line": self.address_line,
-            "city": self.city,
-            "state": self.state,
-            "zip_code": self.zip_code,
-            "country": self.country,
-            "full_address": self.full_address,
-            "race": self.race,
-            "ethnicity": self.ethnicity,
-            "marital_status": self.marital_status,
-            # "birth_place": self.birth_place,
-            "birth_city": self.birth_city,
-            "birth_state": self.birth_state,
-            "birth_country": self.birth_country,
-            "mothers_maiden_name": self.mothers_maiden_name,
-        }
-    """
 
 @dataclass
 class EncounterData:
     """Extracted encounter information."""
     id: str = ""
-    # type_code: str = ""
     type_display: str = ""
     encounter_class: str = ""
-    # reason_code: str = ""
     reason_display: str = ""
     start_datetime: str = ""
     end_datetime: str = ""
-    # provider_id: str = ""
-    # location_id: str = ""
     location_name: str = ""
     provider_name: str = ""
     primary_practitioner: str = ""

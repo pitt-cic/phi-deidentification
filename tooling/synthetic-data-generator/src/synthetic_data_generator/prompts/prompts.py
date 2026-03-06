@@ -1,3 +1,5 @@
+"""Prompt templates for generating various clinical note types."""
+
 DISCHARGE_SUMMARY_PROMPT = """
 Generate a realistic Hospital Discharge Summary using the following patient information. The note MUST include ALL the PHI values provided below naturally embedded in the clinical narrative. Do not use placeholders - use the exact values given.
 

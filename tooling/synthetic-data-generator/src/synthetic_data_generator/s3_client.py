@@ -1,3 +1,5 @@
+"""Client for interacting with Amazon S3 buckets."""
+
 import fnmatch
 from pathlib import Path
 
@@ -27,7 +29,20 @@ class S3Client:
             pattern: str | None = None,
             exclude_objects: list[str] | None = None,
             limit: int | None = None
-    ):
+    ) -> list[dict]:
+        """
+        List objects in an S3 bucket with optional filtering.
+
+        Args:
+            bucket: S3 bucket name
+            prefix: Key prefix to filter objects
+            pattern: Optional glob pattern to filter keys
+            exclude_objects: List of filenames to exclude
+            limit: Maximum number of objects to return
+
+        Returns:
+            List of dicts with bucket, key, and filename for each object
+        """
         objects = []
         paginator = self.client.get_paginator("list_objects_v2")
 

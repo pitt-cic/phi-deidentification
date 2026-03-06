@@ -428,20 +428,20 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--predictions-dir",
         type=Path,
-        default=Path("output-json"),
-        help="Directory containing prediction JSON files (default: output-json)",
+        default=Path("data/output-json"),
+        help="Directory containing prediction JSON files (default: data/output-json)",
     )
     parser.add_argument(
         "--manifests-dir",
         type=Path,
-        default=Path("synthetic_dataset/manifests"),
-        help="Directory containing ground truth manifest files (default: synthetic_dataset/manifests)",
+        default=Path("data/synthetic_data/manifests"),
+        help="Directory containing ground truth manifest files (default: data/synthetic_data/manifests)",
     )
     parser.add_argument(
         "--texts-dir",
         type=Path,
-        default=Path("synthetic_dataset/notes"),
-        help="Directory containing original text files for character lookup (default: synthetic_dataset/notes)",
+        default=Path("data/synthetic_data/notes"),
+        help="Directory containing original text files for character lookup (default: data/synthetic_data/notes)",
     )
     parser.add_argument(
         "-v", "--verbose",
@@ -557,7 +557,7 @@ def main() -> None:
     print_results(results)
     
     # Always save results to eval_results folder
-    eval_results_dir = Path("eval_results")
+    eval_results_dir = Path("data/eval_results")
     eval_results_dir.mkdir(parents=True, exist_ok=True)
     
     # Generate filename with timestamp

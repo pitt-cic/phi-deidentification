@@ -7,10 +7,10 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 import * as cdk from 'aws-cdk-lib';
-import { PiiDeidentificationStack } from '../lib/phi-deidentification-stack';
+import { PHIDeidentificationStack } from '../lib/phi-deidentification-stack';
 
 const app = new cdk.App();
-new PiiDeidentificationStack(app, 'PHIDeidentificationStack');
+new PHIDeidentificationStack(app, 'PHIDeidentificationStack');
 
 cdk.Tags.of(app).add('Project', 'PHI Deidentification');
 cdk.Tags.of(app).add('Purpose', process.env.PURPOSE || 'Demo');

@@ -38,7 +38,7 @@ const APP_NAME_LOWERCASE = 'phi-deidentification';
  * - Amplify hosting for frontend
  * - CloudWatch dashboards and alarms
  */
-export class PiiDeidentificationStack extends Stack {
+export class PHIDeidentificationStack extends Stack {
   private readonly backendRoot = path.join(__dirname, '../../backend');
   private readonly commonEnv: Record<string, string>;
 

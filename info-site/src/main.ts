@@ -18,7 +18,7 @@ function initScrollAnimations() {
     })
   }, { root: null, rootMargin: '0px 0px -100px 0px', threshold: 0.1 })
 
-  document.querySelectorAll('.section-header, .feature-card, .demo-panel, .tech-stack, .architecture-placeholder').forEach(el => {
+  document.querySelectorAll('.section-header, .feature-card, .demo-panel, .architecture-placeholder').forEach(el => {
     el.classList.add('fade-in-up')
     observer.observe(el)
   })
@@ -80,7 +80,7 @@ function initDemoAnimation() {
     })
   }
 
-  const demoSection = document.getElementById('demo')
+  const demoSection = document.getElementById('preview')
   if (demoSection) {
     const demoObserver = new IntersectionObserver((entries) => {
       entries.forEach(entry => {

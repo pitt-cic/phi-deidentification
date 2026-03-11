@@ -8,6 +8,15 @@ BUCKET_NAME = os.environ["BUCKET_NAME"]
 s3 = boto3.client("s3")
 
 DEFAULT_PAGE_SIZE = 50
+
+
+def _decode_text(data: bytes) -> str:
+    """Decode bytes to string, auto-detecting UTF-16 BOM."""
+    if data.startswith(b"\xff\xfe") or data.startswith(b"\xfe\xff"):
+        return data.decode("utf-16")
+    return data.decode("utf-8")
+
+
 APPROVED_SUFFIX = "_approved.txt"
 
 
@@ -95,7 +104,7 @@ def read_text(key: str) -> str | None:
     """
     try:
         resp = s3.get_object(Bucket=BUCKET_NAME, Key=key)
-        return resp["Body"].read().decode("utf-8")
+        return _decode_text(resp["Body"].read())
     except Exception:
         return None
 

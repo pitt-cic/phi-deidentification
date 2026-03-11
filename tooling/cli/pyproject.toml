@@ -18,6 +18,7 @@ analyze-fhir-bundle = "cli.analyze_bundle:main"
 get-unique-resource-types = "cli.get_unique_resource_types:main"
 analyze-logfire="cli.analyze_logfire:main"
 deidentification="cli.run_deidentification:main"
+evaluate-deidentification="cli.evaluate:main"
 
 [build-system]                                                                                                                  
 requires = ["hatchling"]                                                                                                        

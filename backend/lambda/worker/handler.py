@@ -80,6 +80,13 @@ def _float_env(name: str, default: float, minimum: float = 0.0) -> float:
         return default
 
 
+def _decode_text(data: bytes) -> str:
+    """Decode bytes to string, auto-detecting UTF-16 BOM."""
+    if data.startswith(b"\xff\xfe") or data.startswith(b"\xfe\xff"):
+        return data.decode("utf-16")
+    return data.decode("utf-8")
+
+
 MODEL_RETRY_MAX_ATTEMPTS = _int_env("MODEL_RETRY_MAX_ATTEMPTS", default=4)
 MODEL_RETRY_BASE_SECONDS = _float_env("MODEL_RETRY_BASE_SECONDS", default=1.0, minimum=0.1)
 MODEL_RETRY_MAX_SECONDS = _float_env("MODEL_RETRY_MAX_SECONDS", default=16.0, minimum=MODEL_RETRY_BASE_SECONDS)
@@ -249,7 +256,7 @@ def _process_record(record: SQSRecord) -> None:
         stem = filename.rsplit(".", 1)[0] if "." in filename else filename
 
         resp = s3_client.get_object(Bucket=BUCKET_NAME, Key=s3_key)
-        note_text = resp["Body"].read().decode("utf-8")
+        note_text = _decode_text(resp["Body"].read())
 
         detection = DetectionParameters()
         model_start = time.perf_counter()

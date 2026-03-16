@@ -28,6 +28,8 @@ export default function ReviewPage() {
   const {
     data: notePages,
     isLoading: notesLoading,
+    isError: notesError,
+    refetch: refetchNotes,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -40,17 +42,28 @@ export default function ReviewPage() {
     },
     initialPageParam: 0,
     enabled: !!batchId,
+    retry: 2,
+    staleTime: 30_000, // Don't refetch for 30s after successful load
+    refetchOnWindowFocus: false, // Prevent refetch race conditions during screenshare/tab switching
   })
 
-  const notes = notePages?.pages.flatMap(p => p.items) ?? []
+  const notes = notePages?.pages.flatMap(p => p?.items ?? []) ?? []
   const totalNotes = notePages?.pages[0]?.total ?? 0
 
   const selectedNoteId = noteId || notes[0]?.note_id
 
-  const { data: noteDetail, isLoading: noteLoading } = useQuery({
+  const {
+    data: noteDetail,
+    isLoading: noteLoading,
+    isError: noteError,
+    refetch: refetchNote,
+  } = useQuery({
     queryKey: ['note-detail', batchId, selectedNoteId],
     queryFn: () => getNote(batchId!, selectedNoteId!),
     enabled: !!batchId && !!selectedNoteId,
+    retry: 2,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
   })
 
   useEffect(() => {
@@ -192,11 +205,23 @@ export default function ReviewPage() {
             &larr; Back to Dashboard
           </Link>
           <h3 className="sidebar-title">{batchId}</h3>
-          <span className="note-count">{totalNotes > 0 ? `${totalNotes} notes` : '...'}</span>
+          <span className="note-count">
+            {notesLoading ? '...' : `${totalNotes} note${totalNotes !== 1 ? 's' : ''}`}
+          </span>
         </div>
         <div className="notes-list">
           {notesLoading ? (
             <div className="loading-state">Loading...</div>
+          ) : notesError ? (
+            <div className="error-state">
+              <p>Failed to load notes</p>
+              <button className="btn btn-sm" onClick={() => refetchNotes()}>Retry</button>
+            </div>
+          ) : notes.length === 0 ? (
+            <div className="empty-state">
+              <p>No notes found</p>
+              <button className="btn btn-sm" onClick={() => refetchNotes()}>Refresh</button>
+            </div>
           ) : (
             <>
               {notes.map((note: Note) => (
@@ -233,11 +258,19 @@ export default function ReviewPage() {
 
       <div className="review-main">
         {!selectedNoteId ? (
-          <div className="empty-state">Select a note from the sidebar</div>
+          <div className="empty-state">
+            {notesLoading ? 'Loading notes...' :
+             notesError ? 'Failed to load notes. Use the Retry button in the sidebar.' :
+             notes.length === 0 ? 'No notes found in this batch.' :
+             'Select a note from the sidebar'}
+          </div>
         ) : noteLoading ? (
           <div className="loading-state">Loading note...</div>
-        ) : !noteDetail ? (
-          <div className="error-state">Failed to load note</div>
+        ) : noteError || !noteDetail ? (
+          <div className="error-state">
+            <p>Failed to load note</p>
+            <button className="btn btn-sm" onClick={() => refetchNote()}>Retry</button>
+          </div>
         ) : (
           <>
             <div className="review-toolbar">

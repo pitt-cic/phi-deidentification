@@ -159,6 +159,12 @@ a:hover {
   background: rgba(255, 255, 255, 0.01);
 }
 
+.error-state,
+.empty-state {
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
 .error-state {
   color: var(--accent-danger);
 }

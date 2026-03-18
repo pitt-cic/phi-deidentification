@@ -49,8 +49,38 @@ export default function ReviewPage() {
 
   const notes = notePages?.pages.flatMap(p => p?.items ?? []) ?? []
   const totalNotes = notePages?.pages[0]?.total ?? 0
+  const firstNoteId = notePages?.pages[0]?.items?.[0]?.note_id
 
-  const selectedNoteId = noteId || notes[0]?.note_id
+  const selectedNoteId = noteId || firstNoteId
+
+  // Prefetch first note detail as soon as notes list loads (avoids render cycle delay)
+  useEffect(() => {
+    if (batchId && firstNoteId && !noteId) {
+      queryClient.prefetchQuery({
+        queryKey: ['note-detail', batchId, firstNoteId],
+        queryFn: () => getNote(batchId, firstNoteId),
+        staleTime: 30_000,
+      })
+    }
+  }, [batchId, firstNoteId, noteId, queryClient])
+
+  const currentIdx = notes.findIndex(n => n.note_id === selectedNoteId)
+  const hasPrev = currentIdx > 0
+  const hasNext = currentIdx < notes.length - 1
+
+  // Prefetch adjacent notes for instant prev/next navigation
+  useEffect(() => {
+    if (!batchId || notes.length === 0 || currentIdx < 0) return
+    const prefetchNote = (id: string) => {
+      queryClient.prefetchQuery({
+        queryKey: ['note-detail', batchId, id],
+        queryFn: () => getNote(batchId, id),
+        staleTime: 30_000,
+      })
+    }
+    if (hasPrev) prefetchNote(notes[currentIdx - 1].note_id)
+    if (hasNext) prefetchNote(notes[currentIdx + 1].note_id)
+  }, [batchId, currentIdx, hasNext, hasPrev, notes, queryClient])
 
   const {
     data: noteDetail,
@@ -97,9 +127,6 @@ export default function ReviewPage() {
     },
   })
 
-  const currentIdx = notes.findIndex(n => n.note_id === selectedNoteId)
-  const hasPrev = currentIdx > 0
-  const hasNext = currentIdx < notes.length - 1
   const hasRedactedEdits = !!noteDetail && (
     normalizeRedactedForComparison(editableRedactedText)
     !== normalizeRedactedForComparison(noteDetail.redacted_text)

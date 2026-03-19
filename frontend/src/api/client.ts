@@ -155,7 +155,13 @@ export async function startBatch(batchId: string): Promise<{ status: string; bat
 export async function listNotes(batchId: string, limit = PAGE_SIZE, offset = 0): Promise<PaginatedResponse<Note>> {
   const data = await fetchApi<PaginatedResponse<Note> | Note[]>(`/batches/${batchId}/notes?limit=${limit}&offset=${offset}`)
   if (Array.isArray(data)) return { items: data, total: data.length, limit: data.length, offset: 0 }
-  return data
+  // Ensure response has required fields to prevent downstream errors
+  return {
+    items: Array.isArray(data?.items) ? data.items : [],
+    total: typeof data?.total === 'number' ? data.total : 0,
+    limit: typeof data?.limit === 'number' ? data.limit : limit,
+    offset: typeof data?.offset === 'number' ? data.offset : offset,
+  }
 }
 
 /** Fetches detailed note content and redaction */

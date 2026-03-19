@@ -12,7 +12,7 @@ from aws_lambda_powertools.utilities.batch import BatchProcessor, EventType, pro
 from aws_lambda_powertools.utilities.data_classes.sqs_event import SQSRecord
 
 from agent import AgentResponse, DetectionParameters
-from batch_stats import increment_batch_stats, set_partially_completed_status, set_completed_at_if_done, is_final_failure_attempt
+from batch_stats import increment_batch_stats, set_partially_completed_status, set_completed_at_if_done, is_final_failure_attempt, mark_note_processed
 from deidentification import process_document
 from deidentification.redaction import find_pii_positions, redact_text, RedactionResult
 
@@ -295,6 +295,10 @@ def _process_record(record: SQSRecord) -> None:
 
         # Increment stats in DynamoDB
         increment_batch_stats(batch_id, pii_dicts, logger=logger)
+
+        # Mark note as processed
+        mark_note_processed(batch_id, stem, logger=logger)
+
         set_completed_at_if_done(batch_id, logger=logger)
     except Exception:
         metrics.add_metric(name="DocumentFailure", unit=MetricUnit.Count, value=1)

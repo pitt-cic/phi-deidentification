@@ -3,6 +3,8 @@
 
 # Claude plans
 docs/plans
+docs/**/plans
+docs/**/specs
 
 # Claude MCPs
 .mcp.json

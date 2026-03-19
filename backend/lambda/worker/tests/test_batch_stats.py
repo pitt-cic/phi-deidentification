@@ -164,7 +164,7 @@ class TestSetPartiallyCompletedStatus:
 
             mock_table.update_item.assert_called_once()
             call_kwargs = mock_table.update_item.call_args.kwargs
-            assert call_kwargs["Key"] == {"batch_id": "batch-001"}
+            assert call_kwargs["Key"] == {"batch_id": "batch-001", "record_type": "BATCH"}
             assert "#status = :status" in call_kwargs["UpdateExpression"]
             assert "failed_at = if_not_exists(failed_at, :now)" in call_kwargs["UpdateExpression"]
             assert call_kwargs["ExpressionAttributeNames"]["#status"] == "status"
@@ -194,6 +194,51 @@ class TestSetCompletedAtIfDoneWithStatus:
 
             mock_table.update_item.assert_called_once()
             call_kwargs = mock_table.update_item.call_args.kwargs
+            assert call_kwargs["Key"] == {"batch_id": "batch-001", "record_type": "BATCH"}
             assert "#status = :status" in call_kwargs["UpdateExpression"]
             assert call_kwargs["ExpressionAttributeNames"]["#status"] == "status"
             assert call_kwargs["ExpressionAttributeValues"][":status"] == "completed"
+
+
+class TestMarkNoteProcessed:
+    """Tests for mark_note_processed function."""
+
+    def test_marks_note_processed(self):
+        """Test that mark_note_processed updates note with has_output=True."""
+        with patch.object(batch_stats, "STATS_TABLE_NAME", "test-table"), \
+             patch.object(batch_stats, "boto3") as mock_boto3:
+            batch_stats._stats_table = None
+            mock_table = MagicMock()
+            mock_boto3.resource.return_value.Table.return_value = mock_table
+
+            batch_stats.mark_note_processed("batch-001", "note-123")
+
+            mock_table.update_item.assert_called_once()
+            call_kwargs = mock_table.update_item.call_args.kwargs
+            assert call_kwargs["Key"] == {"batch_id": "batch-001", "record_type": "NOTE#note-123"}
+            assert call_kwargs["UpdateExpression"] == "SET has_output = :val"
+            assert call_kwargs["ExpressionAttributeValues"][":val"] is True
+
+    def test_does_nothing_without_table(self):
+        """Test that mark_note_processed does nothing when table not configured."""
+        batch_stats.STATS_TABLE_NAME = ""
+        batch_stats._stats_table = None
+
+        # Should not raise
+        batch_stats.mark_note_processed("batch-001", "note-123")
+
+    def test_logs_warning_on_error(self):
+        """Test that mark_note_processed logs warning on DynamoDB error."""
+        with patch.object(batch_stats, "STATS_TABLE_NAME", "test-table"), \
+             patch.object(batch_stats, "boto3") as mock_boto3:
+            batch_stats._stats_table = None
+            mock_table = MagicMock()
+            mock_table.update_item.side_effect = Exception("DynamoDB error")
+            mock_boto3.resource.return_value.Table.return_value = mock_table
+
+            mock_logger = MagicMock()
+            batch_stats.mark_note_processed("batch-001", "note-123", logger=mock_logger)
+
+            mock_logger.warning.assert_called_once()
+            call_args = mock_logger.warning.call_args[0]
+            assert "note-123" in call_args[1]

@@ -18,7 +18,7 @@ import time
 from aws_lambda_powertools import Logger, Metrics
 from aws_lambda_powertools.metrics import MetricUnit
 
-from batch_stats import initialize_batch_stats
+from batch_stats import initialize_batch_stats, write_note_metadata
 
 s3_client = boto3.client("s3")
 sqs_client = boto3.client("sqs")
@@ -28,6 +28,12 @@ QUEUE_URL = os.environ["QUEUE_URL"]
 
 metrics = Metrics(namespace="PIIDeidentification", service="ingestion")
 logger = Logger(service="phi_deidentification.ingestion")
+
+
+def extract_note_id(s3_key: str) -> str:
+    """Extract note ID from S3 key (filename without extension)."""
+    filename = s3_key.rsplit("/", 1)[-1]
+    return filename.rsplit(".", 1)[0] if "." in filename else filename
 
 
 @metrics.log_metrics
@@ -68,6 +74,11 @@ def handler(event, context):
 
     # Initialize stats record in DynamoDB
     initialize_batch_stats(batch_id, len(keys))
+
+    # Write note metadata for each note
+    for key in keys:
+        note_id = extract_note_id(key)
+        write_note_metadata(batch_id, note_id)
 
     # Enqueue files using SQS batch send (up to 10 per call)
     failed = 0

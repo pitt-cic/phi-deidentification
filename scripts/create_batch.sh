@@ -167,7 +167,7 @@ else
     --table-name "$STATS_TABLE" \
     --item "{
       \"batch_id\": {\"S\": \"$BATCH_ID\"},
-      \"gsi_pk\": {\"S\": \"BATCH\"},
+      \"record_type\": {\"S\": \"BATCH\"},
       \"status\": {\"S\": \"$STATUS\"},
       \"input_count\": {\"N\": \"$INPUT_COUNT\"},
       \"processed_count\": {\"N\": \"0\"},

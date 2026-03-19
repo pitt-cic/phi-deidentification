@@ -29,7 +29,7 @@ def build_initial_stats_item(batch_id: str, input_count: int) -> dict:
     return {
         # Core attributes
         "batch_id": batch_id,
-        "gsi_pk": "BATCH",
+        "record_type": "BATCH",
         "input_count": input_count,
         "processed_count": 0,
         "total_entities": 0,
@@ -71,7 +71,7 @@ def initialize_batch_stats(batch_id: str, input_count: int) -> None:
     try:
         stats_table.put_item(
             Item=item,
-            ConditionExpression="attribute_not_exists(batch_id)",
+            ConditionExpression="attribute_not_exists(batch_id) AND attribute_not_exists(record_type)",
         )
     except ClientError as e:
         if e.response["Error"]["Code"] != "ConditionalCheckFailedException":
@@ -80,7 +80,7 @@ def initialize_batch_stats(batch_id: str, input_count: int) -> None:
         # Preserves created_at and existing counters (defense against double-start)
         now = datetime.now(timezone.utc).isoformat()
         stats_table.update_item(
-            Key={"batch_id": batch_id},
+            Key={"batch_id": batch_id, "record_type": "BATCH"},
             UpdateExpression="SET #status = :status, started_at = :now, updated_at = :now, input_count = :input_count",
             ExpressionAttributeNames={"#status": "status"},
             ExpressionAttributeValues={
@@ -89,3 +89,26 @@ def initialize_batch_stats(batch_id: str, input_count: int) -> None:
                 ":input_count": input_count,
             },
         )
+
+
+def write_note_metadata(batch_id: str, note_id: str) -> None:
+    """Write initial note metadata record to DynamoDB."""
+    stats_table = _get_stats_table()
+    if not stats_table:
+        return
+
+    try:
+        stats_table.put_item(
+            Item={
+                "batch_id": batch_id,
+                "record_type": f"NOTE#{note_id}",
+                "note_id": note_id,
+                "has_output": False,
+                "approved": False,
+            },
+            ConditionExpression="attribute_not_exists(batch_id) AND attribute_not_exists(record_type)",
+        )
+    except ClientError as e:
+        if e.response["Error"]["Code"] != "ConditionalCheckFailedException":
+            raise
+        # Note already exists, ignore

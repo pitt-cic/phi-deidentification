@@ -1,6 +1,8 @@
 """Tests for API batch_stats module."""
 
+import base64
 import importlib.util
+import json
 import os
 import sys
 from datetime import datetime, timezone, timedelta
@@ -386,7 +388,7 @@ class TestSetProcessingStatusForRedrive:
 
         mock_table.update_item.assert_called_once()
         call_kwargs = mock_table.update_item.call_args.kwargs
-        assert call_kwargs["Key"] == {"batch_id": "batch-001"}
+        assert call_kwargs["Key"] == {"batch_id": "batch-001", "record_type": "BATCH"}
         assert "last_redrive_at = :now" in call_kwargs["UpdateExpression"]
         assert "#status = :status" in call_kwargs["UpdateExpression"]
         assert call_kwargs["ExpressionAttributeNames"]["#status"] == "status"
@@ -458,7 +460,7 @@ class TestListAllBatches:
         mock_table = MagicMock()
         mock_table.query.return_value = {
             "Items": [{"batch_id": "batch-001"}],
-            "LastEvaluatedKey": {"batch_id": "batch-001", "gsi_pk": "BATCH"},
+            "LastEvaluatedKey": {"batch_id": "batch-001", "record_type": "BATCH"},
         }
         mock_boto3.resource.return_value.Table.return_value = mock_table
 
@@ -624,3 +626,184 @@ class TestGetBatchStatsStatusOverride:
         result = batch_stats.get_batch_stats("batch-001")
 
         assert result["status"] == "completed"
+
+
+class TestListNotesFromDynamo:
+    """Tests for list_notes_from_dynamo function."""
+
+    def test_returns_empty_when_table_not_configured(self):
+        batch_stats.STATS_TABLE_NAME = ""
+        batch_stats._stats_table = None
+
+        result = batch_stats.list_notes_from_dynamo("test-batch", limit=50, cursor=None)
+
+        assert result == {"items": [], "next_cursor": None}
+
+    @patch.object(batch_stats, "STATS_TABLE_NAME", "test-table")
+    @patch.object(batch_stats, "boto3")
+    def test_queries_notes_with_correct_params(self, mock_boto3):
+        batch_stats._stats_table = None
+
+        mock_table = MagicMock()
+        mock_table.query.return_value = {"Items": []}
+        mock_boto3.resource.return_value.Table.return_value = mock_table
+
+        batch_stats.list_notes_from_dynamo("batch-001", limit=50, cursor=None)
+
+        mock_table.query.assert_called_once()
+        call_kwargs = mock_table.query.call_args.kwargs
+        assert call_kwargs["Limit"] == 50
+        assert "ExclusiveStartKey" not in call_kwargs
+
+    @patch.object(batch_stats, "STATS_TABLE_NAME", "test-table")
+    @patch.object(batch_stats, "boto3")
+    def test_returns_items_from_query(self, mock_boto3):
+        batch_stats._stats_table = None
+
+        mock_table = MagicMock()
+        mock_table.query.return_value = {
+            "Items": [
+                {
+                    "batch_id": "batch-001",
+                    "record_type": "NOTE#note-1",
+                    "note_id": "note-1",
+                    "has_output": True,
+                    "approved": False,
+                },
+                {
+                    "batch_id": "batch-001",
+                    "record_type": "NOTE#note-2",
+                    "note_id": "note-2",
+                    "has_output": True,
+                    "approved": True,
+                },
+            ]
+        }
+        mock_boto3.resource.return_value.Table.return_value = mock_table
+
+        result = batch_stats.list_notes_from_dynamo("batch-001", limit=50, cursor=None)
+
+        assert len(result["items"]) == 2
+        assert result["items"][0]["note_id"] == "note-1"
+        assert result["items"][0]["has_output"] is True
+        assert result["items"][0]["approved"] is False
+        assert result["items"][1]["note_id"] == "note-2"
+        assert result["items"][1]["approved"] is True
+        assert result["next_cursor"] is None
+
+    @patch.object(batch_stats, "STATS_TABLE_NAME", "test-table")
+    @patch.object(batch_stats, "boto3")
+    def test_returns_next_cursor_when_more_items(self, mock_boto3):
+        batch_stats._stats_table = None
+
+        mock_table = MagicMock()
+        mock_table.query.return_value = {
+            "Items": [{"batch_id": "batch-001", "record_type": "NOTE#note-1", "note_id": "note-1"}],
+            "LastEvaluatedKey": {"batch_id": "batch-001", "record_type": "NOTE#note-1"},
+        }
+        mock_boto3.resource.return_value.Table.return_value = mock_table
+
+        result = batch_stats.list_notes_from_dynamo("batch-001", limit=50, cursor=None)
+
+        assert result["next_cursor"] is not None
+
+    @patch.object(batch_stats, "STATS_TABLE_NAME", "test-table")
+    @patch.object(batch_stats, "boto3")
+    def test_handles_cursor_pagination(self, mock_boto3):
+        batch_stats._stats_table = None
+
+        mock_table = MagicMock()
+        mock_table.query.return_value = {"Items": []}
+        mock_boto3.resource.return_value.Table.return_value = mock_table
+
+        # Create a valid cursor
+        cursor = base64.b64encode(
+            json.dumps({"batch_id": "batch-001", "record_type": "NOTE#note-1"}).encode()
+        ).decode()
+
+        batch_stats.list_notes_from_dynamo("batch-001", limit=50, cursor=cursor)
+
+        call_kwargs = mock_table.query.call_args.kwargs
+        assert "ExclusiveStartKey" in call_kwargs
+        assert call_kwargs["ExclusiveStartKey"]["batch_id"] == "batch-001"
+        assert call_kwargs["ExclusiveStartKey"]["record_type"] == "NOTE#note-1"
+
+    @patch.object(batch_stats, "STATS_TABLE_NAME", "test-table")
+    @patch.object(batch_stats, "boto3")
+    def test_handles_invalid_cursor_gracefully(self, mock_boto3):
+        batch_stats._stats_table = None
+
+        mock_table = MagicMock()
+        mock_table.query.return_value = {"Items": []}
+        mock_boto3.resource.return_value.Table.return_value = mock_table
+
+        # Invalid cursor should be ignored
+        batch_stats.list_notes_from_dynamo("batch-001", limit=50, cursor="invalid-cursor")
+
+        call_kwargs = mock_table.query.call_args.kwargs
+        assert "ExclusiveStartKey" not in call_kwargs
+
+    @patch.object(batch_stats, "STATS_TABLE_NAME", "test-table")
+    @patch.object(batch_stats, "boto3")
+    def test_extracts_note_id_from_record_type_when_missing(self, mock_boto3):
+        """Test fallback when note_id attribute is missing."""
+        batch_stats._stats_table = None
+
+        mock_table = MagicMock()
+        mock_table.query.return_value = {
+            "Items": [
+                {
+                    "batch_id": "batch-001",
+                    "record_type": "NOTE#note-1",
+                    # note_id attribute missing
+                    "has_output": True,
+                    "approved": False,
+                },
+            ]
+        }
+        mock_boto3.resource.return_value.Table.return_value = mock_table
+
+        result = batch_stats.list_notes_from_dynamo("batch-001", limit=50, cursor=None)
+
+        assert len(result["items"]) == 1
+        assert result["items"][0]["note_id"] == "note-1"  # Extracted from record_type
+
+
+class TestUpdateNoteApprovedStatus:
+    """Tests for update_note_approved_status function."""
+
+    def test_does_nothing_when_table_not_configured(self):
+        batch_stats.STATS_TABLE_NAME = ""
+        batch_stats._stats_table = None
+
+        # Should not raise
+        batch_stats.update_note_approved_status("test-batch", "note-1", True)
+
+    @patch.object(batch_stats, "STATS_TABLE_NAME", "test-table")
+    @patch.object(batch_stats, "boto3")
+    def test_updates_note_approved_to_true(self, mock_boto3):
+        batch_stats._stats_table = None
+
+        mock_table = MagicMock()
+        mock_boto3.resource.return_value.Table.return_value = mock_table
+
+        batch_stats.update_note_approved_status("batch-001", "note-1", True)
+
+        mock_table.update_item.assert_called_once()
+        call_kwargs = mock_table.update_item.call_args.kwargs
+        assert call_kwargs["Key"] == {"batch_id": "batch-001", "record_type": "NOTE#note-1"}
+        assert call_kwargs["UpdateExpression"] == "SET approved = :val"
+        assert call_kwargs["ExpressionAttributeValues"][":val"] is True
+
+    @patch.object(batch_stats, "STATS_TABLE_NAME", "test-table")
+    @patch.object(batch_stats, "boto3")
+    def test_updates_note_approved_to_false(self, mock_boto3):
+        batch_stats._stats_table = None
+
+        mock_table = MagicMock()
+        mock_boto3.resource.return_value.Table.return_value = mock_table
+
+        batch_stats.update_note_approved_status("batch-001", "note-1", False)
+
+        call_kwargs = mock_table.update_item.call_args.kwargs
+        assert call_kwargs["ExpressionAttributeValues"][":val"] is False

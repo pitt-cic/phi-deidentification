@@ -64,7 +64,7 @@ def increment_batch_stats(batch_id: str, pii_entities: list[dict], logger=None) 
 
     try:
         stats_table.update_item(
-            Key={"batch_id": batch_id},
+            Key={"batch_id": batch_id, "record_type": "BATCH"},
             UpdateExpression=f"ADD {', '.join(add_parts)} SET updated_at = :now",
             ExpressionAttributeValues=expr_values,
         )
@@ -83,7 +83,7 @@ def set_partially_completed_status(batch_id: str, logger=None) -> None:
 
     try:
         stats_table.update_item(
-            Key={"batch_id": batch_id},
+            Key={"batch_id": batch_id, "record_type": "BATCH"},
             UpdateExpression="""
                 SET #status = :status,
                     updated_at = :now,
@@ -112,7 +112,7 @@ def set_completed_at_if_done(batch_id: str, logger=None) -> None:
         # Conditional update: only set completed_at if processed_count >= input_count
         # and completed_at is not already set
         stats_table.update_item(
-            Key={"batch_id": batch_id},
+            Key={"batch_id": batch_id, "record_type": "BATCH"},
             UpdateExpression="SET completed_at = :now, updated_at = :now, #status = :status",
             ConditionExpression="processed_count >= input_count AND attribute_not_exists(completed_at)",
             ExpressionAttributeNames={"#status": "status"},
@@ -131,3 +131,20 @@ def is_final_failure_attempt(receive_count: int, max_receive_count: int) -> bool
     Returns True on the final attempt (when message will go to DLQ next).
     """
     return receive_count >= max_receive_count
+
+
+def mark_note_processed(batch_id: str, note_id: str, logger=None) -> None:
+    """Update note metadata to indicate processing is complete."""
+    stats_table = _get_stats_table()
+    if not stats_table:
+        return
+
+    try:
+        stats_table.update_item(
+            Key={"batch_id": batch_id, "record_type": f"NOTE#{note_id}"},
+            UpdateExpression="SET has_output = :val",
+            ExpressionAttributeValues={":val": True},
+        )
+    except Exception as exc:
+        if logger:
+            logger.warning("Failed to mark note %s as processed: %s", note_id, exc)

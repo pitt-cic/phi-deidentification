@@ -98,7 +98,8 @@ class TestInitializeBatchStats:
         mock_table.put_item.assert_called_once()
         call_kwargs = mock_table.put_item.call_args[1]
         assert call_kwargs["Item"]["batch_id"] == "test-batch"
-        assert call_kwargs["ConditionExpression"] == "attribute_not_exists(batch_id)"
+        assert call_kwargs["Item"]["record_type"] == "BATCH"
+        assert call_kwargs["ConditionExpression"] == "attribute_not_exists(batch_id) AND attribute_not_exists(record_type)"
 
     @patch.object(batch_stats, "STATS_TABLE_NAME", "test-table")
     @patch.object(batch_stats, "boto3")
@@ -122,7 +123,7 @@ class TestInitializeBatchStats:
         # Should update instead
         mock_table.update_item.assert_called_once()
         call_kwargs = mock_table.update_item.call_args[1]
-        assert call_kwargs["Key"] == {"batch_id": "test-batch"}
+        assert call_kwargs["Key"] == {"batch_id": "test-batch", "record_type": "BATCH"}
         assert ":status" in call_kwargs["ExpressionAttributeValues"]
         assert call_kwargs["ExpressionAttributeValues"][":status"] == "processing"
         assert call_kwargs["ExpressionAttributeValues"][":input_count"] == 100
@@ -132,6 +133,12 @@ def test_build_initial_stats_item_includes_gsi_pk():
     """Test that gsi_pk is included for GSI."""
     item = batch_stats.build_initial_stats_item("batch-001", 10)
     assert item["gsi_pk"] == "BATCH"
+
+
+def test_build_initial_stats_item_includes_record_type():
+    """Test that record_type is included for composite key."""
+    item = batch_stats.build_initial_stats_item("batch-001", 10)
+    assert item["record_type"] == "BATCH"
 
 
 class TestBuildInitialStatsItemNoFailedCount:
@@ -144,3 +151,71 @@ class TestBuildInitialStatsItemNoFailedCount:
         assert "failed_count" not in item
         assert "completed_at" not in item  # Should not be set initially
         assert "failed_at" not in item  # Should not be set initially
+
+
+class TestWriteNoteMetadata:
+    """Tests for write_note_metadata function."""
+
+    @patch.dict(os.environ, {"STATS_TABLE_NAME": ""})
+    def test_does_nothing_when_table_name_not_set(self):
+        batch_stats.STATS_TABLE_NAME = ""
+        batch_stats._stats_table = None
+
+        # Should not raise
+        batch_stats.write_note_metadata("test-batch", "note-001")
+
+    @patch.object(batch_stats, "STATS_TABLE_NAME", "test-table")
+    @patch.object(batch_stats, "boto3")
+    def test_writes_note_metadata_item(self, mock_boto3):
+        batch_stats._stats_table = None
+
+        mock_table = MagicMock()
+        mock_boto3.resource.return_value.Table.return_value = mock_table
+
+        batch_stats.write_note_metadata("test-batch", "note-001")
+
+        mock_table.put_item.assert_called_once()
+        call_kwargs = mock_table.put_item.call_args[1]
+        assert call_kwargs["Item"]["batch_id"] == "test-batch"
+        assert call_kwargs["Item"]["record_type"] == "NOTE#note-001"
+        assert call_kwargs["Item"]["note_id"] == "note-001"
+        assert call_kwargs["Item"]["has_output"] is False
+        assert call_kwargs["Item"]["approved"] is False
+        assert call_kwargs["ConditionExpression"] == "attribute_not_exists(batch_id) AND attribute_not_exists(record_type)"
+
+    @patch.object(batch_stats, "STATS_TABLE_NAME", "test-table")
+    @patch.object(batch_stats, "boto3")
+    def test_ignores_conditional_check_failed_exception(self, mock_boto3):
+        """Note already exists, should be ignored gracefully."""
+        from botocore.exceptions import ClientError
+
+        batch_stats._stats_table = None
+
+        mock_table = MagicMock()
+        mock_boto3.resource.return_value.Table.return_value = mock_table
+
+        # put_item raises ConditionalCheckFailedException (note already exists)
+        error_response = {"Error": {"Code": "ConditionalCheckFailedException"}}
+        mock_table.put_item.side_effect = ClientError(error_response, "PutItem")
+
+        # Should not raise
+        batch_stats.write_note_metadata("test-batch", "note-001")
+
+    @patch.object(batch_stats, "STATS_TABLE_NAME", "test-table")
+    @patch.object(batch_stats, "boto3")
+    def test_raises_on_other_exceptions(self, mock_boto3):
+        """Non-ConditionalCheckFailedException errors should be raised."""
+        from botocore.exceptions import ClientError
+
+        batch_stats._stats_table = None
+
+        mock_table = MagicMock()
+        mock_boto3.resource.return_value.Table.return_value = mock_table
+
+        # put_item raises some other error
+        error_response = {"Error": {"Code": "SomeOtherError"}}
+        mock_table.put_item.side_effect = ClientError(error_response, "PutItem")
+
+        # Should raise
+        with pytest.raises(ClientError):
+            batch_stats.write_note_metadata("test-batch", "note-001")

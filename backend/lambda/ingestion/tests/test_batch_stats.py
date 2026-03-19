@@ -129,10 +129,10 @@ class TestInitializeBatchStats:
         assert call_kwargs["ExpressionAttributeValues"][":input_count"] == 100
 
 
-def test_build_initial_stats_item_includes_gsi_pk():
-    """Test that gsi_pk is included for GSI."""
+def test_build_initial_stats_item_includes_record_type():
+    """Test that record_type is included for GSI."""
     item = batch_stats.build_initial_stats_item("batch-001", 10)
-    assert item["gsi_pk"] == "BATCH"
+    assert item["record_type"] == "BATCH"
 
 
 def test_build_initial_stats_item_includes_record_type():

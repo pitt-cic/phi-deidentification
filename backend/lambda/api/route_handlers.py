@@ -437,6 +437,9 @@ def approve_all_notes(params: dict, body: dict, query: dict) -> tuple[int, dict]
         storage.delete_key(prior_approval_text_key(batch_id, note_id))
         storage.delete_key(legacy_approval_key(batch_id, note_id))
 
+        # Sync approved status to DynamoDB
+        update_note_approved_status(batch_id, note_id, True)
+
     # Update approval count: set to total required notes
     new_approved = len(required_note_ids)
     delta = new_approved - current_approved

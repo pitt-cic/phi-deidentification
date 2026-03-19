@@ -84,6 +84,10 @@ export class PHIDeidentificationStack extends Stack {
         name: 'batch_id',
         type: dynamodb.AttributeType.STRING,
       },
+      sortKey: {
+        name: 'record_type',
+        type: dynamodb.AttributeType.STRING,
+      },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy: RemovalPolicy.RETAIN,
       pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true },
@@ -93,7 +97,7 @@ export class PHIDeidentificationStack extends Stack {
     batchStatsTable.addGlobalSecondaryIndex({
       indexName: 'BatchesByCreatedAt',
       partitionKey: {
-        name: 'gsi_pk',
+        name: 'record_type',
         type: dynamodb.AttributeType.STRING,
       },
       sortKey: {

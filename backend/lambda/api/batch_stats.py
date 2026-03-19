@@ -60,7 +60,7 @@ def get_batch_stats(batch_id: str) -> dict | None:
     if not stats_table:
         return None
 
-    response = stats_table.get_item(Key={"batch_id": batch_id})
+    response = stats_table.get_item(Key={"batch_id": batch_id, "record_type": "BATCH"})
     stats = response.get("Item")
 
     if not stats:
@@ -143,7 +143,7 @@ def increment_approval_count(batch_id: str, delta: int) -> None:
 
     now = datetime.now(timezone.utc).isoformat()
     stats_table.update_item(
-        Key={"batch_id": batch_id},
+        Key={"batch_id": batch_id, "record_type": "BATCH"},
         UpdateExpression="ADD approved_count :delta SET updated_at = :now",
         ExpressionAttributeValues={":delta": delta, ":now": now},
     )
@@ -157,7 +157,7 @@ def set_processing_status_for_redrive(batch_id: str) -> None:
 
     now = datetime.now(timezone.utc).isoformat()
     stats_table.update_item(
-        Key={"batch_id": batch_id},
+        Key={"batch_id": batch_id, "record_type": "BATCH"},
         UpdateExpression="""
             SET last_redrive_at = :now,
                 #status = :status,
@@ -179,7 +179,7 @@ def set_approved_at(batch_id: str) -> None:
 
     now = datetime.now(timezone.utc).isoformat()
     stats_table.update_item(
-        Key={"batch_id": batch_id},
+        Key={"batch_id": batch_id, "record_type": "BATCH"},
         UpdateExpression="SET approved_at = :now, updated_at = :now",
         ExpressionAttributeValues={":now": now},
     )
@@ -202,7 +202,7 @@ def list_all_batches(limit: int, cursor: str | None) -> dict:
 
     query_params = {
         "IndexName": "BatchesByCreatedAt",
-        "KeyConditionExpression": Key("gsi_pk").eq("BATCH"),
+        "KeyConditionExpression": Key("record_type").eq("BATCH"),
         "ScanIndexForward": False,  # newest first
         "Limit": limit,
     }
@@ -226,3 +226,65 @@ def list_all_batches(limit: int, cursor: str | None) -> dict:
         ).decode()
 
     return {"items": items, "next_cursor": next_cursor}
+
+
+def list_notes_from_dynamo(batch_id: str, limit: int, cursor: str | None) -> dict:
+    """
+    List notes for a batch from DynamoDB with efficient pagination.
+
+    Args:
+        batch_id: The batch ID
+        limit: Maximum number of items to return
+        cursor: Base64-encoded LastEvaluatedKey for pagination
+
+    Returns:
+        dict with 'items' (list of note dicts) and 'next_cursor' (str or None)
+    """
+    stats_table = _get_stats_table()
+    if not stats_table:
+        return {"items": [], "next_cursor": None}
+
+    query_params = {
+        "KeyConditionExpression": Key("batch_id").eq(batch_id) & Key("record_type").begins_with("NOTE#"),
+        "Limit": limit,
+    }
+
+    if cursor:
+        try:
+            query_params["ExclusiveStartKey"] = json.loads(
+                base64.b64decode(cursor).decode()
+            )
+        except Exception:
+            pass  # Invalid cursor, ignore
+
+    response = stats_table.query(**query_params)
+
+    items = [
+        {
+            "note_id": item.get("note_id", item.get("record_type", "").replace("NOTE#", "")),
+            "has_output": item.get("has_output", False),
+            "approved": item.get("approved", False),
+        }
+        for item in response.get("Items", [])
+    ]
+
+    next_cursor = None
+    if "LastEvaluatedKey" in response:
+        next_cursor = base64.b64encode(
+            json.dumps(response["LastEvaluatedKey"]).encode()
+        ).decode()
+
+    return {"items": items, "next_cursor": next_cursor}
+
+
+def update_note_approved_status(batch_id: str, note_id: str, approved: bool) -> None:
+    """Update note's approved status in DynamoDB."""
+    stats_table = _get_stats_table()
+    if not stats_table:
+        return
+
+    stats_table.update_item(
+        Key={"batch_id": batch_id, "record_type": f"NOTE#{note_id}"},
+        UpdateExpression="SET approved = :val",
+        ExpressionAttributeValues={":val": approved},
+    )

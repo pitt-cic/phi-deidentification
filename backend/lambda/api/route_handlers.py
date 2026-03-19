@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 import boto3
 
 import storage
-from batch_stats import get_batch_stats, increment_approval_count, set_processing_status_for_redrive, set_approved_at, list_all_batches
+from batch_stats import get_batch_stats, increment_approval_count, set_processing_status_for_redrive, set_approved_at, list_all_batches, list_notes_from_dynamo, update_note_approved_status
 from api_logger import logger
 
 lambda_client = boto3.client("lambda")
@@ -277,26 +277,29 @@ def list_notes(params: dict, body: dict, query: dict) -> tuple[int, dict]:
     Args:
         params: URL path parameters (batch_id).
         body: Request body (unused).
-        query: Query parameters (limit, offset).
+        query: Query parameters (limit, offset, cursor).
 
     Returns:
         Tuple of (status_code, response_body) with paginated note list.
     """
     batch_id = params["batch_id"]
     limit, offset = storage.parse_pagination(query)
-    input_keys = storage.list_keys(f"{batch_id}/input/")
-    output_stems = {storage.stem(k).removesuffix("_redacted") for k in storage.list_keys(f"{batch_id}/output/", suffix="_redacted.txt")}
-    approved_stems = storage.list_approved_note_ids(batch_id)
-    notes = [
-        {
-            "note_id": storage.stem(key),
-            "filename": key.rsplit("/", 1)[-1],
-            "has_output": storage.stem(key) in output_stems,
-            "approved": storage.stem(key) in approved_stems,
-        }
-        for key in input_keys
-    ]
-    return 200, storage.paginate(notes, limit, offset)
+    cursor = query.get("cursor")
+
+    # Query DynamoDB for notes (O(page_size) instead of O(n))
+    result = list_notes_from_dynamo(batch_id, limit, cursor)
+
+    # Get total count from batch metadata
+    batch_stats = get_batch_stats(batch_id)
+    total = batch_stats.get("input_count", 0) if batch_stats else 0
+
+    return 200, {
+        "items": result["items"],
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "next_cursor": result["next_cursor"],
+    }
 
 
 def get_note(params: dict, body: dict, query: dict) -> tuple[int, dict]:
@@ -376,6 +379,9 @@ def approve_note(params: dict, body: dict, query: dict) -> tuple[int, dict]:
         storage.delete_key(approval_txt)
     storage.delete_key(prior_approval_txt)
     storage.delete_key(legacy_approval)
+
+    # Update note's approved status in DynamoDB
+    update_note_approved_status(batch_id, note_id, approved)
 
     # Update approval count in DynamoDB
     if approved and not was_previously_approved:
@@ -523,7 +529,7 @@ def redrive_dlq(params: dict, body: dict, query: dict) -> tuple[int, dict]:
         if stats_table:
             now = datetime.now(timezone.utc).isoformat()
             stats_table.update_item(
-                Key={"batch_id": batch_id},
+                Key={"batch_id": batch_id, "record_type": "BATCH"},
                 UpdateExpression="SET #status = :status, completed_at = if_not_exists(completed_at, :now), updated_at = :now",
                 ExpressionAttributeNames={"#status": "status"},
                 ExpressionAttributeValues={":status": "completed", ":now": now},
